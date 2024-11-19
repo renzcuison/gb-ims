@@ -1,0 +1,11 @@
+upon changing values (item name) it should be updated globally
+add multiple items/cruds in one process
+remove the functionality of adding another stock (duplicate) of the same item (/)
+add search and sort for items (/)
+add stock record (includes another table)
+fix paperwork
+change id to become more organized (10-1002 for exmaple)
+physical count - on hand - purchased
+add date when sold
+add quick edit to stock
+add search to stock in and out
