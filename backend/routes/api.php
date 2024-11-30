@@ -5,15 +5,48 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CATEGORIESController;
 use App\Http\Controllers\SUPPLIERSController;
 use App\Http\Controllers\ITEMSController;
-use App\Http\Controllers\INVENTORY_TRANSACTIONSController;
 use App\Http\Controllers\STOCKSController;
 use App\Http\Controllers\EMPLOYEESController;
 use App\Http\Controllers\CUSTOMERSController;
-use App\Http\Controllers\TRANSACTION_ITEMSController;
-use App\Models\Item;
+use App\http\Controllers\OrderController;
+use App\Http\Controllers\UserController;
+use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
+
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    Route::prefix('categories')->group(function () {
+        Route::post('/', [CATEGORIESController::class, 'store']);
+        Route::put('/{id}', [CATEGORIESController::class, 'update']);
+        Route::delete('/{id}', [CATEGORIESController::class, 'destroy']);
+    });
+
+    Route::prefix('users')->group(function () {
+        Route::get('/', [UserController::class, 'index']); 
+        Route::delete('/{id}', [UserController::class, 'destroy']); 
+    });
+});
+
+Route::prefix('users')->group(function () {
+    Route::post('/', [UserController::class, 'register']);  
+    Route::post('/login', [UserController::class, 'login']); 
+});
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
+});
+
+Route::middleware([EnsureFrontendRequestsAreStateful::class, 'auth:sanctum'])->get('/user', function (Request $request) {
+    return $request->user();
+});
+
+Route::post('/login', [UserController::class, 'login']);
+
+Route::prefix('users')->group(function () {
+Route::post('/', [UserController::class, 'register']); 
+Route::get('/', [UserController::class, 'index']);      
+Route::get('/{id}', [UserController::class, 'show']);    
+Route::put('/{id}', [UserController::class, 'update']);  
+Route::delete('/{id}', [UserController::class, 'destroy']); 
+
 });
 
 Route::get('categories', [CATEGORIESController::class, 'index']);
@@ -36,19 +69,11 @@ Route::delete('items/{id}', [ITEMSController::class, 'destroy']);
 Route::get('items/check-duplicate', function (Request $request) {
     $itemName = $request->query('name');
     if (!$itemName) {
-        return response()->json(['exists' => false], 400); 
+        return response()->json(['exists' => false], 400);
     }
     $exists = App\Models\Item::where('name', $itemName)->exists();
     return response()->json(['exists' => $exists]);
 });
-
-
-
-Route::get('inventory_transactions', [INVENTORY_TRANSACTIONSController::class, 'index']);
-Route::post('inventory_transactions', [INVENTORY_TRANSACTIONSController::class, 'store']);
-Route::get('inventory_transactions/{id}', [INVENTORY_TRANSACTIONSController::class, 'show']);
-Route::put('inventory_transactions/{id}', [INVENTORY_TRANSACTIONSController::class, 'update']);
-Route::delete('inventory_transactions/{id}', [INVENTORY_TRANSACTIONSController::class, 'destroy']);
 
 Route::get('stocks', [STOCKSController::class, 'index']);
 Route::post('stocks', [STOCKSController::class, 'store']);
@@ -68,9 +93,8 @@ Route::get('customers/{id}', [CUSTOMERSController::class, 'show']);
 Route::put('customers/{id}', [CUSTOMERSController::class, 'update']);
 Route::delete('customers/{id}', [CUSTOMERSController::class, 'destroy']);
 
-Route::get('transaction_items', [TRANSACTION_ITEMSController::class, 'index']);
-Route::post('transaction_items', [TRANSACTION_ITEMSController::class, 'store']);
-Route::get('transaction_items/{id}', [TRANSACTION_ITEMSController::class, 'show']);
-Route::put('transaction_items/{id}', [TRANSACTION_ITEMSController::class, 'update']);
-Route::delete('transaction_items/{id}', [TRANSACTION_ITEMSController::class, 'destroy']);
-Route::post('/inventory_transactions/{id}/items', [TRANSACTION_ITEMSController::class, 'attachItems']);
+Route::get('/orders', [OrderController::class, 'index']);
+Route::post('/orders', [OrderController::class, 'store']);
+Route::get('/orders/{id}', [OrderController::class, 'show']);
+Route::put('/orders/{id}', [OrderController::class, 'update']);
+Route::delete('/orders/{id}', [OrderController::class, 'destroy']);

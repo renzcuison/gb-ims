@@ -10,6 +10,7 @@ class Item extends Model
     use HasFactory;
 
     protected $fillable = [
+        'id',
         'name',
         'description',
         'category_id',
@@ -21,16 +22,10 @@ class Item extends Model
     {
         return $this->belongsTo(Category::class);
     }
+    public $incrementing = false;
 
     public function supplier()
     {
         return $this->belongsTo(Supplier::class);
-    }
-
-    public function inventoryTransactions()
-    {
-        return $this->belongsToMany(Inventory_Transaction::class, 'transaction_items')
-                    ->withPivot('quantity', 'unit_price')
-                    ->withTimestamps();
     }
 }

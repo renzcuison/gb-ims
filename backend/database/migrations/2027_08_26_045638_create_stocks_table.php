@@ -9,15 +9,15 @@ return new class extends Migration {
     {
         Schema::create('stocks', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('item_id'); 
-            $table->string('item_name'); 
+            $table->string('item_id');
+            $table->string('item_name');
             $table->integer('quantity');
-            $table->string('unit_of_measure')->default('piece'); 
-            $table->unsignedBigInteger('supplier_id'); 
-            $table->text('description')->nullable();  
+            $table->string('unit_of_measure')->default('piece');
+            $table->unsignedBigInteger('supplier_id');
+            $table->text('description')->nullable();
             $table->timestamp('time')->useCurrent();
 
-            $table->foreign('item_id')->references('id')->on('items')->onDelete('cascade');
+            $table->foreign(columns: 'item_id')->references('id')->on('items')->onDelete('cascade');
             $table->foreign('supplier_id')->references('id')->on('suppliers')->onDelete('cascade');
 
             $table->timestamps();

@@ -67,7 +67,6 @@
   </div>
 </template>
 
-
 <script>
 import axios from "axios";
 
@@ -99,7 +98,6 @@ export default {
   },
   methods: {
     checkDuplicate(itemName, index) {
-
       if (!itemName.trim()) {
         delete this.errorList[this.model.items[index].name];
         return;
@@ -212,7 +210,6 @@ export default {
   },
 };
 </script>
-
 
 <style>
 .is-invalid {

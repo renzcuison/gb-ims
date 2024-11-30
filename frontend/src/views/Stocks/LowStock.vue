@@ -46,12 +46,7 @@
 
         <div class="mb-3">
           <label for="supplier_name">Contact Person</label>
-          <input type="text" v-model="supplierName" class="form-control" disabled>
-        </div>
-
-        <div class="mb-3">
-          <label for="description">Description</label>
-          <textarea v-model="model.description" class="form-control"></textarea>
+          <input type="text" v-model="supplierName" class="form-control" disabled />
         </div>
 
         <RouterLink to="/stocks" class="btn btn-primary float-end">Back</RouterLink>
@@ -60,7 +55,6 @@
     </div>
   </div>
 </template>
-
 
 <script>
 import axios from 'axios';
@@ -72,7 +66,7 @@ export default {
       errorList: '',
       model: {
         item_id: '',
-        quantity: '1',
+        quantity: 1,
         unit_of_measure: '',
         supplier_id: '',
         description: ''
@@ -102,8 +96,6 @@ export default {
       axios.get(`http://localhost:8001/api/stocks/${stockId}`)
         .then((res) => {
           const stock = res.data.stock;
-          console.log('Fetched Stock:', stock);
-
           this.model.item_id = stock.item_id;
           this.model.unit_of_measure = stock.unit_of_measure;
           this.model.supplier_id = stock.supplier_id;
@@ -112,16 +104,8 @@ export default {
           const selectedItem = this.items.find(item => item.id === this.model.item_id);
           this.itemName = selectedItem ? selectedItem.name : '';
 
-          console.log('Suppliers List:', this.suppliers);
-
           const supplier = this.suppliers.find(supplier => supplier.id === this.model.supplier_id);
-          if (supplier) {
-            this.supplierName = supplier.contact_name;
-          } else {
-            this.supplierName = '';
-          }
-
-          console.log('Prefilled Supplier Name:', this.supplierName);
+          this.supplierName = supplier ? supplier.contact_name : '';
         })
         .catch((error) => {
           console.error('Error fetching stock:', error);
@@ -143,7 +127,6 @@ export default {
         axios.get('http://localhost:8001/api/suppliers')
           .then((res) => {
             this.suppliers = res.data.suppliers;
-            console.log('Fetched Suppliers:', this.suppliers);
             resolve();
           })
           .catch((error) => {
@@ -178,6 +161,20 @@ export default {
     },
 
     saveStock() {
+      if (!this.model.description) {
+        this.model.description = "No additional details provided";
+      }
+
+      this.timestamp = new Date().toLocaleString();
+
+      const newRemark = `IN ${this.timestamp} - RESUPPLY +${this.model.quantity} `;
+
+      const selectedItem = this.items.find(item => item.id === this.model.item_id);
+      if (!selectedItem) {
+        this.errorList = { item: ["Item not found"] };
+        return;
+      }
+
       axios.get('http://localhost:8001/api/stocks')
         .then((res) => {
           const existingStock = res.data.stocks.find(stock => stock.item_id === this.model.item_id);
@@ -185,13 +182,12 @@ export default {
           if (existingStock) {
             const updatedPayload = {
               item_id: this.model.item_id,
-              item_name: this.items.find(item => item.id === this.model.item_id)?.name || '',
+              item_name: selectedItem.name,
               quantity: existingStock.quantity + parseInt(this.model.quantity),
               unit_of_measure: this.model.unit_of_measure,
               supplier_id: this.model.supplier_id,
-              description: this.model.description,
+              description: existingStock.description ? `${existingStock.description}\n${newRemark}` : newRemark,
             };
-
 
             axios.put(`http://localhost:8001/api/stocks/${existingStock.id}`, updatedPayload)
               .then((updateRes) => {
@@ -202,15 +198,14 @@ export default {
               .catch((error) => {
                 console.error('Error updating stock:', error);
               });
-
           } else {
             const payload = {
               item_id: this.model.item_id,
-              item_name: this.items.find(item => item.id === this.model.item_id)?.name || '',
+              item_name: selectedItem.name,
               quantity: parseInt(this.model.quantity),
               unit_of_measure: this.model.unit_of_measure,
               supplier_id: this.model.supplier_id,
-              description: this.model.description,
+              description: newRemark,
             };
 
             axios.post('http://localhost:8001/api/stocks', payload)

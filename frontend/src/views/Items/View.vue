@@ -22,6 +22,7 @@
               <option value="alpha-desc">Alphabetical: Z-A</option>
               <option value="price-asc">Price: Low to High</option>
               <option value="price-desc">Price: High to Low</option>
+              <option value="all">View All</option>
             </select>
           </div>
         </div>
@@ -88,7 +89,7 @@ export default {
       filteredItems: [],
       searchQuery: "",
       searchBy: "id",
-      sortOption: "alpha-asc",
+      sortOption: "all",
     };
   },
   mounted() {
@@ -139,7 +140,9 @@ export default {
       }
 
       this.applySort();
+
     },
+
     applySort() {
       let sortedItems = [...this.filteredItems];
 
@@ -151,13 +154,30 @@ export default {
         sortedItems.sort((a, b) => a.price_per_unit - b.price_per_unit);
       } else if (this.sortOption === "price-desc") {
         sortedItems.sort((a, b) => b.price_per_unit - a.price_per_unit);
+      } else if (this.sortOption === "all") {
+        sortedItems = [...this.items];
+      }
+
+      if (this.searchQuery.trim()) {
+        const query = this.searchQuery.toLowerCase();
+        if (this.searchBy === "id") {
+          sortedItems = sortedItems.filter(item =>
+            item.id.toString().includes(query)
+          );
+        } else if (this.searchBy === "name") {
+          sortedItems = sortedItems.filter(item =>
+            item.name.toLowerCase().includes(query)
+          );
+        }
       }
 
       this.filteredItems = sortedItems;
     },
+
     applySearchAndSort() {
       this.filterItems();
     },
+
   },
 };
 </script>

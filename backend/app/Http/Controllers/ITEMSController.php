@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Item;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Carbon\Carbon;
 
 class ITEMSController extends Controller
 {
@@ -24,7 +25,6 @@ class ITEMSController extends Controller
             ], 404);
         }
     }
-
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -42,7 +42,20 @@ class ITEMSController extends Controller
             ], 422);
         }
 
+        $currentDate = Carbon::now()->format('my');
+        $lastItem = Item::where('id', 'like', "{$currentDate}%")
+            ->orderBy('id', 'desc')
+            ->first();
+
+        $newNumber = 1;
+        if ($lastItem) {
+            $lastNumber = (int) substr($lastItem->id, -3);
+            $newNumber = $lastNumber + 1;
+        }
+        $newID = $currentDate . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
+
         $item = Item::create([
+            'id' => $newID,
             'name' => $request->name,
             'description' => $request->description,
             'category_id' => $request->category_id,

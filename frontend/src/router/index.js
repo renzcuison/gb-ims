@@ -1,5 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+import LoginView from '../views/Login/View.vue'; 
+import RegisterView from '../views/Login/Create.vue'; 
+
 import ItemsView from '../views/Items/View.vue'
 import ItemsCreate from '../views/Items/Create.vue'
 import ItemsEdit from '../views/Items/Edit.vue'
@@ -29,10 +32,54 @@ import StocksIn from '../views/Stocks/In.vue'
 import StocksUncreate from '../views/Stocks/Uncreate.vue'
 import StocksLowStock from '../views/Stocks/LowStock.vue'
 
+import OrderView from '../views/Shops/View.vue';
+import OrderCreate from '../views/Order/Create.vue';
+import OrderEdit from '../views/Order/Edit.vue';
+
+import ShopView from '../views/Shops/ShopView.vue';
+import ItemDetails from '../views/Shops/ItemDetails.vue';
+import Checkout from '../views/Shops/Checkout.vue';
+import OrderPage from '../views/Order/OrderPage.vue';
+
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-
+    {
+      path: '/',
+      redirect: '/login',
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: LoginView,
+    },
+    {
+      path: '/login/create',
+      name: 'create-login',
+      component: RegisterView,
+    },
+    {
+      path: '/shop', 
+      name: 'Shop',
+      component: ShopView,
+    },
+    {
+      path: '/checkout',
+      name: 'Checkout',
+      component: Checkout, 
+    },
+    {
+      path: '/order',
+      name: 'OrderPage',
+      component: OrderPage,
+    },
+    {
+      path: '/item/:id',
+      name: 'ItemDetails',
+      component: ItemDetails,
+      props: true,
+    },
     {
       path: '/items',
       name: 'items',
@@ -149,8 +196,37 @@ const router = createRouter({
       path: '/stocks/in',
       name: 'stocksIn',
       component: StocksIn
-    }
+    },
+    {
+      path: '/orders',
+      name: 'orders',
+      component: OrderView, 
+    },
+    {
+      path: '/orders/create',
+      name: 'orderCreate',
+      component: OrderCreate,
+    },
+    {
+      path: '/orders/:id/edit',
+      name: 'orderEdit',
+      component: OrderEdit, 
+    },
   ]
-})
+});
+
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = !!localStorage.getItem('authToken');
+  
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    next('/login'); 
+  } else {
+    if (to.path === '/login' && isAuthenticated) {
+      next('/items'); 
+    } else {
+      next(); 
+    }
+  }
+});
 
 export default router
