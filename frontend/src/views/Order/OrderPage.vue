@@ -2,7 +2,10 @@
     <div class="container mt-4">
       <div class="card mb-5">
         <div class="card-header bg-dark text-white d-flex align-items-center">
-          <button class="btn btn-light btn-sm me-3" @click="goBack">Back</button>
+          <RouterLink to="/shop" class="btn btn-light btn-sm me-3">
+            Back
+          </RouterLink>
+          
           <h4>Order Details</h4>
         </div>
         <div class="card-body">
@@ -93,9 +96,6 @@
     methods: {
       calculateTotalPrice(order) {
         return (order.quantity * order.item_price_per_unit).toFixed(2);
-      },
-      goBack() {
-        this.$router.go(-1);
       },
     },
   };

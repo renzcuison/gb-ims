@@ -4,8 +4,8 @@
       <div class="card-header">
         <h4>
           Stocks
-          <RouterLink to="/stocks/uncreate" class="btn btn-primary float-end">Out</RouterLink>
-          <RouterLink to="/stocks/in" class="btn btn-primary float-end me-2">In</RouterLink>
+          <RouterLink to="/stocks/uncreate" class="btn btn-primary float-end">Stock Out</RouterLink>
+          <RouterLink to="/stocks/in" class="btn btn-primary float-end me-2">Stock In</RouterLink>
         </h4>
       </div>
 

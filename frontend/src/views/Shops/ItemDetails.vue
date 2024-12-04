@@ -36,6 +36,13 @@
               <option v-for="size in sizeChart" :key="size.size">{{ size.size }}</option>
             </select>
           </div>
+          <div class="options">
+            <label for="colors">Colors</label>
+            <select id="colors">
+              <option value="" disabled selected>Choose a color</option>
+              <option v-for="color in colorOptions" :key="color">{{ color }}</option>
+            </select>
+          </div>
           <div class="actions">
             <div class="quantity-selector">
               <button class="quantity-btn" @click="decreaseQuantity">-</button>
@@ -82,6 +89,7 @@ export default {
         { size: "L", width: '22"', length: '29"' },
         { size: "XL", width: '23"', length: '30"' },
       ],
+      colorOptions: ["Red", "Blue", "Green", "Black", "White"],
       quantity: 1,
       items: [],
       cart: [],
@@ -186,7 +194,6 @@ export default {
           this.cart.push({ ...this.item, quantity: this.quantity });
         }
 
-        this.$router.push('/orders');
       } catch (error) {
         console.error('Error creating order:', error);
         alert('An error occurred while creating the order.');
@@ -343,6 +350,17 @@ export default {
 
 .options {
   margin: 20px 0;
+}
+
+.options select {
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #bdc3c7;
+  border-radius: 5px;
+  width: 100%;
+  max-width: 200px;
+  margin-top: 10px;
+  margin-left: 10px;
 }
 
 .actions {

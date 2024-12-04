@@ -169,7 +169,7 @@ export default {
 }
 
 .card-header {
-  background: linear-gradient(135deg, #2c3e50, #4ca1af);
+  background: #130757;;
   color: white;
   padding: 20px;
   font-size: 22px;
