@@ -1,0 +1,36 @@
+Finished 
+----------------------------------------------------------------------------------------------------
+Remove the functionality of adding another stock (duplicate) of the same item (/)
+Add search and sort for items (/)
+Change ID to become more organized (e.g., 10-1002) (/)
+Add date when sold (/)
+Fix quantity slider (/)
+When quantity is 0 should not be able to stock out (/)
+Cannot stock out quantity more than existing (/)
+Add no stock in view make it available in sorting (make it red and change alert to no stock) (/)
+Add Remarks also to IN (/)
+add quantity to stock out rmmark (/)
+make remark editable (/)
+Add clear to remark (/)
+Multiple stock in/out in one process (/)
+Add search to stock in and out (/)
+Add Return pending (/)
+----------------------------------------------------------------------------------------------------
+To Do
+----------------------------------------------------------------------------------------------------
+Upon changing values (item name), it should be updated globally
+Add physical count, on hand and purchased
+Fix paperwork
+serial number of each item available (sku)
+add different serial number for variaton (s m l xl)
+Return  
+----------------------------------------------------------------------------------------------------
+Consultation - 11/29/2024
+----------------------------------------------------------------------------------------------------
+SKU
+ITEM -> STOCKS
+ITEM PAGE - quantity
+STOCK PAGE - 
+USER MODULE - VALIDATION
+INTERACTION USER - ADMIN (REQUESTING RETURN)
+----------------------------------------------------------------------------------------------------
