@@ -30,7 +30,8 @@
       >
         <!-- Placeholder box for item image -->
         <div class="placeholder-image">No Image</div>
-        <p>{{ item.name }}</p>
+        <p>{{ item.item_name }}</p>
+        <p>Price: {{ item.price_per_unit }}</p>
       </div>
     </section>
   </div>
@@ -55,12 +56,12 @@ export default {
   methods: {
     async fetchItems() {
       try {
-        const response = await fetch('http://localhost:8001/api/items');
+        const response = await fetch('http://localhost:8001/api/stocks');
         if (!response.ok) {
           throw new Error('Failed to fetch items');
         }
         const data = await response.json();
-        this.items = data.items;
+        this.items = data.stocks;
       } catch (error) {
         console.error('Error fetching items:', error);
       }

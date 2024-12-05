@@ -45,7 +45,6 @@
               <span>INVENTORY</span>
             </button>
             <div v-if="dropdownVisible" class="dropdown-menu">
-              <RouterLink @click="closeDropdown" :to="{ path: '/items' }" class="dropdown-item">Items</RouterLink>
               <RouterLink @click="closeDropdown" :to="{ path: '/stocks' }" class="dropdown-item">Stocks</RouterLink>
               <RouterLink @click="closeDropdown" :to="{ path: '/suppliers' }" class="dropdown-item">Suppliers</RouterLink>
               <RouterLink @click="closeDropdown" :to="{ path: '/categories' }" class="dropdown-item">Category</RouterLink>

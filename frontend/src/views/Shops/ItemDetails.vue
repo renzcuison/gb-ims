@@ -25,7 +25,7 @@
         <div class="item-image"></div>
         <div class="item-info">
           <h1 class="item-title">{{ item.name }}</h1>
-          <p class="item-price">₱{{ item.price_per_unit }}</p>
+          <p class="item-price">₱{{ item.price }}</p>
           <div class="item-description">
             <p>{{ item.description }}</p>
           </div>
@@ -99,25 +99,48 @@ export default {
   methods: {
     async fetchItemDetails() {
       const itemId = this.$route.params.id;
+
+      // Validate that the itemId exists
+      if (!itemId) {
+        console.error("Item ID is missing");
+        return;
+      }
+
       try {
-        const response = await fetch(`http://localhost:8001/api/items/${itemId}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch item details');
-        }
+        // Fetch data from the API
+        const response = await fetch(`http://localhost:8001/api/stocks/${itemId}`);
+        
+        // Parse the JSON response
         const data = await response.json();
-        this.item = data.item;
+        console.log("API Response:", data);  // Log the full response
+        console.log("Stock Object:", data.stock);  // Log the stock object
+
+        // Check if the response contains the stock item data
+        if (!data || !data.stock) {
+          console.error("Item not found in the response");
+          return;
+        }
+
+        // Set the item data to the component's state
+        this.item = {
+          name: data.stock.item_name || 'No name available',
+          price: data.stock.price_per_unit || 'Price not available',
+          description: data.stock.description || 'No description available'
+        };
+
       } catch (error) {
         console.error('Error fetching item details:', error);
       }
     },
+
     async fetchItems() {
       try {
-        const response = await fetch('http://localhost:8001/api/items');
+        const response = await fetch('http://localhost:8001/api/stocks');
         if (!response.ok) {
           throw new Error('Failed to fetch items');
         }
         const data = await response.json();
-        this.items = data.items;
+        this.items = data.stocks;
       } catch (error) {
         console.error('Error fetching items:', error);
       }
@@ -137,7 +160,7 @@ export default {
       const orderData = [
         {
           item: {
-            name: this.item.name,
+            name: this.item.item_name,
             id: this.item.id,
           },
           quantity: this.quantity,
@@ -318,7 +341,7 @@ export default {
 .item-image {
   flex: 1;
   height: 400px;
-  background: linear-gradient(135deg, #3498db, #9b59b6);
+  background: linear-gradient(135deg, #11095c, #0a3992);
   border-radius: 12px;
 }
 
