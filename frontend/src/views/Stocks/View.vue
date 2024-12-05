@@ -63,19 +63,23 @@
           </thead>
           <tbody v-if="filteredStocks.length > 0">
             <tr v-for="(stock, index) in filteredStocks" :key="index" @click="selectRow(stock.id)" :class="{ 'selected-row': stock.id === selectedStockId }">
-              <td>{{ stock.id }}</td>
+              <td class="text-muted">{{ stock.id }}</td> 
               <td>
-                <div>
-                  <div @click="toggleSkuVisibility(stock)" style="cursor: pointer;">
-                    <strong>{{ stock.item_name }}</strong>
-                  </div>
-                  <div class="text-muted small">{{ getSupplierName(stock.supplier_id) }}</div>
-                  <div class="text-muted small">{{ stock.category ? stock.category.category_name : "N/A" }}</div>
-                  <div v-if="stock.showSkus" class="mt-2">
-                    <div v-if="stock.skus.length === 0" class="text-muted small">No SKUs available for this item.</div>
-                    <div v-for="sku in stock.skus" :key="sku.id" class="small">
-                      SKU: {{ sku.sku }}
-                    </div>
+                <div class="d-flex align-items-center">
+                  <strong>{{ stock.item_name }}</strong>
+                  <button class="btn btn-link btn-sm ms-2" @click.stop="toggleSkuVisibility(stock)">▼</button>
+                </div>
+                <div class="text-muted small">{{ getSupplierName(stock.supplier_id) }}</div>
+                <div class="text-muted small">{{ stock.category ? stock.category.category_name : "N/A" }}</div>
+                <div v-if="stock.showSkus" class="mt-2">
+                  <div v-if="stock.skus.length === 0" class="text-muted small">No SKUs available for this item.</div>
+                  <div v-else>
+                    <div class="text-muted small"><strong>SKU(s):</strong></div>
+                    <ul class="list-unstyled small">
+                      <li v-for="sku in stock.skus" :key="sku.id" class="d-flex justify-content-between">
+                        <span class="sku-text">{{ sku.sku }}</span>
+                      </li>
+                    </ul>
                   </div>
                 </div>
               </td>
@@ -94,10 +98,11 @@
                   <div>Sold: {{ stock.sold }}</div>
                 </div>
               </td>
-              <td>{{ stock.description }}</td>
-              <td>{{ stock.price_per_unit }}</td>
               <td>
-                <button v-if="stock.id === selectedStockId" type="button" @click="editStock(stock.id)" class="btn btn-primary me-2">Edit</button>
+                <div class="description">{{ stock.description }}</div></td>
+              <td>{{ formatPrice(stock.price_per_unit) }}</td>
+              <td>
+                <button v-if="stock.id === selectedStockId" type="button" @click="editStock(stock.id)" class="btn btn-success me-2">Edit</button>
                 <button v-if="stock.id === selectedStockId" type="button" @click="deleteStock(stock.id)" class="btn btn-danger">Delete</button>
               </td>
             </tr>
@@ -115,7 +120,7 @@
 </template>
 
 <script>
-import axios from 'axios'
+import axios from 'axios'; 
 
 export default {
   name: 'StocksView',
@@ -139,22 +144,22 @@ export default {
   },
   methods: {
     selectRow(stockId) {
-    this.selectedStockId = this.selectedStockId === stockId ? null : stockId;
+      this.selectedStockId = this.selectedStockId === stockId ? null : stockId;
     },
     deleteStock(stockId) {
-    const confirmDelete = confirm('Are you sure you want to delete this stock item?');
-    if (confirmDelete) {
-      axios.delete(`http://localhost:8001/api/stocks/${stockId}`)
-        .then(res => {
-          this.getStocks(); // Refresh the stock list
-          alert('Stock item deleted successfully.');
-        })
-        .catch(error => {
-          console.error('Error deleting stock:', error);
-          alert('Failed to delete the stock item.');
-        });
-    }
-  },
+      const confirmDelete = confirm('Are you sure you want to delete this stock item?');
+      if (confirmDelete) {
+        axios.delete(`http://localhost:8001/api/stocks/${stockId}`)
+          .then(res => {
+            this.getStocks(); 
+            alert('Stock item deleted successfully.');
+          })
+          .catch(error => {
+            console.error('Error deleting stock:', error);
+            alert('Failed to delete the stock item.');
+          });
+      }
+    },
     fetchSkus(stockId) {
       console.log(`Fetching SKUs for stock ID: ${stockId}`);
       
@@ -212,67 +217,58 @@ export default {
         this.filteredStocks = [...this.stocks]
       } else {
         if (this.searchBy === 'id') {
-          this.filteredStocks = this.stocks.filter(stock => stock.item_id.toString().includes(query))
+          this.filteredStocks = this.stocks.filter(stock => stock.id.toString().includes(query))
         } else if (this.searchBy === 'name') {
           this.filteredStocks = this.stocks.filter(stock => stock.item_name.toLowerCase().includes(query))
         }
       }
 
-      this.applySort()
+      this.applySort();
     },
 
     toggleSkuVisibility(stock) {
       stock.showSkus = !stock.showSkus;
-      if (stock.showSkus) {
-        this.fetchSkus(stock.id); 
+      if (stock.showSkus && !stock.skus.length) {
+        this.fetchSkus(stock.id);
       }
     },
 
     applySort() {
-      let sortedStocks = [...this.filteredStocks]
-
-      if (this.sortOption === 'low-stock') {
-        sortedStocks = sortedStocks.filter(stock => stock.on_hand < 5 || stock.on_hand == 0)
-      } else if (this.sortOption === 'date-desc') {
-        sortedStocks.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-      } else if (this.sortOption === 'date-asc') {
-        sortedStocks.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-      } else if (this.sortOption === 'alpha-asc') {
-        sortedStocks.sort((a, b) => a.item_name.localeCompare(b.item_name))
-      } else if (this.sortOption === 'alpha-desc') {
-        sortedStocks.sort((a, b) => b.item_name.localeCompare(a.item_name))
-      } else if (this.sortOption === 'quantity-asc') {
-        sortedStocks.sort((a, b) => a.quantity - b.quantity)
-      } else if (this.sortOption === 'quantity-desc') {
-        sortedStocks.sort((a, b) => b.quantity - a.quantity)
-      } else if (this.sortOption === 'price-asc') {
-        sortedStocks.sort((a, b) => a.price_per_unit - b.price_per_unit)
-      } else if (this.sortOption === 'price-desc') {
-        sortedStocks.sort((a, b) => b.price_per_unit - a.price_per_unit)
+      switch (this.sortOption) {
+        case 'alpha-asc':
+          this.filteredStocks.sort((a, b) => a.item_name.localeCompare(b.item_name));
+          break;
+        case 'alpha-desc':
+          this.filteredStocks.sort((a, b) => b.item_name.localeCompare(a.item_name));
+          break;
+        case 'date-desc':
+          this.filteredStocks.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          break;
+        case 'date-asc':
+          this.filteredStocks.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+          break;
+        case 'quantity-asc':
+          this.filteredStocks.sort((a, b) => a.on_hand - b.on_hand);
+          break;
+        case 'quantity-desc':
+          this.filteredStocks.sort((a, b) => b.on_hand - a.on_hand);
+          break;
+        case 'price-asc':
+          this.filteredStocks.sort((a, b) => a.price_per_unit - b.price_per_unit);
+          break;
+        case 'price-desc':
+          this.filteredStocks.sort((a, b) => b.price_per_unit - a.price_per_unit);
+          break;
+        case 'low-stock':
+          this.filteredStocks = this.filteredStocks.filter(stock => stock.on_hand < 5);
+          break;
+        default:
+          break;
       }
-
-      this.filteredStocks = sortedStocks
     },
 
-    applySearchAndSort() {
-      this.filterStocks()
-      this.applySort()
-    },
-
-    deleteStock(stockId) {
-      const confirmDelete = confirm('Are you sure you want to delete this stock item?')
-
-      if (confirmDelete) {
-        axios.delete(`http://localhost:8001/api/stocks/${stockId}`)
-          .then(res => {
-            this.getStocks() // Re-fetch the list of stocks
-            alert('Stock item deleted successfully.')
-          })
-          .catch(error => {
-            console.error('Error deleting stock:', error)
-            alert('Failed to delete the stock item.')
-          })
-      }
+    formatPrice(price) {
+      return `₱${price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
     },
   }
 }
@@ -331,8 +327,43 @@ export default {
 }
 
 .selected-row {
-  background-color: #f0f8ff; /* Light blue highlight */
+  background-color: #d1e7ff; 
+  font-weight: bold; 
+  border-left: 4px solid #e7d837; 
+  cursor: pointer; 
+}
+
+.text-muted {
+  font-size: 12px;
+}
+
+.btn-link {
+  padding: 0;
+  font-size: 12px;
   cursor: pointer;
+}
+
+.btn-success {
+  background-color: green;
+  border-color: green;
+}
+
+.description {
+  color: grey;
+  font-size: 12px;
+}
+
+.sku-text {
+  font-size: 12px;
+}
+
+.sku-list li {
+  margin-bottom: 5px;
+}
+
+
+.sku-list .text-muted {
+  font-size: 11px; 
 }
 
 </style>
