@@ -40,39 +40,41 @@
           <div class="nav-card dropdown">
             <button @click="toggleDropdown" class="dropdown-btn">
               <div>
-                <img src="/src/assets/warehouse.png" alt="Warehouse Icon" class="icon-image"/>
+                <img src="/src/assets/warehouse.png" alt="Warehouse Icon" class="icon-image" />
               </div>
               <span>INVENTORY</span>
             </button>
             <div v-if="dropdownVisible" class="dropdown-menu">
               <RouterLink @click="closeDropdown" :to="{ path: '/items' }" class="dropdown-item">Items</RouterLink>
               <RouterLink @click="closeDropdown" :to="{ path: '/stocks' }" class="dropdown-item">Stocks</RouterLink>
-              <RouterLink @click="closeDropdown" :to="{ path: '/suppliers' }" class="dropdown-item">Suppliers</RouterLink>
-              <RouterLink @click="closeDropdown" :to="{ path: '/categories' }" class="dropdown-item">Category</RouterLink>
+              <RouterLink @click="closeDropdown" :to="{ path: '/suppliers' }" class="dropdown-item">Suppliers
+              </RouterLink>
+              <RouterLink @click="closeDropdown" :to="{ path: '/categories' }" class="dropdown-item">Category
+              </RouterLink>
             </div>
           </div>
           <!-- Other Nav Cards -->
           <RouterLink :to="{ path: '/customers' }" class="nav-card">
             <div>
-              <img src="/src/assets/rating.png" alt="customers" class="icon-image"/>
+              <img src="/src/assets/rating.png" alt="customers" class="icon-image" />
             </div>
             <span>CUSTOMERS</span>
           </RouterLink>
           <RouterLink :to="{ path: '/employees' }" class="nav-card">
             <div>
-              <img src="/src/assets/officer.png" alt="employees" class="icon-image"/>
+              <img src="/src/assets/officer.png" alt="employees" class="icon-image" />
             </div>
             <span>EMPLOYEES</span>
           </RouterLink>
           <RouterLink :to="{ path: '/order' }" class="nav-card">
             <div>
-              <img src="/src/assets/logistics.png" alt="orders" class="icon-image"/>
+              <img src="/src/assets/logistics.png" alt="orders" class="icon-image" />
             </div>
             <span>ORDERS</span>
           </RouterLink>
           <RouterLink :to="{ path: '/shop' }" class="nav-card">
             <div>
-              <img src="/src/assets/shopping.png" alt="shop" class="icon-image"/>
+              <img src="/src/assets/shopping.png" alt="shop" class="icon-image" />
             </div>
             <span>SHOP</span>
           </RouterLink>
@@ -90,7 +92,7 @@
 <script setup>
 import { RouterLink, RouterView } from 'vue-router';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import { faSignOutAlt} from '@fortawesome/free-solid-svg-icons';
+import { faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 import { ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -118,7 +120,7 @@ const closeDropdown = () => {
 const handleLogout = () => {
   localStorage.removeItem('authToken');
   router.push('/login');
-  closeHamburgerDropdown(); 
+  closeHamburgerDropdown();
 };
 
 const toggleHamburgerMenu = () => {
@@ -134,21 +136,24 @@ const toggleHamburgerMenu = () => {
   flex-direction: column;
   min-height: 100vh;
   background-color: #f5f5f5;
-  font-family:Verdana, Geneva, Tahoma, sans-serif;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 .brand-text {
-  text-decoration: none; 
-  color: white; 
-  font-size: 1.5rem; 
-  font-weight: normal; 
-  cursor: pointer; 
+  text-decoration: none;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: normal;
+  cursor: pointer;
 }
 
 .icon-image {
-  width: 40px; /* Set the desired width */
-  height: 40px; /* Set the desired height */
-  object-fit: contain; /* Ensures the image scales without distortion */
+  width: 40px;
+  /* Set the desired width */
+  height: 40px;
+  /* Set the desired height */
+  object-fit: contain;
+  /* Ensures the image scales without distortion */
 }
 
 /* Navbar (Top) */
@@ -170,35 +175,41 @@ const toggleHamburgerMenu = () => {
 }
 
 .brand-logo {
-  position: absolute; 
-  left: 50%; 
+  position: absolute;
+  left: 50%;
   transform: translateX(-50%);
   height: auto;
-  width: 80px; 
+  width: 80px;
   border-radius: 10%;
-  object-fit: cover; 
+  object-fit: cover;
 }
 
 .hamburger-menu {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  width: 30px; /* Width of the hamburger icon */
-  height: 20px; /* Height of the hamburger icon */
+  width: 30px;
+  /* Width of the hamburger icon */
+  height: 20px;
+  /* Height of the hamburger icon */
   cursor: pointer;
 }
 
 .hamburger-menu span {
   display: block;
-  height: 3px; /* Thickness of the lines */
-  background-color: white; /* Match the navbar's color scheme */
+  height: 3px;
+  /* Thickness of the lines */
+  background-color: white;
+  /* Match the navbar's color scheme */
   border-radius: 3px;
-  transition: all 0.3s ease; /* Smooth animation */
+  transition: all 0.3s ease;
+  /* Smooth animation */
 }
 
 /* Optional: Add a hover effect */
 .hamburger-menu:hover span {
-  background-color: #ccc; /* Change color on hover */
+  background-color: #ccc;
+  /* Change color on hover */
 }
 
 .hamburger-dropdown {
@@ -238,8 +249,10 @@ const toggleHamburgerMenu = () => {
   padding: 20px;
   text-align: left;
   flex-shrink: 0;
-  outline: 3px solid #0a3992; /* Adds an outline with a color */
-  outline-offset: -2px; /* Adjusts the distance between the element and its outline */
+  outline: 3px solid #0a3992;
+  /* Adds an outline with a color */
+  outline-offset: -2px;
+  /* Adjusts the distance between the element and its outline */
   box-shadow: 0px 6px 25px rgba(0, 0, 0, 0.2);
 }
 
@@ -278,7 +291,8 @@ const toggleHamburgerMenu = () => {
   gap: 20px;
   background-color: #11095c;
   padding: 20px 0;
-  flex-wrap: wrap; /* Allow cards to wrap on smaller screens */
+  flex-wrap: wrap;
+  /* Allow cards to wrap on smaller screens */
 }
 
 .nav-card {
@@ -297,7 +311,7 @@ const toggleHamburgerMenu = () => {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   margin-bottom: 15px;
   padding: 10px 15px;
-  gap: 15px; 
+  gap: 15px;
 }
 
 .nav-card:hover {
@@ -313,8 +327,10 @@ const toggleHamburgerMenu = () => {
 
 .card-icon {
   font-size: 2rem;
-  margin-bottom: 0; /* Remove bottom margin */
-  color: #11095c; /* Match your color scheme */
+  margin-bottom: 0;
+  /* Remove bottom margin */
+  color: #11095c;
+  /* Match your color scheme */
 }
 
 /* Dropdown Menu */
@@ -326,15 +342,18 @@ const toggleHamburgerMenu = () => {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 20px; /* Adds spacing between the icon and text */
-  padding: 10px 15px; /* Adds padding around the button content */
+  gap: 20px;
+  /* Adds spacing between the icon and text */
+  padding: 10px 15px;
+  /* Adds padding around the button content */
   font-size: 1rem;
   background-color: transparent;
   border: none;
   color: inherit;
   cursor: pointer;
   text-align: center;
-  width: 100%; /* Ensures the button spans the width of its container */
+  width: 100%;
+  /* Ensures the button spans the width of its container */
 }
 
 .dropdown-menu {
@@ -388,16 +407,20 @@ const toggleHamburgerMenu = () => {
   }
 
   .horizontal-nav {
-    justify-content: center; /* Center nav cards on small screens */
-    gap: 15px; /* Reduce gap between cards on smaller screens */
+    justify-content: center;
+    /* Center nav cards on small screens */
+    gap: 15px;
+    /* Reduce gap between cards on smaller screens */
   }
 
   .nav-card {
-    width: 100px; /* Smaller size for small screens */
+    width: 100px;
+    /* Smaller size for small screens */
     height: 100px;
-    font-size: 0.9rem; /* Smaller font size */
+    font-size: 0.9rem;
+    /* Smaller font size */
   }
-  
+
   /* Ensure dropdown menu is centered */
   .dropdown-menu {
     width: 130px;

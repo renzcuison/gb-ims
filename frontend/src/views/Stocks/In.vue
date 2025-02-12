@@ -41,7 +41,7 @@
                 <small><strong>Contact:</strong> {{ stock.contact_name || 'Unknown' }}</small><br />
                 <small><strong>SKUs: </strong>
                   <span v-for="(sku, skuIndex) in stock.skus" :key="skuIndex">{{ sku }}{{ skuIndex < stock.skus.length -
-                      1 ? ', ' : '' }}</span>
+                    1 ? ', ' : '' }}</span>
                 </small>
               </div>
 
@@ -103,7 +103,11 @@ export default {
       axios
         .get('http://localhost:8001/api/stocks')
         .then((res) => {
-          this.items = res.data.stocks;
+          this.items = res.data.stocks.map(stock => ({
+            ...stock,
+            showTransactions: false,
+            transactions: []
+          }));
           this.filteredItems = [...this.items];
         })
         .catch((error) => console.error('Error fetching stocks:', error));
@@ -172,7 +176,7 @@ export default {
       const newQuantity = stock.quantity;
 
       if (newQuantity <= 0) {
-        stock.quantity = 1; 
+        stock.quantity = 1;
         return;
       }
 
@@ -214,43 +218,85 @@ export default {
 
     saveStock() {
       this.selectedItems.forEach((stock) => {
-      stock.physical_count = stock.physical_count || 0;
-      stock.on_hand = stock.on_hand || 0;
+        stock.physical_count = stock.physical_count || 0;
+        stock.on_hand = stock.on_hand || 0;
+        stock.physical_count += stock.quantity;
+        stock.on_hand += stock.quantity;
 
-      stock.physical_count += stock.quantity;
-      stock.on_hand += stock.quantity;
-
-      stock.skus = stock.skus.flatMap((sku) => {
-        if (sku.includes(',')) {
-          return sku.split(',').map((s) => s.trim());
-        }
-        return [sku];
-      });
-
-      const payload = {
-        ...stock, 
-        skus: stock.skus || [], 
-        physical_count: stock.physical_count,
-        on_hand: stock.on_hand,
-      };
-
-      delete payload.sku; 
-      console.log(`Payload for stock ID ${stock.stock_id}:`, payload);
-
-      axios
-        .put(`http://localhost:8001/api/stocks/${stock.stock_id}`, payload)
-        .then((response) => {
-          console.log(`Stock updated successfully for stock ID ${stock.stock_id}:`, response.data);
-          this.$router.push('/stocks');
-        })
-        .catch((error) => {
-          console.error(
-            `Error updating stock for stock ID ${stock.stock_id}:`,
-            error.response ? error.response.data : error.message
-          );
+        stock.skus = stock.skus.flatMap((sku) => {
+          if (sku.includes(',')) {
+            return sku.split(',').map((s) => s.trim());
+          }
+          return [sku];
         });
-    });
-  },
+
+        stock.selectedSkus = stock.selectedSkus || [];
+
+        const details = stock.selectedSkus.map(sku => ({
+          stock_id: stock.stock_id,
+          sku: sku,
+          quantity: stock.quantity,
+        }));
+
+        console.log('selectedSkus before details:', stock.selectedSkus);
+        console.log('Details array:', details);
+
+        if (details.length === 0) {
+          console.error('Error: Details array is empty.');
+          return;
+        }
+
+        const payload = {
+          ...stock,
+          skus: stock.skus || [],
+          physical_count: stock.physical_count,
+          on_hand: stock.on_hand,
+          action: "stock-in",
+          reason: this.selectedReason,
+          quantity: stock.selectedSkus.length,
+          description: this.descriptionText,
+          transaction_type: "in",
+          details: details,
+        };
+
+        delete payload.sku;
+        console.log(`Payload for stock ID ${stock.stock_id}:`, payload);
+
+        axios.post(`http://localhost:8001/api/transactions`, payload)
+          .then((response) => {
+            console.log(`Stock-in processed for stock ID ${stock.stock_id}`, response.data);
+            return axios.put(`http://localhost:8001/api/stocks/${stock.stock_id}`, payload);
+          })
+          .then((response) => {
+            console.log(`Stock updated successfully for stock ID ${stock.stock_id}`, response.data);
+            this.$router.push('/stocks');
+          })
+          .catch((error) => {
+            console.error("Error processing stock-in:", error.response ? error.response.data : error.message);
+          });
+      });
+    },
+
+    toggleTransactionDetails(stock) {
+      if (!stock.showTransactions) {
+        this.fetchTransactions(stock.id);
+      }
+      stock.showTransactions = !stock.showTransactions;
+    },
+
+    fetchTransactions(stockId) {
+      const stock = this.items.find(s => s.id === stockId);
+      if (stock && !stock.transactions.length) {
+        axios
+          .get(`/api/transactions?stock_id=${stockId}`)
+          .then((response) => {
+            stock.transactions = response.data.transactions || [];
+          })
+          .catch((error) => {
+            console.error(`Failed to fetch transactions for stock ID ${stockId}:`, error);
+          });
+      }
+    }
 
   },
 };

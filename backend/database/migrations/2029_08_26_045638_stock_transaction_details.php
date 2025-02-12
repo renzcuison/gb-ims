@@ -7,18 +7,22 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up()
     {
-        Schema::create('skus', function (Blueprint $table) {
+        Schema::create('stock_transaction_details', function (Blueprint $table) {
             $table->id();
-            $table->string('sku');
+            $table->unsignedBigInteger('transaction_id');
             $table->string('stock_id');
+            $table->string('sku')->nullable();
+            $table->integer('quantity');
+            $table->decimal('price_per_unit', 10, 2);
             $table->timestamps();
 
+            $table->foreign('transaction_id')->references('id')->on('stock_transactions')->onDelete('cascade');
             $table->foreign('stock_id')->references('id')->on('stocks')->onDelete('cascade');
         });
     }
 
     public function down()
     {
-        Schema::dropIfExists('skus');
+        Schema::dropIfExists('stock_transaction_details');
     }
 };

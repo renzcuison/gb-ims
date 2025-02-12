@@ -109,44 +109,49 @@ export default {
 
   methods: {
     toggleSkuSelection(stock, sku) {
-    const skuIndex = stock.selectedSkus.indexOf(sku.sku);
+      const skuIndex = stock.selectedSkus.indexOf(sku.sku);
 
-    if (skuIndex !== -1) {
+      if (skuIndex !== -1) {
         stock.selectedSkus.splice(skuIndex, 1);
         console.log("Payload for DELETE SKU:", { stockId: stock.stock_id, skuId: sku.sku });
         this.removeSkuFromDatabase(stock.stock_id, sku.sku);
-    } else {
+      } else {
         stock.selectedSkus.push(sku.sku);
         console.log("Payload for ADD SKU:", { stockId: stock.stock_id, skuId: sku.sku });
-    }
+      }
     },
 
     removeSkuFromDatabase(stockId, skuId) {
-    if (!skuId || !stockId) {
+      if (!skuId || !stockId) {
         console.log("Missing SKU ID or Stock ID:", { skuId, stockId });
         return;
-    }
+      }
 
-    console.log(`Removing SKU ${skuId} from stock ID ${stockId}`);
+      console.log(`Removing SKU ${skuId} from stock ID ${stockId}`);
 
-    axios.delete(`http://localhost:8001/api/stocks/${stockId}/skus/${skuId}`)
+      axios.delete(`http://localhost:8001/api/stocks/${stockId}/skus/${skuId}`)
         .then(response => {
-            console.log(`Successfully removed SKU ${skuId} from stock ID ${stockId}`, response);
+          console.log(`Successfully removed SKU ${skuId} from stock ID ${stockId}`, response);
 
-            const stock = this.selectedItems.find(item => item.stock_id === stockId);
-            if (stock) {
-                stock.skus = stock.skus.filter(sku => sku.sku !== skuId);
-            }
+          const stock = this.selectedItems.find(item => item.stock_id === stockId);
+          if (stock) {
+            stock.skus = stock.skus.filter(sku => sku.sku !== skuId);
+          }
         })
         .catch(error => {
-            console.error(`Error removing SKU ${skuId} for stock ID ${stockId}:`, error);
+          console.error(`Error removing SKU ${skuId} for stock ID ${stockId}:`, error);
         });
     },
 
     fetchItems() {
-      axios.get('http://localhost:8001/api/stocks')
+      axios
+        .get('http://localhost:8001/api/stocks')
         .then((res) => {
-          this.items = res.data.stocks;
+          this.items = res.data.stocks.map(stock => ({
+            ...stock,
+            showTransactions: false,
+            transactions: []
+          }));
           this.filteredItems = [...this.items];
         })
         .catch((error) => console.error('Error fetching stocks:', error));
@@ -207,9 +212,9 @@ export default {
     },
 
     saveStock() {
-        this.selectedItems.forEach((stock) => {
-        const skusToRemove = stock.selectedSkus; 
-        const quantityToRemove = skusToRemove.length; 
+      this.selectedItems.forEach((stock) => {
+        const skusToRemove = stock.selectedSkus;
+        const quantityToRemove = skusToRemove.length;
 
         skusToRemove.forEach((sku) => {
           this.removeSkuFromDatabase(stock.stock_id, sku);
@@ -221,9 +226,9 @@ export default {
           category_id: stock.category_id,
           supplier_id: stock.supplier_id,
           unit_of_measure: stock.unit_of_measure,
-          physical_count: stock.physical_count, 
-          on_hand: Math.max(0, (stock.on_hand || 0) - quantityToRemove), 
-          sold: this.selectedReason === 'sold' ? (stock.sold || 0) + quantityToRemove : stock.sold, 
+          physical_count: stock.physical_count,
+          on_hand: Math.max(0, (stock.on_hand || 0) - quantityToRemove),
+          sold: this.selectedReason === 'sold' ? (stock.sold || 0) + quantityToRemove : stock.sold,
           price_per_unit: stock.price_per_unit,
           description: stock.description || 'No description',
         };
@@ -247,6 +252,27 @@ export default {
       return new Date(date).toLocaleDateString(undefined, options);
     }
   },
+
+  toggleTransactionDetails(stock) {
+    if (!stock.showTransactions) {
+      this.fetchTransactions(stock.id);
+    }
+    stock.showTransactions = !stock.showTransactions;
+  },
+
+  fetchTransactions(stockId) {
+    const stock = this.items.find(s => s.id === stockId);
+    if (stock && !stock.transactions.length) {
+      axios
+        .get(`/api/transactions?stock_id=${stockId}`)
+        .then((response) => {
+          stock.transactions = response.data.transactions || [];
+        })
+        .catch((error) => {
+          console.error(`Failed to fetch transactions for stock ID ${stockId}:`, error);
+        });
+    }
+  }
 };
 </script>
 

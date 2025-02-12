@@ -16,21 +16,11 @@
             <label for="item_name">
               <strong>STOCK #{{ index + 1 }}</strong>
             </label>
-            <input
-              type="text"
-              v-model="stock.item_name"
-              class="form-control"
-              :class="{ 'is-invalid': isDuplicate(stock.item_name, index) }"
-              placeholder="Item Name"
-            />
+            <input type="text" v-model="stock.item_name" class="form-control"
+              :class="{ 'is-invalid': isDuplicate(stock.item_name, index) }" placeholder="Item Name" />
             <div v-if="isDuplicate(stock.item_name, index)" class="text-danger">
               Duplicate item name.
             </div>
-          </div>
-
-          <div class="mb-3">
-            <label for="description">Description</label>
-            <input type="text" v-model="stock.description" class="form-control" placeholder="Description" />
           </div>
 
           <div class="mb-3">
@@ -55,11 +45,8 @@
 
           <div class="mb-3">
             <label for="unit_of_measure">Unit of Measure</label>
-            <select
-              v-model="stock.unit_of_measure"
-              @blur="checkDuplicate(stock.item_name, stock.unit_of_measure, index)"
-              class="form-select"
-            >
+            <select v-model="stock.unit_of_measure"
+              @blur="checkDuplicate(stock.item_name, stock.unit_of_measure, index)" class="form-select">
               <option value="" disabled selected></option>
               <option v-for="unit in units" :key="unit" :value="unit">{{ unit }}</option>
             </select>
@@ -67,31 +54,16 @@
 
           <div class="mb-3">
             <label for="price_per_unit">Price per Unit (₱)</label>
-            <input
-              type="text"
-              v-model="stock.price_per_unit"
-              @input="handlePriceInput($event, index)"
-              @blur="formatPrice(stock, index)"
-              class="form-control"
-              placeholder="Enter Price"
-            />
+            <input type="text" v-model="stock.price_per_unit" @input="handlePriceInput($event, index)"
+              @blur="formatPrice(stock, index)" class="form-control" placeholder="Enter Price" />
           </div>
 
-          <button
-            v-if="index === model.stocks.length - 1"
-            type="button"
-            @click="addStock"
-            class="btn btn-secondary me-3"
-          >
+          <button v-if="index === model.stocks.length - 1" type="button" @click="addStock"
+            class="btn btn-secondary me-3">
             Add Another Stock
           </button>
 
-          <button
-            v-if="index > 0"
-            type="button"
-            @click="removeStock(index)"
-            class="btn btn-danger"
-          >
+          <button v-if="index > 0" type="button" @click="removeStock(index)" class="btn btn-danger">
             Remove Stock
           </button>
         </div>
