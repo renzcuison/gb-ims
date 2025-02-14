@@ -8,40 +8,47 @@ use App\Http\Controllers\EMPLOYEESController;
 use App\Http\Controllers\CUSTOMERSController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\StockTransactionsController;
 use App\Http\Controllers\Auth\VerificationController;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 
 // Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
-    Route::prefix('categories')->group(function () {
-        Route::post('/', [CATEGORIESController::class, 'store']);
-        Route::put('/{id}', [CATEGORIESController::class, 'update']);
-        Route::delete('/{id}', [CATEGORIESController::class, 'destroy']);
-    });
+Route::prefix('categories')->group(function () {
+    Route::post('/', [CATEGORIESController::class, 'store']);
+    Route::put('/{id}', [CATEGORIESController::class, 'update']);
+    Route::delete('/{id}', [CATEGORIESController::class, 'destroy']);
+});
 
-    Route::prefix('users')->group(function () {
-        Route::get('/', [UserController::class, 'index']);
-        Route::delete('/{id}', [UserController::class, 'destroy']);
-    });
+Route::prefix('users')->group(function () {
+    Route::get('/', [UserController::class, 'index']);
+    Route::delete('/{id}', [UserController::class, 'destroy']);
+});
 
-    Route::prefix('suppliers')->group(function () { 
-        Route::post('/', [SUPPLIERSController::class, 'store']);
-        Route::put('/{id}', [SUPPLIERSController::class, 'update']);
-        Route::delete('/{id}', [SUPPLIERSController::class, 'destroy']);
-    });
+Route::prefix('suppliers')->group(function () {
+    Route::post('/', [SUPPLIERSController::class, 'store']);
+    Route::put('/{id}', [SUPPLIERSController::class, 'update']);
+    Route::delete('/{id}', [SUPPLIERSController::class, 'destroy']);
+});
 
-    Route::prefix('stocks')->group(function () {
-        Route::post('/', [STOCKSController::class, 'store']);
-        Route::put('/{id}', [STOCKSController::class, 'update']);
-        Route::delete('/{id}', [STOCKSController::class, 'destroy']);
-        Route::get('/', [STOCKSController::class, 'index']);
-        Route::get('/{id}', [STOCKSController::class, 'show']);
-        
-        Route::post('/{stockId}/skus', [STOCKSController::class, 'addSku']);
-        
-        Route::delete('/{stockId}/skus/{skuId}', [STOCKSController::class, 'removeSku']);
-    });
+Route::prefix('stocks')->group(function () {
+    Route::post('/', [STOCKSController::class, 'store']);
+    Route::put('/{id}', [STOCKSController::class, 'update']);
+    Route::delete('/{id}', [STOCKSController::class, 'destroy']);
+    Route::get('/', [STOCKSController::class, 'index']);
+    Route::get('/{id}', [STOCKSController::class, 'show']);
+
+    Route::post('/{stockId}/skus', [STOCKSController::class, 'addSku']);
+
+    Route::delete('/{stockId}/skus/{skuId}', [STOCKSController::class, 'removeSku']);
+});
+
+Route::prefix('transactions')->group(function () {
+    Route::post('/', [StockTransactionsController::class, 'createTransaction']);
+    Route::get('/{id}/receipt', [StockTransactionsController::class, 'getReceipt']);
+});
+
 // });
 
 Route::get('email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
@@ -49,11 +56,11 @@ Route::get('email/verify/{id}/{hash}', [VerificationController::class, 'verify']
     ->name('verification.verify');
 
 
-    Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
-        $request->fulfill();
-        return response()->json(['message' => 'Email verified successfully.']);
-    })->middleware(['auth:sanctum'])
-      ->name('verification.verify');
+Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+    $request->fulfill();
+    return response()->json(['message' => 'Email verified successfully.']);
+})->middleware(['auth:sanctum'])
+    ->name('verification.verify');
 
 Route::prefix('users')->group(function () {
     Route::post('/', [UserController::class, 'register']);
@@ -119,3 +126,6 @@ Route::post('/orders', [OrderController::class, 'store']);
 Route::get('/orders/{id}', [OrderController::class, 'show']);
 Route::put('/orders/{id}', [OrderController::class, 'update']);
 Route::delete('/orders/{id}', [OrderController::class, 'destroy']);
+
+Route::get('/transactions/stock/{id}', [StockTransactionsController::class, 'fetchTransactionsByStock']);
+
