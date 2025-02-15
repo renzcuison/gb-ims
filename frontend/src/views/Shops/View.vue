@@ -31,7 +31,7 @@
                   class="checkbox"
                 />
               </td>
-              <td>{{ order.item.name }}</td>
+              <td>{{ order.item ? order.item.name : 'Unknown' }}</td>
               <td>
                 <div class="quantity-controls">
                   <button
@@ -49,7 +49,7 @@
                   </button>
                 </div>
               </td>
-              <td>₱{{ order.item_price_per_unit }}</td>
+              <td>₱{{ order.item.price_per_unit }}</td>
               <td>₱{{ calculateTotalPrice(order) }}</td>
               <td>
                 <button

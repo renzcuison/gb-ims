@@ -3,26 +3,26 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
-use App\Models\Item;
+use App\Models\Stock;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
     public function index()
     {
-        $orders = Order::with('item')->get(); 
+        $orders = Order::with('stock')->get(); 
         return response()->json($orders);
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'item_id' => 'required|string|exists:items,id', 
+            'stock_id' => 'required|integer|exists:stocks,id', 
             'quantity' => 'required|integer|min:1',
         ]);
 
-        $item = Item::findOrFail($validated['item_id']);
-        $validated['item_price_per_unit'] = $item->price_per_unit;
+        $item = Stock::findOrFail($validated['stock_id']);
+        $validated['price_per_unit'] = $item->price_per_unit;
 
         $order = Order::create($validated);
 
@@ -31,7 +31,7 @@ class OrderController extends Controller
 
     public function show($id)
     {
-        $order = Order::with('item')->findOrFail($id); 
+        $order = Order::with('stock')->findOrFail($id); 
         return response()->json($order);
     }
 
@@ -40,12 +40,12 @@ class OrderController extends Controller
         $order = Order::findOrFail($id);
 
         $validated = $request->validate([
-            'item_id' => 'required|string|exists:items,id', 
+            'stock_id' => 'required|integer|exists:stocks,id', 
             'quantity' => 'required|integer|min:1',
         ]);
 
-        $item = Item::findOrFail($validated['item_id']);
-        $validated['item_price_per_unit'] = $item->price_per_unit;
+        $item = Stock::findOrFail($validated['stock_id']);
+        $validated['price_per_unit'] = $item->price_per_unit;
 
         $order->update($validated);
 

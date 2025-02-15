@@ -86,7 +86,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="order in orders" :key="order.id">
+                <tr v-for="order in orders" :key="order.item.id">
                   <td>{{ order.item.name }}</td>
                   <td>{{ order.quantity }}</td>
                   <td>₱{{ calculateTotalPrice(order) }}</td>
@@ -150,6 +150,7 @@ export default {
     };
   },
   created() {
+    console.log("Raw query parameters:", this.$route.query);
     const itemsQuery = this.$route.query.items;
     const ordersQuery = this.$route.query.orders;
     if (itemsQuery) {
@@ -170,13 +171,15 @@ export default {
   computed: {
     totalPrice() {
       return this.orders
-        .reduce((acc, order) => acc + order.quantity * order.item_price_per_unit, 0)
+        // .reduce((acc, order) => acc + order.quantity * order.item_price_per_unit, 0)
+        .reduce((acc, order) => acc + (Number(order.quantity) * Number(order.item.price_per_unit)), 0)
         .toFixed(2);
     },
   },
   methods: {
     calculateTotalPrice(order) {
-      return (order.quantity * order.item_price_per_unit).toFixed(2);
+      // return (order.quantity * order.item_price_per_unit).toFixed(2);
+      return (Number(order.quantity) * Number(order.item.price_per_unit)).toFixed(2);
     },
     validateField(field) {
       if (!this.shipping[field]) {
