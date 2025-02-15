@@ -52,8 +52,21 @@ export default {
   },
   created() {
     this.fetchItems();
+    this.updateCartQuantity();
+    
+    const savedCart = localStorage.getItem("cart");
+    if (savedCart) {
+      this.cart = JSON.parse(savedCart);
+    }
   },
   methods: {
+    updateCartQuantity() {
+      const savedCart = localStorage.getItem("cart");
+      if (savedCart) {
+        this.cart = JSON.parse(savedCart);
+      }
+    },
+
     async fetchItems() {
       try {
         const response = await fetch('http://localhost:8001/api/stocks');

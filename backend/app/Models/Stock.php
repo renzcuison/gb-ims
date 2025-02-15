@@ -38,4 +38,9 @@ class Stock extends Model
     {
         return $this->hasMany(Sku::class); 
     }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class, 'stock_id');
+    }
 }

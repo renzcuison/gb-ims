@@ -29,13 +29,6 @@
           <div class="item-description">
             <p>{{ item.description }}</p>
           </div>
-          <div class="options">
-            <label for="sizes">Sizes</label>
-            <select id="sizes">
-              <option value="" disabled selected>Choose an option</option>
-              <option v-for="size in sizeChart" :key="size.size">{{ size.size }}</option>
-            </select>
-          </div>
           <div class="actions">
             <div class="quantity-selector">
               <button class="quantity-btn" @click="decreaseQuantity">-</button>
@@ -47,26 +40,6 @@
           </div>
         </div>
       </div>
-
-      <div class="size-chart">
-        <h3>Size Chart</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Size</th>
-              <th>Width</th>
-              <th>Length</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="size in sizeChart" :key="size.size">
-              <td>{{ size.size }}</td>
-              <td>{{ size.width }}</td>
-              <td>{{ size.length }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
     </section>
   </div>
 </template>
@@ -76,15 +49,9 @@ export default {
   data() {
     return {
       item: {},
-      sizeChart: [
-        { size: "S", width: '20"', length: '27"' },
-        { size: "M", width: '21"', length: '28"' },
-        { size: "L", width: '22"', length: '29"' },
-        { size: "XL", width: '23"', length: '30"' },
-      ],
-      quantity: 1,
       items: [],
       cart: [],
+      quantity: 1,
     };
   },
   computed: {
@@ -95,38 +62,53 @@ export default {
   created() {
     this.fetchItemDetails();
     this.fetchItems();
+    this.updateCartQuantity();
+
+    const savedCart = localStorage.getItem("cart");
+    if (savedCart) {
+      this.cart = JSON.parse(savedCart);
+    }
   },
   methods: {
+    updateCartQuantity() {
+      const savedCart = localStorage.getItem("cart");
+      if (savedCart) {
+        this.cart = JSON.parse(savedCart);
+      }
+    },
     async fetchItemDetails() {
       const itemId = this.$route.params.id;
 
-      // Validate that the itemId exists
+      
       if (!itemId) {
         console.error("Item ID is missing");
         return;
       }
 
       try {
-        // Fetch data from the API
+        
         const response = await fetch(`http://localhost:8001/api/stocks/${itemId}`);
         
-        // Parse the JSON response
+        
         const data = await response.json();
-        console.log("API Response:", data);  // Log the full response
-        console.log("Stock Object:", data.stock);  // Log the stock object
+        console.log("API Response:", data);  
+        console.log("Stock Object:", data.stock); 
 
-        // Check if the response contains the stock item data
+        
         if (!data || !data.stock) {
           console.error("Item not found in the response");
           return;
         }
 
-        // Set the item data to the component's state
+        
         this.item = {
+          id: data.stock.id, 
           name: data.stock.item_name || 'No name available',
           price: data.stock.price_per_unit || 'Price not available',
           description: data.stock.description || 'No description available'
         };
+
+        localStorage.setItem("cart", JSON.stringify(this.cart));
 
       } catch (error) {
         console.error('Error fetching item details:', error);
@@ -157,11 +139,17 @@ export default {
       }
     },
     buyNow() {
+      if (!this.item.id) {
+        console.error("Item ID is missing in buyNow function.");
+        return;
+      }
+
       const orderData = [
         {
           item: {
-            name: this.item.item_name,
             id: this.item.id,
+            name: this.item.name,
+            price_per_unit: Number(this.item.price),
           },
           quantity: this.quantity,
           item_price_per_unit: this.item.price_per_unit,
@@ -177,43 +165,43 @@ export default {
       });
     },
     async createOrder() {
+      if (!this.item.id) {
+        console.error("Item ID is missing.");
+        return;
+      }
+      
+      const orderData = {
+        item_id: this.item.id,
+        quantity: this.quantity,
+      };
+
       try {
-        const orderData = {
-          item_id: this.item.id,
-          quantity: this.quantity,
-          item_price_per_unit: this.item.price_per_unit,
-        };
-
-        console.log('Order Data:', orderData);
-
-        const response = await fetch('http://localhost:8001/api/orders', {
-          method: 'POST',
+        console.log("Sending order data:", JSON.stringify(orderData));
+        
+        const response = await fetch("http://localhost:8001/api/orders", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify(orderData),
         });
-
+        
+        const text = await response.text();
+        console.log("Raw API Response:", text);
+        
         if (!response.ok) {
-          throw new Error('Failed to create order');
+          throw new Error(`Failed to add item to cart: ${text}`);
         }
-
-        const result = await response.json();
-        alert('Added to Cart!');
-
-        const existingItem = this.cart.find(item => item.id === this.item.id);
-        if (existingItem) {
-          existingItem.quantity += this.quantity;
-        } else {
-          this.cart.push({ ...this.item, quantity: this.quantity });
-        }
-
-        this.$router.push('/orders');
+        
+        const data = JSON.parse(text);
+        console.log("Order created successfully:", data);
+        
+        this.cart.push({ ...this.item, quantity: this.quantity });
+        localStorage.setItem("cart", JSON.stringify(this.cart));
       } catch (error) {
-        console.error('Error creating order:', error);
-        alert('An error occurred while creating the order.');
+        console.error("Error creating order:", error);
       }
-    },
+    }
   },
 };
 </script>

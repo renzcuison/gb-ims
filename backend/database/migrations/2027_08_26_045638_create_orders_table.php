@@ -10,12 +10,12 @@ class CreateOrdersTable extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
-            $table->string('item_id');
+            $table->string('stock_id');
             $table->integer('quantity');
-            $table->decimal('item_price_per_unit', 10, 2);
+            $table->decimal('price_per_unit', 10, 2);
             $table->timestamps();
 
-            $table->foreign('item_id')->references('id')->on('stocks')->onDelete('cascade');
+            $table->foreign('stock_id')->references('id')->on('stocks')->onDelete('cascade');
         });
     }
 
