@@ -66,10 +66,10 @@
         <div class="mb-3 mt-3">
           <label for="reason">Reason for Stock Out</label>
           <select v-model="selectedReason" class="form-control">
-            <option value="sold">Sold</option>
-            <option value="expired">Expired</option>
-            <option value="damaged">Damaged</option>
-            <option value="other">Other</option>
+            <option value="Sold">Sold</option>
+            <option value="Expired">Expired</option>
+            <option value="Damaged">Damaged</option>
+            <option value="Other">Other</option>
           </select>
         </div>
 
@@ -96,7 +96,7 @@ export default {
       filteredItems: [],
       selectedItems: [],
       descriptionText: '',
-      selectedReason: 'sold',
+      selectedReason: 'Sold',
       items: [],
       suppliers: [],
     };
@@ -212,15 +212,30 @@ export default {
     },
 
     saveStock() {
-      this.selectedItems.forEach((stock) => {
+      const requests = this.selectedItems.map((stock) => {
         const skusToRemove = stock.selectedSkus;
         const quantityToRemove = skusToRemove.length;
 
         skusToRemove.forEach((sku) => {
           this.removeSkuFromDatabase(stock.stock_id, sku);
+
+          const stockLogPayload = {
+            stock_id: stock.stock_id,
+            sku: sku,
+            qty: 1,
+            reason: this.selectedReason,
+            description: this.descriptionText || '',
+            removed_at: new Date().toISOString(),
+          };
+
+          console.log(`Logging stock out for stock ID ${stock.stock_id}, SKU ${sku}:`, stockLogPayload);
+
+          axios.post(`http://localhost:8001/api/stock-log`, stockLogPayload)
+            .then(() => console.log(`Stock log recorded for SKU ${sku}`))
+            .catch((error) => console.error(`Error logging stock out for SKU ${sku}:`, error));
         });
 
-        const payload = {
+        const stockPayload = {
           stock_id: stock.stock_id,
           item_name: stock.item_name,
           category_id: stock.category_id,
@@ -228,23 +243,24 @@ export default {
           unit_of_measure: stock.unit_of_measure,
           physical_count: stock.physical_count,
           on_hand: Math.max(0, (stock.on_hand || 0) - quantityToRemove),
-          sold: this.selectedReason === 'sold' ? (stock.sold || 0) + quantityToRemove : stock.sold,
+          sold: this.selectedReason === 'Sold' ? (stock.sold || 0) + quantityToRemove : stock.sold,
           price_per_unit: stock.price_per_unit,
-          description: stock.description || 'No description',
+          description: stock.description || '',
         };
 
-        console.log(`Payload for stock ID ${stock.stock_id}:`, payload);
+        console.log(`Updating stock for stock ID ${stock.stock_id}:`, stockPayload);
 
-        axios
-          .put(`http://localhost:8001/api/stocks/${stock.stock_id}`, payload)
-          .then((response) => {
-            console.log(`Stock updated successfully for stock ID ${stock.stock_id}`, response.data);
-            this.$router.push('/stocks');
-          })
-          .catch((error) => {
-            console.error(`Error processing stock out for stock ID ${stock.stock_id}:`, error);
-          });
+        return axios.put(`http://localhost:8001/api/stocks/${stock.stock_id}`, stockPayload);
       });
+
+      Promise.all(requests)
+        .then(() => {
+          console.log("All stock updates and logs have been processed successfully.");
+          this.$router.push('/stocks');
+        })
+        .catch((error) => {
+          console.error("Error processing stock out:", error);
+        });
     },
 
     formatDate(date) {

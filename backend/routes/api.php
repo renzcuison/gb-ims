@@ -6,6 +6,7 @@ use App\Http\Controllers\SUPPLIERSController;
 use App\Http\Controllers\STOCKSController;
 use App\Http\Controllers\EMPLOYEESController;
 use App\Http\Controllers\CUSTOMERSController;
+use App\Http\Controllers\STOCKLOGController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\StockTransactionsController;
@@ -14,7 +15,7 @@ use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 
-// Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 Route::prefix('categories')->group(function () {
     Route::post('/', [CATEGORIESController::class, 'store']);
     Route::put('/{id}', [CATEGORIESController::class, 'update']);
@@ -49,7 +50,15 @@ Route::prefix('transactions')->group(function () {
     Route::get('/{id}/receipt', [StockTransactionsController::class, 'getReceipt']);
 });
 
-// });
+Route::prefix('stock-log')->group(function () {
+    Route::get('/', [STOCKLOGController::class, 'index']); 
+    Route::post('/', [STOCKLOGController::class, 'store']); 
+    Route::get('/{id}', [STOCKLOGController::class, 'show']); 
+    Route::put('/{id}', [STOCKLOGController::class, 'update']); 
+    Route::delete('/{id}', [STOCKLOGController::class, 'destroy']);
+});
+
+});
 
 Route::get('email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
     ->middleware(['auth:sanctum'])
@@ -126,6 +135,4 @@ Route::post('/orders', [OrderController::class, 'store']);
 Route::get('/orders/{id}', [OrderController::class, 'show']);
 Route::put('/orders/{id}', [OrderController::class, 'update']);
 Route::delete('/orders/{id}', [OrderController::class, 'destroy']);
-
-Route::get('/transactions/stock/{id}', [StockTransactionsController::class, 'fetchTransactionsByStock']);
 

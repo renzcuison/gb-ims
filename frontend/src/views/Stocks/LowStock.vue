@@ -162,7 +162,7 @@ export default {
 
     saveStock() {
       if (!this.model.description) {
-        this.model.description = "No additional details provided";
+        this.model.description = "";
       }
 
       this.timestamp = new Date().toLocaleString();

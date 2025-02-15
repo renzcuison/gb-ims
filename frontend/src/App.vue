@@ -1,6 +1,5 @@
 <template>
   <div class="wrapper">
-    <!-- Top Navbar -->
     <header class="navbar">
       <div class="navbar-brand">
         <RouterLink :to="{ path: '/shop' }" class="brand-text">GreatBuy</RouterLink>
@@ -20,23 +19,20 @@
     </header>
 
     <div class="main-layout">
-      <!-- Sidebar -->
-      <aside class="sidebar">
-        <div class="user-info">
-          <p>access: <span>{{ username }}</span></p>
-          <h2>Hello, <span>{{ username }}</span>!</h2>
-          <div class="activity-report">
-            <h3>Activity Report</h3>
-            <p>Details about the user's recent activities.</p>
-          </div>
-        </div>
+      <aside class="sidebar" :class="{ 'collapsed': sidebarClosed }">
+        <button class="toggle-btn" @click="sidebarClosed = !sidebarClosed">
+          {{ sidebarClosed ? '>' : '<' }} </button>
+            <div class="user-info">
+              <p>Access: admin<span>{{ username }}</span></p>
+              <h2>Hello, admin<span>{{ username }}</span>!</h2>
+              <div class="activity-report">
+                <p>Details about the user's recent activities.</p>
+              </div>
+            </div>
       </aside>
 
-      <!-- Main Content Area -->
       <div class="content-area">
-        <!-- Horizontal Nav -->
         <nav class="horizontal-nav">
-          <!-- Dropdown for Stocks -->
           <div class="nav-card dropdown">
             <button @click="toggleDropdown" class="dropdown-btn">
               <div>
@@ -53,7 +49,6 @@
               </RouterLink>
             </div>
           </div>
-          <!-- Other Nav Cards -->
           <RouterLink :to="{ path: '/customers' }" class="nav-card">
             <div>
               <img src="/src/assets/rating.png" alt="customers" class="icon-image" />
@@ -80,7 +75,6 @@
           </RouterLink>
         </nav>
 
-        <!-- Main Content -->
         <main class="main-content">
           <RouterView />
         </main>
@@ -102,6 +96,7 @@ const isLoginPage = ref(route.name === 'login');
 const isRegisterPage = ref(route.name === 'create-login');
 const dropdownVisible = ref(false);
 const hamburgerDropdownVisible = ref(false);
+const sidebarClosed = ref(false);
 
 
 watch(() => route.name, (newRoute) => {
@@ -130,7 +125,6 @@ const toggleHamburgerMenu = () => {
 </script>
 
 <style scoped>
-/* Global Wrapper */
 .wrapper {
   display: flex;
   flex-direction: column;
@@ -139,33 +133,42 @@ const toggleHamburgerMenu = () => {
   font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
-.brand-text {
-  text-decoration: none;
-  color: white;
-  font-size: 1.5rem;
-  font-weight: normal;
-  cursor: pointer;
-}
-
 .icon-image {
   width: 40px;
-  /* Set the desired width */
   height: 40px;
-  /* Set the desired height */
   object-fit: contain;
-  /* Ensures the image scales without distortion */
 }
 
-/* Navbar (Top) */
 .navbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   background-color: #0a3992;
   color: #fff;
-  padding: 10px 20px;
+  padding: 12px 20px;
   position: relative;
+  height: 60px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+}
+
+.brand-text {
+  text-decoration: none;
+  color: white;
+  font-size: 20px;
+  transition: color 0.3s ease-in-out;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.brand-text:hover {
+  color: #f5d742;
+}
+
 
 .navbar-content {
   display: flex;
@@ -179,7 +182,7 @@ const toggleHamburgerMenu = () => {
   left: 50%;
   transform: translateX(-50%);
   height: auto;
-  width: 80px;
+  width: 70px;
   border-radius: 10%;
   object-fit: cover;
 }
@@ -188,28 +191,22 @@ const toggleHamburgerMenu = () => {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  width: 30px;
-  /* Width of the hamburger icon */
-  height: 20px;
-  /* Height of the hamburger icon */
+  width: 20px;
+  height: 17px;
   cursor: pointer;
+  transition: transform 0.3s ease;
 }
 
 .hamburger-menu span {
   display: block;
   height: 3px;
-  /* Thickness of the lines */
   background-color: white;
-  /* Match the navbar's color scheme */
   border-radius: 3px;
   transition: all 0.3s ease;
-  /* Smooth animation */
 }
 
-/* Optional: Add a hover effect */
 .hamburger-menu:hover span {
   background-color: #ccc;
-  /* Change color on hover */
 }
 
 .hamburger-dropdown {
@@ -241,7 +238,6 @@ const toggleHamburgerMenu = () => {
   background-color: #4a148c;
 }
 
-/* Sidebar */
 .sidebar {
   width: 250px;
   background-color: #ffffff;
@@ -250,18 +246,55 @@ const toggleHamburgerMenu = () => {
   text-align: left;
   flex-shrink: 0;
   outline: 3px solid #0a3992;
-  /* Adds an outline with a color */
   outline-offset: -2px;
-  /* Adjusts the distance between the element and its outline */
   box-shadow: 0px 6px 25px rgba(0, 0, 0, 0.2);
+  transition: width 0.3s ease-in-out;
+
+  position: fixed;
+  top: 60px;
+  bottom: 0;
+  left: 0;
+}
+
+.sidebar.collapsed {
+  transform: translateX(-250px);
+}
+
+.content-area {
+  margin-left: 250px;
+}
+
+.sidebar.collapsed+.content-area {
+  margin-left: 0;
+}
+
+.toggle-btn {
+  position: absolute;
+  top: 45%;
+  left: 105%;
+  background-color: #fff;
+  color: grey;
+  border: none;
+  padding: 2px 5px;
+  cursor: pointer;
+  border-radius: 50%;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.2);
+  font-size: 10px;
+}
+
+.toggle-btn:hover {
+  background-color: #f5d742;
 }
 
 .user-info p {
-  color: black;
+  font-size: 0.9rem;
+  font-weight: normal;
+  margin-bottom: 5px;
+  color: grey;
 }
 
 .user-info h2 {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   color: black;
 }
 
@@ -270,7 +303,6 @@ const toggleHamburgerMenu = () => {
   color: black;
 }
 
-/* Content Layout */
 .main-layout {
   display: flex;
   flex-grow: 1;
@@ -284,34 +316,32 @@ const toggleHamburgerMenu = () => {
   flex-direction: column;
 }
 
-/* Horizontal Navigation */
 .horizontal-nav {
   display: flex;
-  justify-content: space-around;
+  justify-content: center;
+  align-items: center;
   gap: 20px;
   background-color: #11095c;
-  padding: 20px 0;
-  flex-wrap: wrap;
-  /* Allow cards to wrap on smaller screens */
+  padding: 20px;
 }
 
 .nav-card {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
+  text-align: center;
   background-color: #ffffff;
   color: #000;
   text-decoration: none;
-  width: 320px;
-  height: 80px;
+  width: 250px;
+  height: 100px;
   border-radius: 10px;
   box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
   font-size: 1rem;
   font-weight: bold;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  margin-bottom: 15px;
-  padding: 10px 15px;
-  gap: 15px;
+  transition: all 0.3s ease;
+  padding: 10px;
+  gap: 10px;
 }
 
 .nav-card:hover {
@@ -319,6 +349,7 @@ const toggleHamburgerMenu = () => {
   box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.3);
   background-color: #d1d1ff;
 }
+
 
 .nav-card span {
   font-size: 1rem;
@@ -328,14 +359,12 @@ const toggleHamburgerMenu = () => {
 .card-icon {
   font-size: 2rem;
   margin-bottom: 0;
-  /* Remove bottom margin */
   color: #11095c;
-  /* Match your color scheme */
 }
 
-/* Dropdown Menu */
 .dropdown {
   position: relative;
+  /* z-index: 1; */
 }
 
 .dropdown-btn {
@@ -343,9 +372,7 @@ const toggleHamburgerMenu = () => {
   align-items: center;
   justify-content: flex-start;
   gap: 20px;
-  /* Adds spacing between the icon and text */
   padding: 10px 15px;
-  /* Adds padding around the button content */
   font-size: 1rem;
   background-color: transparent;
   border: none;
@@ -353,7 +380,6 @@ const toggleHamburgerMenu = () => {
   cursor: pointer;
   text-align: center;
   width: 100%;
-  /* Ensures the button spans the width of its container */
 }
 
 .dropdown-menu {
@@ -384,14 +410,12 @@ const toggleHamburgerMenu = () => {
   border-radius: 5px;
 }
 
-/* Main Content */
 .main-content {
   padding: 20px;
   background-color: #fff;
   flex-grow: 1;
 }
 
-/* Responsive Styles */
 @media (max-width: 768px) {
   .wrapper {
     flex-direction: column;
@@ -408,20 +432,15 @@ const toggleHamburgerMenu = () => {
 
   .horizontal-nav {
     justify-content: center;
-    /* Center nav cards on small screens */
     gap: 15px;
-    /* Reduce gap between cards on smaller screens */
   }
 
   .nav-card {
     width: 100px;
-    /* Smaller size for small screens */
     height: 100px;
     font-size: 0.9rem;
-    /* Smaller font size */
   }
 
-  /* Ensure dropdown menu is centered */
   .dropdown-menu {
     width: 130px;
     left: 50%;

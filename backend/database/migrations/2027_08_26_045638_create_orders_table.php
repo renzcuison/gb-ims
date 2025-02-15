@@ -18,9 +18,6 @@ class CreateOrdersTable extends Migration
             $table->foreign('item_id')->references('id')->on('stocks')->onDelete('cascade');
         });
     }
-
-
-
     public function down()
     {
         Schema::dropIfExists('orders');

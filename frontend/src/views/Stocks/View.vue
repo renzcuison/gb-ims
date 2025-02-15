@@ -58,128 +58,127 @@
               <th>Quantity</th>
               <th>Description</th>
               <th>Price /unit</th>
-              <th>Actions</th>
+              <th>•</th>
             </tr>
           </thead>
           <tbody v-if="filteredStocks.length > 0">
-            <tr v-for="(stock, index) in filteredStocks" :key="index" @click="selectRow(stock.id, $event)"
-              :class="{ 'selected-row': stock.id === selectedStockId }">
-              <td class="text-muted">{{ stock.id }}</td>
-              <td>
-                <div class="d-flex align-items-center">
-                  <strong>{{ stock.item_name }}</strong>
-                  <button class="btn btn-link btn-sm ms-2" @click.stop="toggleSkuVisibility(stock)">
-                    {{ stock.showSkus ? "▲" : "▼" }}
-                  </button>
-                </div>
-                <div class="text-muted small">
-                  {{ getSupplierName(stock.supplier_id) }}
-                </div>
-                <div class="text-muted small">
-                  {{ stock.category ? stock.category.category_name : "N/A" }}
-                </div>
-                <!-- SKU Section -->
-                <div v-if="stock.showSkus" class="mt-2">
-                  <div v-if="stock.skus.length === 0" class="text-muted small">
-                    No SKUs available for this item.
+            <template v-for="(stock, index) in filteredStocks" :key="index">
+              <tr @click="selectRow(stock.id, $event)" :class="{ 'selected-row': stock.id === selectedStockId }">
+                <td class="text-muted">{{ stock.id }}</td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <strong>{{ stock.item_name }}</strong>
+                    <button class="btn btn-link btn-sm ms-2" @click.stop="toggleSkuVisibility(stock)">
+                      {{ stock.showSkus ? "▲" : "▼" }}
+                    </button>
                   </div>
-                  <div v-else>
-                    <div class="text-muted small">
-                      <strong>Stock(s): {{ stock.skus.length }}</strong>
+                  <div class="text-muted small">
+                    {{ getSupplierName(stock.supplier_id) }}
+                  </div>
+                  <div class="text-muted small">
+                    {{ stock.category ? stock.category.category_name : "N/A" }}
+                  </div>
+                  <div v-if="stock.showSkus" class="mt-2">
+                    <div v-if="stock.skus.length === 0" class="text-muted small">
+                      No stock.
                     </div>
-                    <ul class="list-unstyled small">
-                      <li v-for="(sku, skuIndex) in stock.skus" :key="sku.id" class="d-flex justify-content-between">
-                        <span class="sku-text">{{ skuIndex + 1 }}. {{ sku.sku }}</span>
-                      </li>
-                    </ul>
+                    <div v-else>
+                      <div class="text-muted small">
+                        <strong>Stock(s): {{ stock.skus.length }}</strong>
+                      </div>
+                      <ul class="list-unstyled small">
+                        <li v-for="(sku, skuIndex) in stock.skus" :key="sku.id" class="d-flex justify-content-between">
+                          <span class="sku-text">{{ skuIndex + 1 }}. {{ sku.sku }}</span>
+                        </li>
+                      </ul>
+                    </div>
                   </div>
-                </div>
-              </td>
-              <td>{{ stock.unit_of_measure }}</td>
-              <td>
-                <div>
-                  <div>Physical Count: {{ stock.physical_count }}</div>
+                  <div class="text-muted small text-end mt-2">
+                    <span class="logs-text" @click.stop="fetchStockLogs(stock.id)">→ log</span>
+                  </div>
+                </td>
+                <td>{{ stock.unit_of_measure }}</td>
+                <td>
                   <div>
-                    On Hand:
-                    <span>
-                      {{ stock.on_hand }}
-                      <RouterLink v-if="stock.on_hand < 5"
-                        :to="{ name: 'stocksLowStock', params: { stockId: stock.id } }" class="low-stock-link ms-2">
-                        ⚠
-                        {{ stock.on_hand === 0 ? "out of stock" : "low stock" }}
-                      </RouterLink>
-                    </span>
+                    <div>
+                      On Hand:
+                      <span>
+                        {{ stock.on_hand }}
+                        <RouterLink v-if="stock.on_hand < 5"
+                          :to="{ name: 'stocksLowStock', params: { stockId: stock.id } }" class="low-stock-link ms-2">
+                          ⚠
+                          {{ stock.on_hand === 0 ? "out of stock" : "low stock" }}
+                        </RouterLink>
+                      </span>
+                    </div>
+                    <div class="qty-container">
+                      <div class="qty-text">Physical Count: {{ stock.physical_count }}</div>
+                      <div class="qty-text">Sold: {{ stock.sold }}</div>
+                    </div>
                   </div>
-                  <div>Sold: {{ stock.sold }}</div>
-                </div>
-              </td>
-              <td>
-                <textarea v-model="stock.description" class="form-control" @change="saveDescription(stock)"
-                  placeholder="Enter description" rows="3"></textarea>
-              </td>
-              <td>{{ formatPrice(stock.price_per_unit) }}</td>
-              <td>
-                <button v-if="stock.id === selectedStockId" type="button" @click="editStock(stock.id)"
-                  class="btn btn-success me-2">
-                  Edit
-                </button>
-                <button v-if="stock.id === selectedStockId" type="button" @click="deleteStock(stock.id)"
-                  class="btn btn-danger">
-                  Delete
-                </button>
-              </td>
-            </tr>
+                </td>
+                <td>
+                  <textarea v-model="stock.description" class="form-control" @change="saveDescription(stock)"
+                    placeholder="" rows="3"></textarea>
+                </td>
+                <td>{{ formatPrice(stock.price_per_unit) }}</td>
+                <td>
+                  <button v-if="stock.id === selectedStockId" type="button" @click="editStock(stock.id)"
+                    class="btn btn-success me-2">
+                    Edit
+                  </button>
+                  <button v-if="stock.id === selectedStockId" type="button" @click="deleteStock(stock.id)"
+                    class="btn btn-danger">
+                    Delete
+                  </button>
+                </td>
+              </tr>
+              <transition name="fade-slide">
+                <tr v-if="expandedStockIds.includes(stock.id)">
+                  <td colspan="7">
+                    <div class="transaction-log-container">
+                      <p class="transaction-log-title">Transaction Log:</p>
 
-            <!-- Log Section -->
-            <tr v-if="stock.showLogs" :key="'logs-' + stock.id" class="log-row">
-              <td colspan="7">
-                <h6>Transaction Logs</h6>
-                <table class="table table-sm">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Action</th>
-                      <th>Performed By</th>
-                      <th>Reason</th>
-                      <th>Quantity</th>
-                      <th>Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="log in logs[stock.id]" :key="log.id">
-                      <td>{{ log.id }}</td>
-                      <td>{{ log.transaction_type }}</td>
-                      <td>{{ log.user.name }}</td>
-                      <td>{{ log.reason }}</td>
-                      <td>{{ log.details.reduce((sum, detail) => sum + detail.quantity, 0) }}</td>
-                      <td>{{ formatDate(log.created_at) }}</td>
-                    </tr>
-                    <tr v-if="!logs[stock.id]?.length">
-                      <td colspan="6">No transactions found for this stock.</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </td>
-            </tr>
+                      <p v-if="!stockLogs[stock.id] || stockLogs[stock.id].length === 0" class="no-logs">
+                        No stock logs available.
+                      </p>
+
+                      <table v-if="stockLogs[stock.id] && stockLogs[stock.id].length > 0"
+                        class="table table-sm transaction-table">
+                        <thead>
+                          <tr>
+                            <th>Date</th>
+                            <th>Item ID</th>
+                            <th>SKU</th>
+                            <th>Quantity</th>
+                            <th>Reason</th>
+                            <th>Description</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-for="log in stockLogs[stock.id]" :key="log.id">
+                            <td>{{ formatDate(log.created_at) }}</td>
+                            <td>{{ log.stock_id }}</td>
+                            <td>{{ log.sku || 'N/A' }}</td>
+                            <td>{{ log.qty }}</td>
+                            <td>{{ log.reason }}</td>
+                            <td>{{ log.description || '' }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+              </transition>
+            </template>
           </tbody>
+
           <tbody v-else>
             <tr>
-              <td colspan="6">No stocks found.</td>
+              <td colspan="6">.</td>
             </tr>
           </tbody>
         </table>
-
-        <div v-if="transactionPopupVisible" class="modal-overlay">
-          <div class="modal-content">
-            <h5>Transaction Details</h5>
-            <p><strong>ID:</strong> {{ currentTransaction.id }}</p>
-            <p><strong>Action:</strong> {{ currentTransaction.action }}</p>
-            <p><strong>Reason:</strong> {{ currentTransaction.reason }}</p>
-            <p><strong>Quantity:</strong> {{ currentTransaction.quantity }}</p>
-            <p><strong>Date:</strong> {{ formatDate(currentTransaction.created_at) }}</p>
-            <button class="btn btn-secondary mt-2" @click="closeTransactionPopup">Close</button>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -204,8 +203,9 @@ export default {
       editingRemark: '',
       editingStockId: null,
       selectedStockId: null,
+      expandedStockIds: [],
       editableDescription: '',
-      logs: {},
+      stockLogs: {},
       transactionPopupVisible: false
     }
   },
@@ -214,26 +214,32 @@ export default {
     this.getSuppliers()
   },
   methods: {
-    fetchLogs(stockId) {
-      if (!this.logs[stockId]) {
-        axios
-          .get(`/api/transactions/stock/${stockId}`)
-          .then(response => {
-            this.logs[stockId] = response.data;
-          })
-          .catch(error => {
-            console.error('Error fetching logs:', error);
-          });
-      }
-    },
+    fetchStockLogs(stockId) {
 
-    toggleLogs(stock) {
-      stock.showLogs = !stock.showLogs;
-      if (stock.showLogs) {
-        this.fetchLogs(stock.id);
-      }
-    },
+      console.log("Fetching logs for stock ID:", stockId);
 
+      axios.get(`http://localhost:8001/api/stock-log`)
+        .then(response => {
+
+          console.log("Stock Log Response:", response.data);
+
+          const filteredLogs = response.data.stock_logs.filter(log => log.stock_id === stockId);
+
+          this.stockLogs[stockId] = filteredLogs;
+
+          const index = this.expandedStockIds.indexOf(stockId);
+          if (index === -1) {
+            this.expandedStockIds.push(stockId);
+          } else {
+            this.expandedStockIds.splice(index, 1);
+          }
+
+          console.log(`Expanded stock logs:`, this.expandedStockIds);
+        })
+        .catch(error => {
+          console.error(`Failed to fetch stock logs:`, error);
+        });
+    },
     editDescription(stockId, currentDescription) {
       this.editingStockId = stockId;
       this.editableDescription = currentDescription;
@@ -589,5 +595,90 @@ textarea.form-control {
 
 .log-row .table {
   margin-top: 10px;
+}
+
+.logs-text {
+  font-size: 10px;
+  color: gray;
+  cursor: pointer;
+  text-decoration: none;
+  transition: text-decoration 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.logs-text:hover {
+  text-decoration: underline;
+  color: black;
+}
+
+.transaction-log-container {
+  padding: 15px;
+  border-radius: 5px;
+  background-color: #f8f9fa;
+}
+
+.transaction-log-title {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.transaction-table {
+  font-size: 12px;
+  width: 100%;
+}
+
+.transaction-table th {
+  background-color: #e9ecef;
+  text-align: left;
+  padding: 6px;
+  font-size: 12px;
+}
+
+.transaction-table td {
+  padding: 6px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.transaction-table tbody tr:hover {
+  background-color: #f1f3f5;
+}
+
+.no-logs {
+  font-size: 12px;
+  color: #6c757d;
+  text-align: center;
+  padding: 8px;
+}
+
+.expanded-log-row {
+  background-color: #f8f9fa;
+}
+
+td {
+  position: relative;
+}
+
+.qty-container {
+  position: absolute;
+  bottom: 2px;
+  display: flex;
+  flex-direction: column;
+}
+
+.qty-text {
+  font-size: 10px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 </style>

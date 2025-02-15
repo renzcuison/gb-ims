@@ -234,6 +234,20 @@ export default {
 
         stock.selectedSkus = stock.selectedSkus || [];
 
+        const details = stock.selectedSkus.map(sku => ({
+          stock_id: stock.stock_id,
+          sku: sku,
+          quantity: stock.quantity,
+        }));
+
+        console.log('selectedSkus before details:', stock.selectedSkus);
+        console.log('Details array:', details);
+
+        if (details.length === 0) {
+          console.error('Error: Details array is empty.');
+          return;
+        }
+
         const payload = {
           ...stock,
           skus: stock.skus || [],
@@ -244,18 +258,23 @@ export default {
           quantity: stock.selectedSkus.length,
           description: this.descriptionText,
           transaction_type: "in",
+          details: details,
         };
 
         delete payload.sku;
         console.log(`Payload for stock ID ${stock.stock_id}:`, payload);
 
-        axios.put(`http://localhost:8001/api/stocks/${stock.stock_id}`, payload)
+        axios.post(`http://localhost:8001/api/transactions`, payload)
+          .then((response) => {
+            console.log(`Stock-in processed for stock ID ${stock.stock_id}`, response.data);
+            return axios.put(`http://localhost:8001/api/stocks/${stock.stock_id}`, payload);
+          })
           .then((response) => {
             console.log(`Stock updated successfully for stock ID ${stock.stock_id}`, response.data);
             this.$router.push('/stocks');
           })
           .catch((error) => {
-            console.error("Error updating stock:", error.response ? error.response.data : error.message);
+            console.error("Error processing stock-in:", error.response ? error.response.data : error.message);
           });
       });
     },
