@@ -29,39 +29,24 @@
                   v-model="selectedItems"
                   :value="order"
                   class="checkbox"
-                />
+                />  
               </td>
-              <td>{{ order.item ? order.item.name : 'Unknown' }}</td>
+              <td>{{ order.stock_id}}</td>
               <td>
                 <div class="quantity-controls">
-                  <button
-                    @click="updateQuantity(order, -1)"
-                    class="btn decrement-btn"
-                  >
-                    <span>-</span>
-                  </button>
+                  <button @click="updateQuantity(order, -1)" class="btn decrement-btn">-</button>
                   <span class="quantity-display">{{ order.quantity }}</span>
-                  <button
-                    @click="updateQuantity(order, 1)"
-                    class="btn increment-btn"
-                  >
-                    <span>+</span>
-                  </button>
+                  <button @click="updateQuantity(order, 1)" class="btn increment-btn">+</button>
                 </div>
               </td>
-              <td>₱{{ order.item.price_per_unit }}</td>
+              <td>₱{{ order.price_per_unit }}</td>
               <td>₱{{ calculateTotalPrice(order) }}</td>
               <td>
-                <button
-                  @click="deleteOrder(order.id)"
-                  class="btn remove-btn"
-                >
-                  Remove
-                </button>
+                <button @click="deleteOrder(order.id)" class="btn remove-btn">Remove</button>
               </td>
             </tr>
           </tbody>
-          <tbody v-else>
+          <tbody v-else> 
             <tr>
               <td colspan="6" class="no-orders">No orders found</td>
             </tr>
@@ -77,13 +62,13 @@
   </div>
 </template>
 
-
 <script>
 export default {
   data() {
     return {
       orders: [],
-      selectedItems: [], 
+      selectedItems: [],
+      stockNames: {},
     };
   },
   created() {
@@ -91,50 +76,80 @@ export default {
   },
   watch: {
     selectedItems(newValue) {
-      console.log("Selected Items: ", newValue); 
-    }
+      console.log("Selected Items: ", newValue);
+    },
   },
   methods: {
-    fetchOrders() {
-      fetch("http://localhost:8001/api/orders")
-        .then((response) => response.json())
-        .then((data) => {
-          this.orders = data;
-        })
-        .catch((error) => {
-          console.error("Error fetching orders:", error);
-        });
+    async fetchOrders() {
+      try {
+        const ordersResponse = await fetch("http://localhost:8001/api/orders");
+        const ordersData = await ordersResponse.json();
+        this.orders = ordersData;
+
+        // Fetch stock details separately
+        const stockResponse = await fetch("http://localhost:8001/api/stocks");
+        const stockData = await stockResponse.json();
+
+        // Convert stock array into a dictionary for quick lookup
+        this.stockNames = stockData.reduce((acc, stock) => {
+          acc[stock.id] = stock.name;
+          return acc;
+        }, {});
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
     },
 
-    updateQuantity(order, delta) {
-      if (order.quantity + delta >= 1) {
-        order.quantity += delta;
+    async updateQuantity(order, delta) {
+      if (order.quantity + delta < 1) return;
+
+      try {
+        const response = await fetch(`http://localhost:8001/api/orders/${order.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({ quantity: order.quantity + delta }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to update quantity.");
+        }
+
+        // Update local state reactively
+        const index = this.orders.findIndex((o) => o.id === order.id);
+        if (index !== -1) {
+          this.orders[index].quantity += delta;
+          this.orders = [...this.orders]; // Ensure reactivity
+        }
+      } catch (error) {
+        console.error("Error updating quantity:", error);
       }
     },
 
     calculateTotalPrice(order) {
-      return (order.quantity * order.item_price_per_unit).toFixed(2);
+      return (order.quantity * order.price_per_unit).toFixed(2);
     },
 
-    deleteOrder(orderId) {
+    async deleteOrder(orderId) {
       if (confirm("Are you sure you want to remove this item?")) {
-        fetch(`http://localhost:8001/api/orders/${orderId}`, {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        })
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error("Failed to remove the item.");
-            }
-            this.orders = this.orders.filter((order) => order.id !== orderId);
-            alert("Item Removed.");
-          })
-          .catch((error) => {
-            console.error("Error removing the item:", error);
-            alert("Error deleting item");
+        try {
+          const response = await fetch(`http://localhost:8001/api/orders/${orderId}`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
           });
+
+          if (!response.ok) {
+            throw new Error("Failed to remove the item.");
+          }
+
+          this.orders = this.orders.filter((order) => order.id !== orderId);
+          alert("Item Removed.");
+        } catch (error) {
+          console.error("Error removing the item:", error);
+          alert("Error deleting item.");
+        }
       }
     },
 

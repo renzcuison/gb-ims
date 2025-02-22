@@ -86,13 +86,13 @@
     computed: {
       totalPrice() {
         return this.orders
-          .reduce((acc, order) => acc + order.quantity * order.item_price_per_unit, 0)
+          .reduce((acc, order) => acc + (Number(order.quantity) * Number(order.item.price_per_unit)), 0)
           .toFixed(2);
       },
     },
     methods: {
       calculateTotalPrice(order) {
-        return (order.quantity * order.item_price_per_unit).toFixed(2);
+        return (Number(order.quantity) * Number(order.item.price_per_unit)).toFixed(2);
       },
       goBack() {
         this.$router.go(-1);
