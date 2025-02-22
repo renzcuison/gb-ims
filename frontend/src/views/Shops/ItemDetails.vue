@@ -127,6 +127,46 @@ export default {
         console.error('Error fetching items:', error);
       }
     },
+    async createOrder() {
+      if (!this.item.id) {
+        console.error("Item ID is missing in createOrder function.");
+        return;
+      }
+
+      const orderData = {
+        item_id: this.item.id,
+        quantity: this.quantity,
+      };
+
+      try {
+        const response = await fetch("http://localhost:8001/api/orders", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(orderData),
+        });
+
+        const data = await response.json();
+        console.log("Order created:", data);
+
+        // Update cart
+        this.cart.push({
+          id: this.item.id,
+          name: this.item.name,
+          price: this.item.price,
+          quantity: this.quantity,
+        });
+
+        localStorage.setItem("cart", JSON.stringify(this.cart));
+
+        alert("Item added to cart!");
+      } catch (error) {
+        console.error("Error creating order:", error);
+      }
+    },
+
     goToItemDetails(itemId) {
       this.$router.push({ name: 'ItemDetails', params: { id: itemId } });
     },
@@ -166,38 +206,34 @@ export default {
     },
     async createOrder() {
       if (!this.item.id) {
-        console.error("Item ID is missing.");
+        console.error("Stock ID is missing in createOrder function.");
         return;
       }
-      
+
       const orderData = {
-        item_id: this.item.id,
-        quantity: this.quantity,
+        stock_id: parseInt(this.item.id, 10), 
+        quantity: parseInt(this.quantity, 10), 
       };
 
       try {
-        console.log("Sending order data:", JSON.stringify(orderData));
-        
         const response = await fetch("http://localhost:8001/api/orders", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Accept: "application/json",
           },
           body: JSON.stringify(orderData),
         });
-        
-        const text = await response.text();
-        console.log("Raw API Response:", text);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to add item to cart: ${text}`);
+
+        const data = await response.json();
+        console.log("Order created:", data);
+
+        if (response.ok) {
+          alert("Item added to cart!");
+        } else {
+          console.error("Error:", data.message);
+          alert(`Failed to add item: ${data.message}`);
         }
-        
-        const data = JSON.parse(text);
-        console.log("Order created successfully:", data);
-        
-        this.cart.push({ ...this.item, quantity: this.quantity });
-        localStorage.setItem("cart", JSON.stringify(this.cart));
       } catch (error) {
         console.error("Error creating order:", error);
       }
