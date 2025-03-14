@@ -4,7 +4,7 @@
       <nav>
         <ul class="menu">
           <li><a href="/shop">SHOP</a></li>
-          <li><a href="#">ORDERS</a></li>
+          <li><a href="/order">ORDERS</a></li>
           <li><a href="#">MY ACCOUNT</a></li>
           <li><a href="#">ABOUT US</a></li>
           <li>
