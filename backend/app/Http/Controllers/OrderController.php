@@ -8,9 +8,15 @@ use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
+    // public function index()
+    // {
+    //     $orders = Order::with('stock')->get();
+    //     return response()->json($orders);
+    // }
     public function index()
     {
-        $orders = Order::with('stock')->get(); 
+        $orders = Order::with('stock')->get();
+
         return response()->json($orders);
     }
 

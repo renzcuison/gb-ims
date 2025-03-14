@@ -41,6 +41,6 @@ class Stock extends Model
 
     public function orders()
     {
-        return $this->hasMany(Order::class, 'stock_id');
+        return $this->hasMany(Order::class, 'stock_id', 'id');
     }
 }

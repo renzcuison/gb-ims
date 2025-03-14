@@ -192,24 +192,56 @@ export default {
       Object.keys(this.shipping).forEach((field) => this.validateField(field));
       return Object.keys(this.errors).length === 0; // Form is valid if there are no errors
     },
-    placeOrder() {
-      if (!this.validateForm()) {
-        alert('Please fill in all required fields.');
-        return;
-      }
-      if (!this.paymentMethod) {
-        alert('Please select a payment method.');
-        return;
-      }
-      this.$router.push({
-        name: 'OrderPage',
-        query: {
-          orders: JSON.stringify(this.orders),
-          shipping: JSON.stringify(this.shipping),
-          paymentMethod: this.paymentMethod,
-        },
-      });
-    },
+    
+    async placeOrder() {
+  if (!this.validateForm()) {
+    alert('Please fill in all required fields.');
+    return;
+  }
+  if (!this.paymentMethod) {
+    alert('Please select a payment method.');
+    return;
+  }
+
+  try {
+    const response = await fetch('http://localhost:8001/api/customer-orders', {
+      
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        customer_name: this.shipping.name,
+        shipping_address: this.shipping.address,
+        city: this.shipping.city,
+        postal_code: this.shipping.postalCode,
+        phone: this.shipping.phone,
+        payment_method: this.paymentMethod,
+        total_price: this.totalPrice,
+        items: this.orders.map(order => ({
+          item_name: order.item.name,
+          quantity: order.quantity,
+          item_price: order.item.price_per_unit,
+        })),
+      }),
+    });
+    console.log(response);
+    const result = await response.json();
+
+    if (response.ok) {
+      alert('Order placed successfully!');
+      console.log(result);
+      this.$router.push({ name: 'OrderPage' });
+    } else {
+      console.error('Error placing order:', result);
+      alert('Failed to place order.');
+    }
+  } catch (error) {
+    console.error('Network error:', error);
+    alert('Network error. Please try again.');
+  }
+},
+
     goBack() {
       this.$router.go(-1);
     },

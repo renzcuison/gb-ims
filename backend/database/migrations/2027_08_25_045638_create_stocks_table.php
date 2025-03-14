@@ -27,6 +27,11 @@ return new class extends Migration {
         });
     }
 
+    public function orders()
+    {
+        return $this->hasMany(Order::class, 'stock_id', 'id');
+    }
+    
     public function down()
     {
         Schema::dropIfExists('stocks');

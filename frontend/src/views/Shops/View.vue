@@ -31,7 +31,7 @@
                   class="checkbox"
                 />  
               </td>
-              <td>{{ order.stock_id}}</td>
+              <td>{{ stockNames[order.stock_id] || "Loading..." }}</td>
               <td>
                 <div class="quantity-controls">
                   <button @click="updateQuantity(order, -1)" class="btn decrement-btn">-</button>
@@ -48,7 +48,7 @@
           </tbody>
           <tbody v-else> 
             <tr>
-              <td colspan="6" class="no-orders">No orders found</td>
+              <td colspan="6" class="no-orders">No Items in Cart</td>
             </tr>
           </tbody>
         </table>
@@ -92,7 +92,7 @@ export default {
 
         // Convert stock array into a dictionary for quick lookup
         this.stockNames = stockData.reduce((acc, stock) => {
-          acc[stock.id] = stock.name;
+          acc[stock.id] = stock.item_name;
           return acc;
         }, {});
       } catch (error) {
@@ -166,6 +166,7 @@ export default {
   },
 };
 </script>
+
 
 
 <style scoped>
