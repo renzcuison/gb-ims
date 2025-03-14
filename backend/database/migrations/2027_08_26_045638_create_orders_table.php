@@ -15,7 +15,7 @@ class CreateOrdersTable extends Migration
             $table->decimal('price_per_unit', 10, 2);
             $table->timestamps();
 
-            $table->foreign('stock_id')->references('id')->on('stocks')->onDelete('cascade');
+            // $table->foreign('stock_id')->references('id')->on('stocks')->onDelete('cascade');
         });
     }
 
