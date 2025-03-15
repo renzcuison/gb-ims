@@ -10,12 +10,13 @@ use App\Http\Controllers\STOCKLOGController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\StockTransactionsController;
+use App\Http\Controllers\CustomerOrderController;
 use App\Http\Controllers\Auth\VerificationController;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 
-Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+// Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 Route::prefix('categories')->group(function () {
     Route::post('/', [CATEGORIESController::class, 'store']);
     Route::put('/{id}', [CATEGORIESController::class, 'update']);
@@ -58,31 +59,31 @@ Route::prefix('stock-log')->group(function () {
     Route::delete('/{id}', [STOCKLOGController::class, 'destroy']);
 });
 
-});
+// });
 
-Route::get('email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
-    ->middleware(['auth:sanctum'])
-    ->name('verification.verify');
+// Route::get('email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
+//     ->middleware(['auth:sanctum'])
+//     ->name('verification.verify');
 
 
-Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
-    $request->fulfill();
-    return response()->json(['message' => 'Email verified successfully.']);
-})->middleware(['auth:sanctum'])
-    ->name('verification.verify');
+// Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+//     $request->fulfill();
+//     return response()->json(['message' => 'Email verified successfully.']);
+// })->middleware(['auth:sanctum'])
+//     ->name('verification.verify');
 
-Route::prefix('users')->group(function () {
-    Route::post('/', [UserController::class, 'register']);
-    Route::post('/login', [UserController::class, 'login']);
-});
+// Route::prefix('users')->group(function () {
+//     Route::post('/', [UserController::class, 'register']);
+//     Route::post('/login', [UserController::class, 'login']);
+// });
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
+// Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+//     return $request->user();
+// });
 
-Route::middleware([EnsureFrontendRequestsAreStateful::class, 'auth:sanctum'])->get('/user', function (Request $request) {
-    return $request->user();
-});
+// Route::middleware([EnsureFrontendRequestsAreStateful::class, 'auth:sanctum'])->get('/user', function (Request $request) {
+//     return $request->user();
+// });
 
 Route::post('/login', [UserController::class, 'login'])->name('login');
 
@@ -135,4 +136,9 @@ Route::post('/orders', [OrderController::class, 'store']);
 Route::get('/orders/{id}', [OrderController::class, 'show']);
 Route::put('/orders/{id}', [OrderController::class, 'update']);
 Route::delete('/orders/{id}', [OrderController::class, 'destroy']);
+
+Route::post('/customer-orders', [CustomerOrderController::class, 'store']);
+ Route::get('/customer-orders', [CustomerOrderController::class, 'index']);
+ Route::delete('/customer-orders/{id}', [CustomerOrderController::class, 'destroy']);
+ Route::get('/customer-orders/{id}', [CustomerOrderController::class, 'show']);
 
