@@ -10,18 +10,19 @@ class Order extends Model
     use HasFactory;
 
     protected $fillable = [
-        'item_id',
+        'customer_order_id', 
+        'stock_id',
         'quantity',
-        'item_price_per_unit',
+        'price_per_unit',
     ];
 
-    public function item()
+    public function stock()
     {
-        return $this->belongsTo(Stock::class);
+        return $this->belongsTo(Stock::class, 'stock_id', 'id');
     }
 
-    public function getItemPricePerUnitAttribute()
+    public function customerOrder()
     {
-        return $this->item ? $this->item->price_per_unit : null;
+        return $this->belongsTo(CustomerOrder::class, 'customer_order_id');
     }
 }
