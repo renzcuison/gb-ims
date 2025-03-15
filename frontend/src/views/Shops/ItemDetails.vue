@@ -4,7 +4,7 @@
       <nav>
         <ul class="menu">
           <li><a href="/shop">SHOP</a></li>
-          <li><a href="#">ORDERS</a></li>
+          <li><a href="/order">ORDERS</a></li>
           <li><a href="#">MY ACCOUNT</a></li>
           <li><a href="#">ABOUT US</a></li>
           <li>
@@ -25,16 +25,9 @@
         <div class="item-image"></div>
         <div class="item-info">
           <h1 class="item-title">{{ item.name }}</h1>
-          <p class="item-price">₱{{ item.price_per_unit }}</p>
+          <p class="item-price">₱{{ item.price }}</p>
           <div class="item-description">
             <p>{{ item.description }}</p>
-          </div>
-          <div class="options">
-            <label for="sizes">Sizes</label>
-            <select id="sizes">
-              <option value="" disabled selected>Choose an option</option>
-              <option v-for="size in sizeChart" :key="size.size">{{ size.size }}</option>
-            </select>
           </div>
           <div class="actions">
             <div class="quantity-selector">
@@ -47,26 +40,6 @@
           </div>
         </div>
       </div>
-
-      <div class="size-chart">
-        <h3>Size Chart</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Size</th>
-              <th>Width</th>
-              <th>Length</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="size in sizeChart" :key="size.size">
-              <td>{{ size.size }}</td>
-              <td>{{ size.width }}</td>
-              <td>{{ size.length }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
     </section>
   </div>
 </template>
@@ -76,15 +49,10 @@ export default {
   data() {
     return {
       item: {},
-      sizeChart: [
-        { size: "S", width: '20"', length: '27"' },
-        { size: "M", width: '21"', length: '28"' },
-        { size: "L", width: '22"', length: '29"' },
-        { size: "XL", width: '23"', length: '30"' },
-      ],
-      quantity: 1,
       items: [],
       cart: [],
+      quantity: 1,
+      customerOrderId: null, // Stores customer order ID
     };
   },
   computed: {
@@ -95,36 +63,60 @@ export default {
   created() {
     this.fetchItemDetails();
     this.fetchItems();
+    this.loadCart();
   },
   methods: {
+    loadCart() {
+      const savedCart = localStorage.getItem("cart");
+      if (savedCart) {
+        this.cart = JSON.parse(savedCart);
+      }
+
+      const savedOrderId = localStorage.getItem("customer_order_id");
+      if (savedOrderId) {
+        this.customerOrderId = savedOrderId;
+      }
+    },
     async fetchItemDetails() {
       const itemId = this.$route.params.id;
+      if (!itemId) {
+        console.error("Item ID is missing");
+        return;
+      }
+
       try {
-        const response = await fetch(`http://localhost:8001/api/items/${itemId}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch item details');
-        }
+        const response = await fetch(`http://localhost:8001/api/stocks/${itemId}`);
         const data = await response.json();
-        this.item = data.item;
+
+        if (!data || !data.stock) {
+          console.error("Item not found in the response");
+          return;
+        }
+
+        this.item = {
+          id: String(data.stock.id),
+          name: data.stock.item_name || "No name available",
+          price: data.stock.price_per_unit || "Price not available",
+          description: data.stock.description || "No description available",
+        };
       } catch (error) {
-        console.error('Error fetching item details:', error);
+        console.error("Error fetching item details:", error);
       }
     },
+
     async fetchItems() {
       try {
-        const response = await fetch('http://localhost:8001/api/items');
+        const response = await fetch("http://localhost:8001/api/stocks");
         if (!response.ok) {
-          throw new Error('Failed to fetch items');
+          throw new Error("Failed to fetch items");
         }
         const data = await response.json();
-        this.items = data.items;
+        this.items = data.stocks;
       } catch (error) {
-        console.error('Error fetching items:', error);
+        console.error("Error fetching items:", error);
       }
     },
-    goToItemDetails(itemId) {
-      this.$router.push({ name: 'ItemDetails', params: { id: itemId } });
-    },
+
     increaseQuantity() {
       this.quantity++;
     },
@@ -133,67 +125,140 @@ export default {
         this.quantity--;
       }
     },
+
     buyNow() {
+      if (!this.item.id) {
+        console.error("Item ID is missing in buyNow function.");
+        return;
+      }
+
       const orderData = [
         {
           item: {
-            name: this.item.name,
             id: this.item.id,
+            name: this.item.name,
+            price_per_unit: Number(this.item.price),
           },
           quantity: this.quantity,
-          item_price_per_unit: this.item.price_per_unit,
         },
       ];
 
-      console.log('Order Data:', orderData)
       this.$router.push({
-        path: '/checkout',
+        path: "/checkout",
         query: {
           orders: JSON.stringify(orderData),
         },
       });
     },
+
     async createOrder() {
-      try {
-        const orderData = {
-          item_id: this.item.id,
-          quantity: this.quantity,
-          item_price_per_unit: this.item.price_per_unit,
+      if (!this.item.id) {
+        console.error("Stock ID is missing.");
+        alert("Error: Stock ID is missing.");
+        return;
+      }
+
+      // Ensure there's a valid customer order ID first
+      if (!this.customerOrderId) {
+        console.warn("No existing customer order found. Creating a new one...");
+
+        try {
+          const newOrderResponse = await fetch("http://localhost:8001/api/customer-orders", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify({
+              customer_name: "Guest",
+              shipping_address: "Default Address",
+              city: "Default City",
+              postal_code: "0000",
+              phone: "0000000000",
+              payment_method: "cod",
+              total_price: (this.quantity * parseFloat(this.item.price)).toFixed(2),
+              stocks: [
+                {
+                  stock_id: String(this.item.id),
+                  quantity: parseInt(this.quantity, 10),
+                  price_per_unit: parseFloat(this.item.price),
+                },
+              ],
+            }),
+          });
+
+          const newOrderData = await newOrderResponse.json();
+
+          if (newOrderResponse.ok) {
+            this.customerOrderId = newOrderData.id;
+            localStorage.setItem("customer_order_id", this.customerOrderId);
+            console.log("✅ New Customer Order Created:", newOrderData);
+          } else {
+            console.error("❌ Failed to create customer order:", newOrderData.message);
+            alert(`Failed to create order: ${newOrderData.message}`);
+            return;
+          }
+        } catch (error) {
+          console.error("❌ Error creating customer order:", error);
+          alert("Failed to create customer order.");
+          return;
+        }
+      }
+
+      // Check if the item already exists in the cart
+      const existingItemIndex = this.cart.findIndex(cartItem => cartItem.stock_id === this.item.id);
+
+      if (existingItemIndex !== -1) {
+        // ✅ Vue 3: Correct way to update object properties in reactive arrays
+        this.cart[existingItemIndex] = {
+          ...this.cart[existingItemIndex],
+          quantity: this.cart[existingItemIndex].quantity + this.quantity
         };
+      } else {
+        this.cart.push({
+          stock_id: String(this.item.id),
+          quantity: this.quantity,
+          price_per_unit: parseFloat(this.item.price),
+        });
+      }
 
-        console.log('Order Data:', orderData);
+      // Save updated cart to localStorage
+      localStorage.setItem("cart", JSON.stringify(this.cart));
 
-        const response = await fetch('http://localhost:8001/api/orders', {
-          method: 'POST',
+      // Send updated cart item to API
+      const orderData = {
+        customer_order_id: this.customerOrderId,
+        stock_id: String(this.item.id),
+        quantity: parseInt(this.quantity, 10),
+        price_per_unit: parseFloat(this.item.price),
+      };
+
+      try {
+        const response = await fetch("http://localhost:8001/api/orders", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
+            Accept: "application/json",
           },
           body: JSON.stringify(orderData),
         });
 
-        if (!response.ok) {
-          throw new Error('Failed to create order');
-        }
-
-        const result = await response.json();
-        alert('Added to Cart!');
-
-        const existingItem = this.cart.find(item => item.id === this.item.id);
-        if (existingItem) {
-          existingItem.quantity += this.quantity;
+        const data = await response.json();
+        if (response.ok) {
+          alert("Item added to cart!");
         } else {
-          this.cart.push({ ...this.item, quantity: this.quantity });
+          alert(`Failed to add item: ${data.message}`);
         }
-
-        this.$router.push('/orders');
       } catch (error) {
-        console.error('Error creating order:', error);
-        alert('An error occurred while creating the order.');
+        console.error("Error creating order:", error);
+        alert("Failed to add item to cart.");
       }
     },
+
   },
 };
 </script>
+
 
 <style scoped>
 .shop-view {
@@ -318,7 +383,7 @@ export default {
 .item-image {
   flex: 1;
   height: 400px;
-  background: linear-gradient(135deg, #3498db, #9b59b6);
+  background: linear-gradient(135deg, #11095c, #0a3992);
   border-radius: 12px;
 }
 

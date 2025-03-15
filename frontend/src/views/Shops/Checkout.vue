@@ -7,74 +7,18 @@
       </div>
       <div class="card-body">
         <div class="row">
-          <!-- Shipping Information Section -->
           <div class="col-md-6">
             <h5>Shipping Information</h5>
             <form>
-              <div class="mb-3">
-                <label for="name" class="form-label">Full Name</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="name"
-                  v-model="shipping.name"
-                  :class="{ 'is-invalid': errors.name }"
-                  @blur="validateField('name')"
-                />
-                <div v-if="errors.name" class="invalid-feedback">{{ errors.name }}</div>
-              </div>
-              <div class="mb-3">
-                <label for="address" class="form-label">Address</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="address"
-                  v-model="shipping.address"
-                  :class="{ 'is-invalid': errors.address }"
-                  @blur="validateField('address')"
-                />
-                <div v-if="errors.address" class="invalid-feedback">{{ errors.address }}</div>
-              </div>
-              <div class="mb-3">
-                <label for="city" class="form-label">City</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="city"
-                  v-model="shipping.city"
-                  :class="{ 'is-invalid': errors.city }"
-                  @blur="validateField('city')"
-                />
-                <div v-if="errors.city" class="invalid-feedback">{{ errors.city }}</div>
-              </div>
-              <div class="mb-3">
-                <label for="postalCode" class="form-label">Postal Code</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="postalCode"
-                  v-model="shipping.postalCode"
-                  :class="{ 'is-invalid': errors.postalCode }"
-                  @blur="validateField('postalCode')"
-                />
-                <div v-if="errors.postalCode" class="invalid-feedback">{{ errors.postalCode }}</div>
-              </div>
-              <div class="mb-3">
-                <label for="phone" class="form-label">Phone Number</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="phone"
-                  v-model="shipping.phone"
-                  :class="{ 'is-invalid': errors.phone }"
-                  @blur="validateField('phone')"
-                />
-                <div v-if="errors.phone" class="invalid-feedback">{{ errors.phone }}</div>
+              <div v-for="(label, key) in shippingLabels" :key="key" class="mb-3">
+                <label :for="key" class="form-label">{{ label }}</label>
+                <input type="text" class="form-control" :id="key" v-model="shipping[key]"
+                  :class="{ 'is-invalid': errors[key] }" @blur="validateField(key)" />
+                <div v-if="errors[key]" class="invalid-feedback">{{ errors[key] }}</div>
               </div>
             </form>
           </div>
 
-          <!-- Order Summary Section -->
           <div class="col-md-6">
             <h5>Order Summary</h5>
             <table class="table table-striped">
@@ -86,7 +30,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="order in orders" :key="order.id">
+                <tr v-for="order in orders" :key="order.item.id">
                   <td>{{ order.item.name }}</td>
                   <td>{{ order.quantity }}</td>
                   <td>₱{{ calculateTotalPrice(order) }}</td>
@@ -101,18 +45,8 @@
 
             <div class="mt-4">
               <h5>Choose Payment Method</h5>
-              <div>
-                <label>
-                  <input type="radio" v-model="paymentMethod" value="cod" />
-                  Cash on Delivery
-                </label>
-              </div>
-              <div>
-                <label>
-                  <input type="radio" v-model="paymentMethod" value="gcash" />
-                  GCash
-                </label>
-              </div>
+              <label><input type="radio" v-model="paymentMethod" value="cod" /> Cash on Delivery</label>
+              <label><input type="radio" v-model="paymentMethod" value="gcash" /> GCash</label>
 
               <div v-if="paymentMethod === 'gcash'" class="mt-3">
                 <h6>GCash:</h6>
@@ -138,58 +72,53 @@ export default {
   data() {
     return {
       orders: [],
-      shipping: {
-        name: '',
-        address: '',
-        city: '',
-        postalCode: '',
-        phone: '',
+      shipping: { name: '', address: '', city: '', postalCode: '', phone: '' },
+      shippingLabels: {
+        name: "Full Name",
+        address: "Address",
+        city: "City",
+        postalCode: "Postal Code",
+        phone: "Phone Number"
       },
       errors: {},
       paymentMethod: '',
     };
   },
   created() {
-    const itemsQuery = this.$route.query.items;
+    console.log("Raw query parameters:", this.$route.query);
     const ordersQuery = this.$route.query.orders;
-    if (itemsQuery) {
-      try {
-        this.orders = JSON.parse(itemsQuery);
-      } catch (error) {
-        console.error('Error parsing selected items:', error);
-      }
-    }
     if (ordersQuery) {
       try {
         this.orders = JSON.parse(ordersQuery);
+        console.log("Parsed orders:", this.orders);
       } catch (error) {
-        console.error('Error parsing selected orders:', error);
+        console.error("Error parsing selected orders:", error);
       }
     }
   },
   computed: {
     totalPrice() {
-      return this.orders
-        .reduce((acc, order) => acc + order.quantity * order.item_price_per_unit, 0)
-        .toFixed(2);
-    },
+      return this.orders.reduce((acc, order) =>
+        acc + (Number(order.quantity) * Number(order.item.price_per_unit)), 0
+      ).toFixed(2);
+    }
   },
   methods: {
     calculateTotalPrice(order) {
-      return (order.quantity * order.item_price_per_unit).toFixed(2);
+      return (Number(order.quantity) * Number(order.item.price_per_unit)).toFixed(2);
     },
     validateField(field) {
       if (!this.shipping[field]) {
-        this.errors[field] = `${field.replace(/([A-Z])/g, ' $1')} is required`;
+        this.errors[field] = `${this.shippingLabels[field]} is required`;
       } else {
         delete this.errors[field];
       }
     },
     validateForm() {
-      Object.keys(this.shipping).forEach((field) => this.validateField(field));
-      return Object.keys(this.errors).length === 0; // Form is valid if there are no errors
+      Object.keys(this.shipping).forEach(this.validateField);
+      return Object.keys(this.errors).length === 0;
     },
-    placeOrder() {
+    async placeOrder() {
       if (!this.validateForm()) {
         alert('Please fill in all required fields.');
         return;
@@ -198,14 +127,46 @@ export default {
         alert('Please select a payment method.');
         return;
       }
-      this.$router.push({
-        name: 'OrderPage',
-        query: {
-          orders: JSON.stringify(this.orders),
-          shipping: JSON.stringify(this.shipping),
-          paymentMethod: this.paymentMethod,
-        },
-      });
+
+      const requestBody = {
+        customer_name: this.shipping.name,
+        shipping_address: this.shipping.address,
+        city: this.shipping.city,
+        postal_code: this.shipping.postalCode,
+        phone: this.shipping.phone,
+        payment_method: this.paymentMethod,
+        total_price: this.totalPrice,
+        stocks: this.orders.map(order => ({
+          stock_id: order.item.id,
+          quantity: order.quantity,
+          price_per_unit: order.item.price_per_unit,
+        })),
+      };
+
+      console.log("Sending order request:", requestBody);
+
+      try {
+        const response = await fetch('http://localhost:8001/api/customer-orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        });
+
+        console.log("Response:", response);
+        const result = await response.json();
+
+        if (response.ok) {
+          alert('Order placed successfully!');
+          console.log(result);
+          this.$router.push({ name: 'OrderPage' });
+        } else {
+          console.error('Error placing order:', result);
+          alert('Failed to place order.');
+        }
+      } catch (error) {
+        console.error('Network error:', error);
+        alert('Network error. Please try again.');
+      }
     },
     goBack() {
       this.$router.go(-1);
@@ -213,6 +174,8 @@ export default {
   },
 };
 </script>
+
+
 
 
 <style scoped>

@@ -7,7 +7,7 @@
           <li><a href="/shop">SHOP</a></li>
           <!-- <li><a href="#">WELLNESS STUDY</a></li>
           <li><a href="#">SIZE CHART</a></li> -->
-          <li><a href="/order">ORDERS</a></li> 
+          <li><a href="/order">ORDERS</a></li>
           <li><a href="#">MY ACCOUNT</a></li>
           <li><a href="#">ABOUT US</a></li>
           <li>
@@ -21,16 +21,11 @@
 
     <!-- Items Section -->
     <section class="items">
-      <div
-        class="item"
-        v-for="item in items"
-        :key="item.id"
-        @click="goToItemDetails(item.id)"
-        style="cursor: pointer;"
-      >
+      <div class="item" v-for="item in items" :key="item.id" @click="goToItemDetails(item.id)" style="cursor: pointer;">
         <!-- Placeholder box for item image -->
         <div class="placeholder-image">No Image</div>
-        <p>{{ item.name }}</p>
+        <p>{{ item.item_name }}</p>
+        <p>Price: {{ item.price_per_unit }}</p>
       </div>
     </section>
   </div>
@@ -51,16 +46,29 @@ export default {
   },
   created() {
     this.fetchItems();
+    this.updateCartQuantity();
+
+    const savedCart = localStorage.getItem("cart");
+    if (savedCart) {
+      this.cart = JSON.parse(savedCart);
+    }
   },
   methods: {
+    updateCartQuantity() {
+      const savedCart = localStorage.getItem("cart");
+      if (savedCart) {
+        this.cart = JSON.parse(savedCart);
+      }
+    },
+
     async fetchItems() {
       try {
-        const response = await fetch('http://localhost:8001/api/items');
+        const response = await fetch('http://localhost:8001/api/stocks');
         if (!response.ok) {
           throw new Error('Failed to fetch items');
         }
         const data = await response.json();
-        this.items = data.items;
+        this.items = data.stocks;
       } catch (error) {
         console.error('Error fetching items:', error);
       }
