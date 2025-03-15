@@ -64,204 +64,228 @@ const router = createRouter({
       path: '/shop', 
       name: 'Shop',
       component: ShopView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/checkout',
       name: 'Checkout',
       component: Checkout, 
+      meta: { requiresAuth: true },
     },
     {
       path: '/order',
       name: 'OrderPage',
       component: OrderPage,
+      meta: { requiresAuth: true },
     },
     {
       path: '/item/:id',
       name: 'ItemDetails',
       component: ItemDetails,
       props: true,
+      meta: { requiresAuth: true },
     },
     {
       path: '/categories',
       name: 'categories',
-      component: CategoriesView
+      component: CategoriesView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/categories/create',
       name: 'categoriesCreate',
-      component: CategoriesCreate
+      component: CategoriesCreate,
+      meta: { requiresAuth: true }
+
     },
     {
       path: '/categories/:id/edit',
       name: 'categoriesEdit',
-      component: CategoriesEdit
+      component: CategoriesEdit,
+      meta: { requiresAuth: true }
     },
 
     {
       path: '/suppliers',
       name: 'suppliers',
-      component: SuppliersView
+      component: SuppliersView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/suppliers/create',
       name: 'suppliersCreate',
-      component: SuppliersCreate
+      component: SuppliersCreate,
+      meta: { requiresAuth: true },
     },
     {
       path: '/suppliers/:id/edit',
       name: 'suppliersEdit',
-      component: SuppliersEdit
+      component: SuppliersEdit,
+      meta: { requiresAuth: true },
     },
 
     {
       path: '/transactions',
       name: 'transactions',
-      component: TransactionsView
+      component: TransactionsView,
+      meta: { requiresAuth: true }
     },
     {
       path: '/transactions/create',
       name: 'transactionsCreate',
-      component: TransactionsCreate
+      component: TransactionsCreate,
+      meta: { requiresAuth: true }
     },
     {
       path: '/transactions/:id/edit',
       name: 'transactionsEdit',
-      component: TransactionsEdit
+      component: TransactionsEdit,
+      meta: { requiresAuth: true }
     },
     {
       path: '/employees',
       name: 'employees',
-      component: EmployeesView
+      component: EmployeesView,
+      meta: { requiresAuth: true }
     },
     {
       path: '/employees/create',
       name: 'employeesCreate',
-      component: EmployeesCreate
+      component: EmployeesCreate,
+      meta: { requiresAuth: true }
     },
     {
       path: '/employees/:id/edit',
       name: 'employeesEdit',
-      component: EmployeesEdit
+      component: EmployeesEdit,
+      meta: { requiresAuth: true }
     },
 
     {
       path: '/customers',
       name: 'customers',
-      component: CustomersView
+      component: CustomersView,
+      meta: { requiresAuth: true }
     },
     {
       path: '/customers/create',
       name: 'customersCreate',
-      component: CustomersCreate
+      component: CustomersCreate,
+      meta: { requiresAuth: true }
     },
     {
       path: '/customers/:id/edit',
       name: 'customersEdit',
-      component: CustomersEdit
+      component: CustomersEdit,
+      meta: { requiresAuth: true }
     },
 
     {
       path: '/stocks',
       name: 'stocks',
-      component: StocksView
+      component: StocksView,
+      meta: { requiresAuth: true }
     },
     {
       path: '/stocks/lowstock/:stockId?',
       name: 'stocksLowStock',
-      component: StocksLowStock
+      component: StocksLowStock,
+      meta: { requiresAuth: true }
     },    
     {
       path: '/stocks/uncreate/:stockId?',
       name: 'stocksUncreate',
-      component: StocksUncreate
+      component: StocksUncreate,
+      meta: { requiresAuth: true }
     },
     {
       path: '/stocks/in',
       name: 'stocksIn',
-      component: StocksIn
+      component: StocksIn,
+      meta: { requiresAuth: true }
     },
     {
       path: '/stocks/create',
       name: 'stocksCreate',
-      component: StocksCreate
+      component: StocksCreate,
+      meta: { requiresAuth: true }
     },
     {
       path: '/stocks/:id/edit',
       name: 'stocksEdit',
-      component: StocksEdit
+      component: StocksEdit,
+      meta: { requiresAuth: true }
     },
     {
       path: '/orders',
       name: 'orders',
       component: OrderView, 
+      meta: { requiresAuth: true }
     },
     {
       path: '/orders/create',
       name: 'orderCreate',
       component: OrderCreate,
+      meta: { requiresAuth: true }
     },
     {
       path: '/orders/:id/edit',
       name: 'orderEdit',
       component: OrderEdit, 
+      meta: { requiresAuth: true }
     },
     
     {
       path: '/verify-email',
       name: 'EmailVerification',
       component: EmailVerification,
+      meta: { requiresAuth: true }
     },
   ]
 });
 
 router.beforeEach(async (to, from, next) => {
-  const authToken = localStorage.getItem('authToken'); // Check auth token
-  const userRole = localStorage.getItem('role'); // Check user role
+  const authToken = localStorage.getItem('authToken');
 
-  // If the route requires authentication
-  if (to.matched.some(record => record.meta.requiresAuth)) {
-    if (!authToken) {
-      return next('/login'); // Redirect unauthenticated users to login
-    }
+  if (to.matched.some((record) => record.meta.requiresAuth)) {
+    if (!authToken) return next('/login');
 
-    // Fetch user details (with email verification check)
     try {
       const response = await fetch('http://localhost:8001/api/user', {
         method: 'GET',
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
 
-      if (response.status === 401) {
+      if (!response.ok) {
         localStorage.removeItem('authToken');
         return next('/login');
       }
 
       const user = await response.json();
+      console.log('User data:', user); // Debugging
 
-      // Redirect to email verification page if not verified
-      if (!user.email_verified_at && to.path !== '/verify-email') {
+      const isVerified = user.email_verified_at !== null;
+
+      if (!isVerified && to.path !== '/verify-email') {
         return next('/verify-email');
       }
 
-      // Redirect to forbidden page if role is not admin and route requires admin
-      if (to.matched.some(record => record.meta.requiresAdmin) && user.role !== 'admin') {
-        return next('/forbidden');
+      if (isVerified && to.path === '/verify-email') {
+        return next('/shop');
       }
+
+      return next();
     } catch (error) {
-      console.error('Error in route guard:', error);
+      console.error('Error verifying authentication:', error);
       localStorage.removeItem('authToken');
       return next('/login');
     }
   }
 
-  // Redirect authenticated users from login to items
   if (to.path === '/login' && authToken) {
-    return next('/items');
+    return next('/shop');
   }
 
-  // Proceed normally if no conditions are met
   next();
 });
 

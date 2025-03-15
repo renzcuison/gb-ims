@@ -1,6 +1,7 @@
 <template>
-  <div class="page-wrapper" :class="{ fadeOut: isAccountCreated }">
-    <div class="create-login-container">
+  <div class="page-wrapper">
+    <div class="overlay"></div>
+    <div class="login-container">
       <img src="/src/assets/companylogo.jpg" alt="GreatBuy Logo" class="brand-logo" />
       <h1>Create an Account</h1>
 
@@ -31,9 +32,9 @@
           <label for="newPassword">Password</label>
           <div class="password-container">
             <input :type="isPasswordVisible ? 'text' : 'password'" id="newPassword" v-model="user.password" required />
-            <button type="button" @click="togglePasswordVisibility" class="password-toggle"
-              aria-label="Toggle password visibility">
-              👁️
+            <button type="button" @click="togglePasswordVisibility" class="password-toggle">
+              <span v-if="isPasswordVisible">👁️‍🗨️</span>
+              <span v-else>👁️</span>
             </button>
           </div>
         </div>
@@ -41,9 +42,10 @@
         <button type="submit">Create Account</button>
       </form>
 
-      <div v-if="isAccountCreated" class="alert alert-success">
-        <p>Your account was created successfully! Please check your email for a verification link.</p>
-      </div>
+      <p>
+        Already have an account?
+        <RouterLink class="r1" to="/login">Login here</RouterLink>
+      </p>
     </div>
   </div>
 </template>
@@ -60,7 +62,6 @@ export default {
         phone_number: "",
       },
       isPasswordVisible: false,
-      isAccountCreated: false,
       errorList: {},
     };
   },
@@ -84,13 +85,9 @@ export default {
           throw new Error("Failed to create account.");
         }
 
-        const data = await response.json();
         alert("Account created successfully! Please check your email for a verification link.");
-
         this.user = { name: "", email: "", password: "", phone_number: "" };
         this.errorList = {};
-
-        this.isAccountCreated = true;
 
         setTimeout(() => {
           this.$router.push("/login");
@@ -107,7 +104,6 @@ export default {
 </script>
 
 <style scoped>
-/* Background Styling */
 .page-wrapper {
   position: fixed;
   top: 0;
@@ -118,88 +114,101 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  opacity: 1;
 }
 
-.page-wrapper.fadeOut {
-  opacity: 0;
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backdrop-filter: blur(5px);
+  background: rgba(255, 255, 255, 0);
 }
 
-/* Container Design */
-.create-login-container {
-  max-width: 400px;
-  padding: 40px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 1);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  text-align: center;
-}
-
-/* Centered Logo */
 .brand-logo {
-  width: 120px;
+  width: 150px;
   border-radius: 10%;
   object-fit: cover;
   display: block;
-  margin: 0 auto 20px;
+  margin: 0 auto 40px;
 }
 
-/* Heading */
+.login-container {
+  margin: 50px auto;
+  position: relative;
+  padding: 50px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background-color: white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
 h1 {
   text-align: center;
-  color: #0a3992;
-  font-size: 1.8rem;
+  color: black;
+  font-size: 1.5rem;
   font-weight: bold;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
 }
 
-/* Form Group */
 .form-group {
   margin-bottom: 15px;
-  text-align: left;
 }
 
 label {
   display: block;
-  font-weight: 600;
   margin-bottom: 5px;
-  color: #0a3992;
+  color: black;
 }
 
-/* Input Fields */
 input {
   width: 100%;
   padding: 10px;
-  border: 1px solid #aaa;
-  border-radius: 5px;
-  font-size: 1rem;
+  margin: 5px 0 15px;
   background-color: white;
-  color: #0a3992;
+  border: 1px solid black;
+  border-radius: 5px;
+  color: black;
+  font-size: 1rem;
 }
 
 input:focus {
-  border-color: #0a3992;
+  border-color: black;
   outline: none;
 }
 
-/* Buttons */
 button {
   width: 100%;
-  padding: 12px;
+  padding: 10px;
   background-color: #0a3992;
   color: white;
   border: none;
   border-radius: 5px;
   font-size: 1rem;
   cursor: pointer;
-  transition: 0.3s ease-in-out;
+  transition: background-color 0.3s ease;
 }
 
 button:hover {
-  background-color: #082a72;
+  background-color: #e0a800;
 }
 
-/* Password Visibility Toggle */
+p {
+  margin-top: 20px;
+  text-align: center;
+  color: black;
+}
+
+RouterLink {
+  color: black;
+  text-decoration: none;
+}
+
+RouterLink:hover {
+  text-decoration: underline;
+}
+
 .password-container {
   position: relative;
   display: flex;
@@ -213,31 +222,14 @@ button:hover {
 
 .password-toggle {
   background: none;
-  width: 20%;
   border: none;
+  width: 20%;
   font-size: 1.2rem;
   cursor: pointer;
-  color: #0a3992;
+  color: black;
   position: absolute;
   right: 0px;
   top: 50%;
-  transform: translateY(-50%);
-}
-
-/* Alerts */
-.alert {
-  margin-top: 15px;
-  padding: 10px;
-  border-radius: 5px;
-}
-
-.alert-warning {
-  background-color: #ffc107;
-  color: #0e0e0e;
-}
-
-.alert-success {
-  background-color: #28a745;
-  color: white;
+  transform: translateY(-60%);
 }
 </style>

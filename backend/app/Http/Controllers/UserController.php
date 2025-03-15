@@ -11,7 +11,7 @@ use Illuminate\Auth\Events\Registered; // Import the event for email verificatio
 use App\Notifications\VerifyEmailWithCustomUrl;
 class UserController extends Controller
 {
-
+    
     public function register(Request $request)
     {
         // Validation rules
@@ -27,14 +27,17 @@ class UserController extends Controller
             'role' => 'nullable|in:user,admin', // Role must be either 'user' or 'admin'
         ]);
 
+        // Handle validation errors
         if ($validator->fails()) {
             return response()->json([
                 'errors' => $validator->errors(),
             ], 422);
         }
 
+        // Set default role to 'user' if not provided
         $role = $request->role ?? 'user';
 
+        // Create the user
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -43,6 +46,7 @@ class UserController extends Controller
             'phone_number' => $request->phone_number, // Add phone number
         ]);
 
+        // Send the verification email with the custom URL
         $user->notify(new VerifyEmailWithCustomUrl($user)); // Send the custom verification notification
 
         return response()->json([
@@ -51,7 +55,7 @@ class UserController extends Controller
         ], 201);
     }
 
-
+   
     public function login(Request $request)
     {
         // Validate input
@@ -80,20 +84,20 @@ class UserController extends Controller
         ]);
     }
 
-
+    
     public function index()
     {
         $users = User::all();
 
         return response()->json($users);
     }
-
+    
     // This method returns the authenticated user's details
     public function getUser(Request $request)
     {
         // Fetch the currently authenticated user
         $user = Auth::user();
-
+        
         // Return the user data as JSON
         return response()->json($user);
     }
@@ -111,14 +115,14 @@ class UserController extends Controller
         }
     }
 
-
+    
     public function update(Request $request, $id)
     {
         try {
-
+           
             $user = User::findOrFail($id);
 
-
+         
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email,' . $id,
@@ -126,14 +130,14 @@ class UserController extends Controller
                 'role' => 'nullable|in:user,admin', // Role is optional for update
             ]);
 
-
+           
             $user->update($validated); // This will update the role along with other fields
 
             return response()->json(['message' => 'User updated successfully!', 'user' => $user], 200);
         } catch (\Exception $e) {
-
-
-
+        
+            
+            
             return response()->json(['error' => 'User not found or could not be updated.'], 500);
         }
     }
@@ -144,15 +148,15 @@ class UserController extends Controller
         try {
             // Find the user by ID
             $user = User::findOrFail($id);
-
+            
             // Delete the user
             $user->delete();
 
             return response()->json(['message' => 'User deleted successfully!'], 200);
         } catch (\Exception $e) {
-
-
-
+            
+            
+            
             return response()->json(['error' => 'User not found or could not be deleted.'], 500);
         }
     }

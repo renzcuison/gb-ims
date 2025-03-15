@@ -39,6 +39,9 @@ export default {
     };
   },
   methods: {
+    togglePasswordVisibility() {
+      this.isPasswordVisible = !this.isPasswordVisible;
+    },
     async handleLogin() {
       if (!this.username || !this.password) {
         alert("Please enter valid credentials.");
@@ -48,7 +51,7 @@ export default {
       try {
         await fetch("http://localhost:8001/sanctum/csrf-cookie", {
           method: "GET",
-          credentials: "same-origin",
+          credentials: "include",
         });
 
         const response = await fetch("http://localhost:8001/api/login", {
@@ -60,39 +63,38 @@ export default {
             name: this.username,
             password: this.password,
           }),
-          credentials: "same-origin",
+          credentials: "include",
         });
 
         const data = await response.json();
 
         if (response.ok) {
-          // ✅ Login success: Store token and redirect
           localStorage.setItem("authToken", data.token);
 
-          // Trigger fade effect only on successful login
-          const pageWrapper = document.querySelector(".page-wrapper");
-          pageWrapper.classList.add("fade-out");
+          // 🔹 Fetch user data to check email verification
+          const userResponse = await fetch("http://localhost:8001/api/user", {
+            method: "GET",
+            headers: { Authorization: `Bearer ${data.token}` },
+            credentials: "include",
+          });
 
-          // Redirect after fade effect
-          setTimeout(() => {
-            this.$router.push("/items");
-          }, 500);
+          const userData = await userResponse.json();
+
+          // 🚀 Refresh the site after login attempt
+          window.location.reload();
         } else {
-          // ❌ Login failed: Show error message and prevent redirection
           alert(data.message || "Login failed. Please check your credentials.");
+          window.location.reload(); // Refresh even on failure
         }
       } catch (error) {
         console.error("Login error:", error);
         alert("An error occurred while trying to log in. Please try again.");
+        window.location.reload(); // Refresh even if an error occurs
       }
-    }
-
-
-
+    },
   },
 };
 </script>
-
 
 <style scoped>
 .page-wrapper {
