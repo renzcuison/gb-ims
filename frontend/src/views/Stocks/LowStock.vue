@@ -13,8 +13,8 @@
 
         <div class="mb-3">
           <label for="item_id">Item Name</label>
-          <select v-model="model.item_id" @change="updateItemDetails" class="form-control" disabled>
-            <option v-for="item in items" :key="item.id" :value="item.id">{{ item.name }}</option>
+          <select v-model="model.stock_id" @change="updateItemDetails" class="form-control" disabled>
+            <option v-for="stock in stocks" :key="stock.id" :value="stock.id">{{ stock.name }}</option>
           </select>
         </div>
 
@@ -65,7 +65,7 @@ export default {
     return {
       errorList: '',
       model: {
-        item_id: '',
+        stock_id: '',
         quantity: 1,
         unit_of_measure: '',
         supplier_id: '',
@@ -73,7 +73,7 @@ export default {
       },
       itemName: '',
       supplierName: '',
-      items: [],
+      stocks: [],
       suppliers: [],
       units: ['Pc', 'Box', 'Kg', 'G', 'Liter', 'Ml', 'Meter', 'Cm', 'Bundle'],
     };

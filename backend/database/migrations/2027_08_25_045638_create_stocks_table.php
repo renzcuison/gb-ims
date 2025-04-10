@@ -12,12 +12,14 @@ return new class extends Migration {
             $table->string('item_name');
             $table->text('description')->nullable();
             $table->unsignedBigInteger('category_id');
-            $table->unsignedBigInteger('supplier_id');
+            $table->unsignedBigInteger('supplier_id')->nullable();
             $table->string('unit_of_measure')->default('pc');
             $table->integer('physical_count');
             $table->integer('on_hand');
             $table->integer('sold');
             $table->decimal('price_per_unit', 10, 2);
+            $table->decimal('buying_price', 10, 2);
+            $table->date('date')->nullable();
             $table->timestamp('time')->useCurrent();
 
             $table->foreign('category_id')->references('id')->on('categories')->onDelete('cascade');

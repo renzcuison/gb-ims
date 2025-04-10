@@ -1,188 +1,322 @@
 <template>
-  <div class="container mt-4">
-    <div class="card mb-5">
-      <div class="card-header">
-        <h4>
-          Stocks
-          <RouterLink to="/stocks/uncreate" class="btn btn-primary float-end">Out</RouterLink>
-          <RouterLink to="/stocks/in" class="btn btn-primary float-end me-2">In</RouterLink>
-          <RouterLink to="/stocks/create" class="btn btn-primary float-end me-2">Add Item</RouterLink>
-        </h4>
+  <header class="navbar">
+    <div class="navbar-brand">
+      <RouterLink :to="{ path: '/shop' }" class="brand-text">GREATBUY</RouterLink>
+      <RouterLink :to="{ path: '/shop' }" class="brand-text-follow">DATABASE</RouterLink>
+    </div>
+    <div class="navbar-right">
+      <img src="/profile.jpg" alt="User Profile" class="icon-image-profile" @click="toggleDropdown">
+      <span class="user-name">admin</span>
+      <button class="icon-button" @click="toggleDropdown">
+        <img src="/drop.png" alt="Dropdown" class="icon-image">
+      </button>
+
+      <div v-if="dropdownVisible" class="dropdown-menu">
+        <ul>
+          <li>
+            <button @click="handleLogout" class="dropdown-item">Logout</button>
+          </li>
+        </ul>
       </div>
+    </div>
+  </header>
 
-      <div class="card-body">
-        <div class="d-flex">
-          <div class="flex-grow-1 me-3">
-            <input type="text" v-model="searchQuery" @input="filterStocks" class="form-control"
-              placeholder="Enter Search Query" />
-          </div>
+  <div class="wrapper">
+    <div class="sidebar">
+      <nav>
+        <ul>
+          <li>
+            <router-link to="/stocks" active-class="router-link-active" exact-active-class="router-link-active"
+              :class="{ 'router-link-active': $route.path.startsWith('/stocks') }">
+              <img src="/inventory.png" alt="Inventory" class="sidebar-icon" />
+              INVENTORY
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/suppliers" active-class="router-link-active">
+              <img src="/supplier.png" alt="Suppliers" class="sidebar-icon"> SUPPLIERS
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/categories" active-class="router-link-active">
+              <img src="/category.png" alt="Categories" class="sidebar-icon"> CATEGORIES
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/customers" active-class="router-link-active">
+              <img src="/customer1.png" alt="Customers" class="sidebar-icon"> CUSTOMERS
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/employees" active-class="router-link-active">
+              <img src="/employees.png" alt="Employees" class="sidebar-icon"> EMPLOYEES
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/orders" active-class="router-link-active">
+              <img src="/order.png" alt="Orders" class="sidebar-icon"> ORDERS
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/shop" active-class="router-link-active">
+              <img src="/shop.png" alt="Shop" class="sidebar-icon"> SHOP
+            </router-link>
+          </li>
+        </ul>
+      </nav>
+    </div>
 
-          <div class="d-flex align-items-center">
-            <label class="form-check-label me-1 mb-0 d-inline">Sort</label>
-            <label class="form-check-label me-2 mb-0 d-inline">by:</label>
-            <select v-model="sortOption" class="form-select" @change="applySort">
-              <option value="alpha-asc">Alphabetical: A-Z</option>
-              <option value="alpha-desc">Alphabetical: Z-A</option>
-              <option value="date-desc">Date: Recent to Old</option>
-              <option value="date-asc">Date: Old to Recent</option>
-              <option value="quantity-asc">Quantity: Low to High</option>
-              <option value="quantity-desc">Quantity: High to Low</option>
-              <option value="price-asc">Price: Low to High</option>
-              <option value="price-desc">Price: High to Low</option>
-              <option value="low-stock">Low on Stock</option>
-              <option value="all">View All</option>
-            </select>
-          </div>
+    <div class="content">
+    </div>
+
+    <div class="container mt-4">
+      <div class="card mb-5">
+        <div class="card-header">
+          <h4 class="stocks">
+            Stocks
+            <RouterLink to="/stocks/uncreate" class="btn btn-primary float-end">Out</RouterLink>
+            <RouterLink to="/stocks/in" class="btn btn-primary float-end me-2">In</RouterLink>
+            <RouterLink to="/stocks/create" class="btn btn-primary float-end me-2">Add Item</RouterLink>
+          </h4>
         </div>
 
-        <div class="mb-3">
-          <div>
-            <label class="form-check-label search-by-label">Search By:</label>
-            <label class="form-check-label search-by-label">
-              <input type="radio" v-model="searchBy" value="id" class="form-check-input" @change="filterStocks" />
-              ID
-            </label>
-            <label class="form-check-label search-by-label">
-              <input type="radio" v-model="searchBy" value="name" class="form-check-input" @change="filterStocks" />
-              Item Name
-            </label>
-          </div>
-        </div>
+        <div class="card-body">
+          <div class="d-flex">
+            <div class="flex-grow-1 me-3">
+              <input type="text" v-model="searchQuery" @input="filterStocks" class="form-control"
+                placeholder="Enter Search Query" />
+            </div>
 
-        <table class="table table-bordered">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Item</th>
-              <th>Unit</th>
-              <th>Quantity</th>
-              <th>Description</th>
-              <th>Price /unit</th>
-              <th>•</th>
-            </tr>
-          </thead>
-          <tbody v-if="filteredStocks.length > 0">
-            <template v-for="(stock, index) in filteredStocks" :key="index">
-              <tr @click="selectRow(stock.id, $event)" :class="{ 'selected-row': stock.id === selectedStockId }">
-                <td class="text-muted">{{ stock.id }}</td>
-                <td>
-                  <div class="d-flex align-items-center">
-                    <strong>{{ stock.item_name }}</strong>
-                    <button class="btn btn-link btn-sm ms-2" @click.stop="toggleSkuVisibility(stock)">
-                      {{ stock.showSkus ? "▲" : "▼" }}
-                    </button>
-                  </div>
-                  <div class="text-muted small">
-                    {{ getSupplierName(stock.supplier_id) }}
-                  </div>
-                  <div class="text-muted small">
-                    {{ stock.category ? stock.category.category_name : "N/A" }}
-                  </div>
-                  <div v-if="stock.showSkus" class="mt-2">
-                    <div v-if="stock.skus.length === 0" class="text-muted small">
-                      No stock.
-                    </div>
-                    <div v-else>
-                      <div class="text-muted small">
-                        <strong>Stock(s): {{ stock.skus.length }}</strong>
-                      </div>
-                      <ul class="list-unstyled small">
-                        <li v-for="(sku, skuIndex) in stock.skus" :key="sku.id" class="d-flex justify-content-between">
-                          <span class="sku-text">{{ skuIndex + 1 }}. {{ sku.sku }}</span>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                  <div class="text-muted small text-end mt-2">
-                    <span class="logs-text" @click.stop="fetchStockLogs(stock.id)">→ log</span>
-                  </div>
-                </td>
-                <td>{{ stock.unit_of_measure }}</td>
-                <td>
-                  <div>
-                    <div>
-                      On Hand:
-                      <span>
-                        {{ stock.on_hand }}
-                        <RouterLink v-if="stock.on_hand < 5"
-                          :to="{ name: 'stocksLowStock', params: { stockId: stock.id } }" class="low-stock-link ms-2">
-                          ⚠
-                          {{ stock.on_hand === 0 ? "out of stock" : "low stock" }}
-                        </RouterLink>
-                      </span>
-                    </div>
-                    <div class="qty-container">
-                      <div class="qty-text">Physical Count: {{ stock.physical_count }}</div>
-                      <div class="qty-text">Sold: {{ stock.sold }}</div>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <textarea v-model="stock.description" class="form-control" @change="saveDescription(stock)"
-                    placeholder="" rows="3"></textarea>
-                </td>
-                <td>{{ formatPrice(stock.price_per_unit) }}</td>
-                <td>
-                  <button v-if="stock.id === selectedStockId" type="button" @click="editStock(stock.id)"
-                    class="btn btn-success me-2">
-                    Edit
-                  </button>
-                  <button v-if="stock.id === selectedStockId" type="button" @click="deleteStock(stock.id)"
-                    class="btn btn-danger">
-                    Delete
-                  </button>
-                </td>
+            <div class="d-flex align-items-center">
+              <label class="form-check-label me-1 mb-0 d-inline">Sort</label>
+              <label class="form-check-label me-2 mb-0 d-inline">by:</label>
+              <select v-model="sortOption" class="form-select" @change="applySort">
+                <option value="alpha-asc">Alphabetical: A-Z</option>
+                <option value="alpha-desc">Alphabetical: Z-A</option>
+                <option value="date-desc">Date: Recent to Old</option>
+                <option value="date-asc">Date: Old to Recent</option>
+                <option value="quantity-asc">Quantity: Low to High</option>
+                <option value="quantity-desc">Quantity: High to Low</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="low-stock">Low on Stock</option>
+                <option value="all">View All</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div>
+              <label class="form-check-label search-by-label">Search By:</label>
+              <label class="form-check-label search-by-label">
+                <input type="radio" v-model="searchBy" value="id" class="form-check-input" @change="filterStocks" />
+                ID
+              </label>
+              <label class="form-check-label search-by-label">
+                <input type="radio" v-model="searchBy" value="name" class="form-check-input" @change="filterStocks" />
+                Item Name
+              </label>
+            </div>
+          </div>
+
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Item</th>
+                <th>Unit</th>
+                <th>Quantity</th>
+                <th>Description</th>
+                <th>Price /unit</th>
+                <th>•</th>
               </tr>
-              <transition name="fade-slide">
-                <tr v-if="expandedStockIds.includes(stock.id)">
-                  <td colspan="7">
-                    <div class="transaction-log-container">
-                      <p class="transaction-log-title">Transaction Log:</p>
-
-                      <p v-if="!stockLogs[stock.id] || stockLogs[stock.id].length === 0" class="no-logs">
-                        No stock logs available.
-                      </p>
-
-                      <table v-if="stockLogs[stock.id] && stockLogs[stock.id].length > 0"
-                        class="table table-sm transaction-table">
-                        <thead>
-                          <tr>
-                            <th>Date</th>
-                            <th>Item ID</th>
-                            <th>SKU</th>
-                            <th>Quantity</th>
-                            <th>Reason</th>
-                            <th>Description</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr v-for="log in stockLogs[stock.id]" :key="log.id">
-                            <td>{{ formatDate(log.created_at) }}</td>
-                            <td>{{ log.stock_id }}</td>
-                            <td>{{ log.sku || 'N/A' }}</td>
-                            <td>{{ log.qty }}</td>
-                            <td>{{ log.reason }}</td>
-                            <td>{{ log.description || '' }}</td>
-                          </tr>
-                        </tbody>
-                      </table>
+            </thead>
+            <tbody v-if="filteredStocks.length > 0">
+              <template v-for="(stock, index) in filteredStocks" :key="index">
+                <tr @click="selectRow(stock.id, $event)" :class="{ 'selected-row': stock.id === selectedStockId }">
+                  <td class="text-muted">{{ stock.id }}</td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <strong>{{ stock.item_name }}</strong>
+                      <button class="btn btn-link btn-sm ms-2" @click.stop="toggleSkuVisibility(stock)">
+                        {{ stock.showSkus ? "▲" : "▼" }}
+                      </button>
+                    </div>
+                    <div class="text-muted small">
+                      {{ getSupplierName(stock.supplier_id) }}
+                    </div>
+                    <div class="text-muted small">
+                      {{ stock.category ? stock.category.category_name : "N/A" }}
+                    </div>
+                    <div v-if="stock.showSkus" class="mt-2">
+                      <div v-if="stock.skus.length === 0" class="text-muted small">
+                        No stock.
+                      </div>
+                      <div v-else>
+                        <div class="text-muted small">
+                          <strong>Stock(s): {{ stock.skus.length }}</strong>
+                        </div>
+                        <ul class="list-unstyled small">
+                          <li v-for="(sku, skuIndex) in stock.skus" :key="sku.id"
+                            class="d-flex justify-content-between">
+                            <span class="sku-text">{{ skuIndex + 1 }}. {{ sku.sku }}</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                    <div class="text-muted small text-end mt-2">
+                      <span class="logs-text" @click.stop="fetchStockLogs(stock.id)">→ log</span>
                     </div>
                   </td>
+                  <td>{{ stock.unit_of_measure }}</td>
+                  <td>
+                    <div>
+                      <div>
+                        On Hand:
+                        <span>
+                          {{ stock.on_hand }}
+                          <RouterLink v-if="stock.on_hand < 5"
+                            :to="{ name: 'stocksLowStock', params: { stockId: stock.id } }" class="low-stock-link ms-2">
+                            ⚠
+                            {{ stock.on_hand === 0 ? "out of stock" : "low stock" }}
+                          </RouterLink>
+                        </span>
+                      </div>
+                      <div class="qty-container">
+                        <div class="qty-text">Physical Count: {{ stock.physical_count }}</div>
+                        <div class="qty-text">Sold: {{ stock.sold }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <textarea v-model="stock.description" class="form-control" @change="saveDescription(stock)"
+                      placeholder="" rows="3"></textarea>
+                  </td>
+                  <td>{{ formatPrice(stock.price_per_unit) }}</td>
+                  <td>
+                    <button v-if="stock.id === selectedStockId" type="button" @click="editStock(stock.id)"
+                      class="btn btn-success me-2">
+                      Edit
+                    </button>
+                    <button v-if="stock.id === selectedStockId" type="button" @click="deleteStock(stock.id)"
+                      class="btn btn-danger">
+                      Delete
+                    </button>
+                  </td>
                 </tr>
-              </transition>
-            </template>
-          </tbody>
+                <transition name="fade-slide">
+                  <tr v-if="expandedStockIds.includes(stock.id)">
+                    <td colspan="↺">
+                      <div class="transaction-log-container">
+                        <p class="transaction-log-title">Transaction Log:</p>
 
-          <tbody v-else>
-            <tr>
-              <td colspan="6">.</td>
-            </tr>
-          </tbody>
-        </table>
+                        <p v-if="!stockLogs[stock.id] || stockLogs[stock.id].length === 0" class="no-logs">
+                          No stock logs available.
+                        </p>
+
+                        <table v-if="stockLogs[stock.id] && stockLogs[stock.id].length > 0"
+                          class="table table-sm transaction-table">
+                          <thead>
+                            <tr>
+                              <th>Date</th>
+                              <th>Item ID</th>
+                              <th>SKU</th>
+                              <th>Quantity</th>
+                              <th>Reason</th>
+                              <th>Description</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr v-for="log in stockLogs[stock.id]" :key="log.id">
+                              <td>{{ formatDate(log.created_at) }}</td>
+                              <td>{{ log.stock_id }}</td>
+                              <td>{{ log.sku || 'N/A' }}</td>
+                              <td>{{ log.qty }}</td>
+                              <td>{{ log.reason }}</td>
+                              <td>{{ log.description || '' }}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </td>
+                  </tr>
+                </transition>
+              </template>
+            </tbody>
+
+            <tbody v-else>
+              <tr>
+                <td colspan="↺">.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
 </template>
+
+<script setup>
+import { ref, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+
+const router = useRouter();
+const route = useRoute();
+const dropdownVisible = ref(false);
+const username = ref("");
+
+const toggleDropdown = () => {
+  dropdownVisible.value = !dropdownVisible.value;
+};
+
+const handleLogout = () => {
+  localStorage.removeItem('authToken');
+  router.push('/login');
+  closeHamburgerDropdown();
+  dropdownVisible.value = false;
+};
+
+const fetchUserData = async () => {
+  try {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      console.error("No auth token found.");
+      handleLogout();
+      return;
+    }
+
+    const response = await fetch('http://localhost:8001/api/user', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (response.status === 401) {
+      console.error("Unauthorized: Token may be invalid.");
+      handleLogout();
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch user data. Status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("User data:", data);
+
+    username.value = data.name || "Admin";
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+    username.value = "Admin";
+  }
+};
+
+onMounted(() => {
+  fetchUserData();
+});
+</script>
 
 <script>
 import axios from 'axios';
@@ -450,6 +584,235 @@ export default {
 </script>
 
 <style scoped>
+@font-face {
+  font-family: 'LibreCaslonDisplay-Regular';
+  src: url('/assets/LibreCaslonDisplay-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Kantumruy Pro';
+  src: url('/assets/KantumruyPro-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+}
+
+* {
+  font-family: 'Kantumruy Pro', sans-serif;
+}
+
+.wrapper {
+  background-color: #F4F4F4;
+  min-height: 93vh;
+  display: flex;
+}
+
+.card {
+  margin-left: 25px;
+  margin-right: 12px;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: rgb(255, 255, 255);
+  color: #fff;
+  position: relative;
+  height: 50px;
+  padding: 0 20px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  margin-bottom: -1px;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+}
+
+.brand-text {
+  font-family: 'LibreCaslonDisplay-Regular';
+  text-decoration: none;
+  color: #0086E7;
+  font-size: 24px;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.brand-text-follow {
+  font-family: 'LibreCaslonDisplay-Regular';
+  text-decoration: none;
+  color: #0086E7;
+  font-size: 12px;
+  font-weight: normal;
+  cursor: pointer;
+  margin-top: 10px
+}
+
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+.icon-image {
+  width: 10x;
+  height: 10px;
+  margin-top: 3px;
+  margin-left: -10px;
+}
+
+.icon-image-profile {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-name {
+  color: black;
+  font-size: 13px;
+  margin-top: 3px;
+}
+
+.dropdown-menu {
+  min-width: 0;
+  max-width: none;
+  width: 100px !important;
+  background-color: #ffffff;
+  border-radius: 5px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  overflow: hidden;
+  display: block;
+}
+
+.dropdown-item {
+  text-align: left;
+  color: #7d7d7d;
+  cursor: pointer;
+  width: 100%;
+  font-size: 12px;
+  padding: 8px 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background-color: transparent;
+  border: none;
+}
+
+.dropdown-item:hover {
+  background-color: #ffffff;
+}
+
+.dropdown-menu ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar {
+  width: 300px;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  background: linear-gradient(180deg, #0086E7 50%, #004B81 100%);
+  padding: 20px;
+}
+
+.sidebar nav ul {
+  list-style: none;
+  padding: 0;
+  margin-top: 30%;
+  margin-left: 15%;
+}
+
+.sidebar nav ul li {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  position: relative;
+  transition: background 0.3s;
+}
+
+.sidebar-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 10px;
+  margin-bottom: 2px;
+  filter: brightness(0) invert(1);
+}
+
+.router-link-active {
+  background: transparent;
+}
+
+.router-link-active::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60px;
+  width: 5px;
+  height: 100%;
+  background: white;
+  transform: scale(1.1);
+  z-index: 1;
+}
+
+.router-link-active::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 500%;
+  height: 100%;
+  background: #ffffff1c;
+  z-index: -1;
+  transform: scale(1.1);
+  transition: transform 0.2s ease-in-out;
+}
+
+.router-link-active:hover {
+  transform: none !important;
+}
+
+.sidebar nav ul li:not(.router-link-active):hover {
+  transform: scale(1.05);
+  transition: transform 0.2s ease-in-out;
+}
+
+.sidebar nav ul li a {
+  color: white;
+  text-decoration: none;
+  font-size: 18px;
+  font-weight: 200;
+}
+
+.content {
+  margin-left: 250px;
+  padding: 20px;
+}
+
 .low-stock-link {
   text-decoration: none;
   color: grey;

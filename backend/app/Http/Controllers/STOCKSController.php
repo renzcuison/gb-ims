@@ -20,31 +20,33 @@ class STOCKSController extends Controller
     }
 
     public function store(Request $request)
-    {
+    {   
+        try{
         $validator = Validator::make($request->all(), [
             'item_name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'category_id' => 'required|exists:categories,id',
-            'supplier_id' => 'required|exists:suppliers,id',
+            'supplier_id' => 'nullable|exists:suppliers,id',
             'unit_of_measure' => 'required|string|max:50',
             'physical_count' => 'required|integer|min:0',
             'on_hand' => 'required|integer|min:0',
             'sold' => 'required|integer|min:0',
+            'date' => 'nullable|date',
             'price_per_unit' => 'required|numeric|min:0',
+            'buying_price' => 'required|numeric|min:0',
         ]);
     
         if ($validator->fails()) {
             return response()->json(['status' => 422, 'errors' => $validator->messages()], 422);
         }
     
-        // Check for duplicate item_name and unit_of_measure
         $existingStock = Stock::where('item_name', $request->item_name)
             ->where('unit_of_measure', $request->unit_of_measure)
             ->first();
     
         if ($existingStock) {
             return response()->json([
-                'status' => 409, // Conflict status
+                'status' => 409, 
                 'message' => 'A stock with the same item name and unit of measure already exists.',
             ], 409);
         }
@@ -72,7 +74,9 @@ class STOCKSController extends Controller
             'physical_count' => $request->physical_count,
             'on_hand' => $request->on_hand,
             'sold' => $request->sold,
+            'date' => $request->date,
             'price_per_unit' => $request->price_per_unit,
+            'buying_price' => $request->buying_price
         ]);
     
         return response()->json([
@@ -80,9 +84,12 @@ class STOCKSController extends Controller
             'message' => 'New stock added successfully.',
             'stock' => $newStock,
         ], 200);
+    }catch (\Exception $e) {
+        \Log::error("Error saving stock: " . $e->getMessage());
+        return response()->json(['status' => 500, 'message' => 'Internal server error'], 500);
+    }
     }
        
-
     public function show($id)
     {
         $stock = Stock::with('category', 'supplier', 'skus')->find($id);
@@ -97,12 +104,14 @@ class STOCKSController extends Controller
             'item_name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'category_id' => 'required|exists:categories,id',
-            'supplier_id' => 'required|exists:suppliers,id',
+            'supplier_id' => 'nullable|exists:suppliers,id',
             'unit_of_measure' => 'required|string|max:50',
             'physical_count' => 'required|integer|min:0',
             'on_hand' => 'required|integer|min:0',
             'sold' => 'required|integer|min:0',
+            'date' => 'nullable|date',
             'price_per_unit' => 'required|numeric|min:0',
+            'buying_price' => 'required|numeric|min:0',
             'skus' => 'nullable|array',
             'skus.*' => 'string|max:255',
         ]);
@@ -123,7 +132,9 @@ class STOCKSController extends Controller
                 'physical_count' => $request->physical_count,
                 'on_hand' => $request->on_hand,
                 'sold' => $request->sold,
+                'date' => $request->date,
                 'price_per_unit' => $request->price_per_unit,
+                'buying_price' => $request->buying_price
             ]);
 
             if ($request->sku) {
@@ -163,9 +174,7 @@ class STOCKSController extends Controller
         $stock = Stock::find($id);
 
         if ($stock) {
-            // Delete associated SKUs first
             $stock->skus()->delete();
-            // Delete the stock itself
             $stock->delete();
 
             return response()->json([
@@ -174,7 +183,6 @@ class STOCKSController extends Controller
             ], 200);
         }
 
-        // If stock not found, return an error
         return response()->json(['status' => 404, 'message' => 'Stock not found.'], 404);
     }
 

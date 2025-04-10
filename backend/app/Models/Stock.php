@@ -18,7 +18,9 @@ class Stock extends Model
         'physical_count',
         'on_hand',
         'sold',
+        'date',
         'price_per_unit',
+        'buying_price',
         'description',
     ];
 
