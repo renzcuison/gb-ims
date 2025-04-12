@@ -5,8 +5,6 @@
       <nav>
         <ul class="menu">
           <li><a href="/shop">SHOP</a></li>
-          <!-- <li><a href="#">WELLNESS STUDY</a></li>
-          <li><a href="#">SIZE CHART</a></li> -->
           <li><a href="/order">ORDERS</a></li>
           <li><a href="#">MY ACCOUNT</a></li>
           <li><a href="#">ABOUT US</a></li>
@@ -19,10 +17,16 @@
       </nav>
     </header>
 
+    <!-- Search Input -->
+    <div style="margin: 20px;">
+      <input v-model="searchQuery" type="text" placeholder="Search items by name"
+        style="padding: 10px; width: 300px; border: 1px solid #ccc; border-radius: 4px;" />
+    </div>
+
     <!-- Items Section -->
     <section class="items">
-      <div class="item" v-for="item in items" :key="item.id" @click="goToItemDetails(item.id)" style="cursor: pointer;">
-        <!-- Placeholder box for item image -->
+      <div class="item" v-for="item in filteredItems" :key="item.id" @click="goToItemDetails(item.id)"
+        style="cursor: pointer;">
         <div class="placeholder-image">No Image</div>
         <p>{{ item.item_name }}</p>
         <p>Price: {{ item.price_per_unit }}</p>
@@ -37,11 +41,18 @@ export default {
     return {
       items: [],
       cart: [],
+      searchQuery: '',
     };
   },
   computed: {
     cartQuantity() {
       return this.cart.reduce((total, item) => total + item.quantity, 0);
+    },
+    filteredItems() {
+      const query = this.searchQuery.toLowerCase();
+      return this.items.filter(item =>
+        item.item_name.toLowerCase().includes(query)
+      );
     },
   },
   created() {
@@ -128,6 +139,7 @@ export default {
 
 .items {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 20px;
   margin: 20px 0;
@@ -153,19 +165,5 @@ export default {
 
 .item p {
   font-weight: bold;
-}
-
-.btn-add {
-  background-color: #28a745;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.btn-add:hover {
-  background-color: #218838;
 }
 </style>

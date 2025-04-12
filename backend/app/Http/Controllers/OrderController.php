@@ -19,32 +19,25 @@ class OrderController extends Controller
     {
         $validated = $request->validate([
             'customer_order_id' => 'required|exists:customer_orders,id',
-            'stock_id' => 'required|string|exists:stocks,id',
+            'stock_id' => 'required|exists:stocks,id',
             'quantity' => 'required|integer|min:1',
         ]);
 
         DB::beginTransaction();
         try {
-            $stock = Stock::where('id', $validated['stock_id'])->firstOrFail();
+            $stock = Stock::findOrFail($validated['stock_id']);
             $validated['price_per_unit'] = $stock->price_per_unit;
 
-            // ✅ Check if item already exists in the order
-            $existingOrder = Order::where('customer_order_id', $validated['customer_order_id'])
-                ->where('stock_id', $validated['stock_id'])
-                ->first();
-
-            if ($existingOrder) {
-                // ✅ If item exists, update the quantity
-                $existingOrder->quantity += $validated['quantity'];
-                $existingOrder->save();
-                $order = $existingOrder;
-            } else {
-                // ✅ If it's a new item, create a new order entry
-                $order = Order::create($validated);
-            }
+            $order = Order::updateOrCreate(
+                [
+                    'customer_order_id' => $validated['customer_order_id'],
+                    'stock_id' => $validated['stock_id'],
+                ],
+                ['quantity' => DB::raw("quantity + {$validated['quantity']}"), 'price_per_unit' => $validated['price_per_unit']]
+            );
 
             DB::commit();
-            return response()->json($order, 201);
+            return response()->json(['message' => 'Item added to cart successfully', 'order' => $order], 201);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['error' => 'Failed to update order.', 'message' => $e->getMessage()], 500);
@@ -53,8 +46,8 @@ class OrderController extends Controller
 
     public function show($id)
     {
-        $order = Order::with('stock')->findOrFail($id);
-        return response()->json($order);
+        $order = Order::with('stock')->find($id);
+        return $order ? response()->json($order) : response()->json(['error' => 'Order not found.'], 404);
     }
 
     public function update(Request $request, $id)
@@ -63,16 +56,15 @@ class OrderController extends Controller
 
         $validated = $request->validate([
             'customer_order_id' => 'required|exists:customer_orders,id',
-            'stock_id' => 'required|string|exists:stocks,id',
+            'stock_id' => 'required|exists:stocks,id',
             'quantity' => 'required|integer|min:1',
         ]);
 
-        $stock = Stock::where('id', $validated['stock_id'])->firstOrFail();
-        $validated['price_per_unit'] = $stock->price_per_unit;
+        $validated['price_per_unit'] = Stock::findOrFail($validated['stock_id'])->price_per_unit;
 
         $order->update($validated);
 
-        return response()->json($order);
+        return response()->json(['message' => 'Order updated successfully', 'order' => $order]);
     }
 
     public function destroy($id)
@@ -80,6 +72,6 @@ class OrderController extends Controller
         $order = Order::findOrFail($id);
         $order->delete();
 
-        return response()->json(['message' => 'Order deleted successfully'], 200);
+        return response()->json(['message' => 'Order deleted successfully']);
     }
 }

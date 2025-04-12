@@ -9,20 +9,15 @@ class Order extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'customer_order_id', 
-        'stock_id',
-        'quantity',
-        'price_per_unit',
-    ];
+    protected $fillable = ['customer_order_id', 'stock_id', 'quantity', 'price_per_unit'];
 
     public function stock()
     {
-        return $this->belongsTo(Stock::class, 'stock_id', 'id');
+        return $this->belongsTo(Stock::class);
     }
 
     public function customerOrder()
     {
-        return $this->belongsTo(CustomerOrder::class, 'customer_order_id');
+        return $this->belongsTo(CustomerOrder::class);
     }
 }

@@ -85,12 +85,10 @@ export default {
     };
   },
   created() {
-    console.log("Raw query parameters:", this.$route.query);
     const ordersQuery = this.$route.query.orders;
     if (ordersQuery) {
       try {
         this.orders = JSON.parse(ordersQuery);
-        console.log("Parsed orders:", this.orders);
       } catch (error) {
         console.error("Error parsing selected orders:", error);
       }
@@ -143,8 +141,6 @@ export default {
         })),
       };
 
-      console.log("Sending order request:", requestBody);
-
       try {
         const response = await fetch('http://localhost:8001/api/customer-orders', {
           method: 'POST',
@@ -152,16 +148,22 @@ export default {
           body: JSON.stringify(requestBody),
         });
 
-        console.log("Response:", response);
         const result = await response.json();
 
         if (response.ok) {
-          alert('Order placed successfully!');
-          console.log(result);
+          const now = new Date();
+          const month = String(now.getMonth() + 1).padStart(2, '0');
+          const day = String(now.getDate()).padStart(2, '0');
+          const year = now.getFullYear();
+          const time = now.toLocaleTimeString();
+          const timestamp = `${month}/${day}/${year}, ${time}`;
+          const allOrderTimes = JSON.parse(localStorage.getItem('orderTimestamps') || '{}');
+          allOrderTimes[result.id] = timestamp;
+          localStorage.setItem('orderTimestamps', JSON.stringify(allOrderTimes));
+
           this.$router.push({ name: 'OrderPage' });
         } else {
-          console.error('Error placing order:', result);
-          alert('Failed to place order.');
+          alert('Failed to place order. Not enough stock.');
         }
       } catch (error) {
         console.error('Network error:', error);

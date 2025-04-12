@@ -18,13 +18,12 @@
               <th>Quantity</th>
               <th>Price Per Unit</th>
               <th>Total Price</th>
-              <th>Actions</th>
             </tr>
           </thead>
           <tbody v-if="orders.length > 0">
             <tr v-for="order in orders" :key="order.id">
               <td>
-                <input type="checkbox" v-model="selectedItems" :value="order" class="checkbox" />
+                <input type="checkbox" v-model="selectedItems" :value="order.id" class="checkbox" />
               </td>
               <td>{{ order.stock ? order.stock.item_name : "Loading..." }}</td>
               <td>
@@ -36,18 +35,24 @@
               </td>
               <td>₱{{ order.price_per_unit }}</td>
               <td>₱{{ calculateTotalPrice(order) }}</td>
-              <td>
-                <button @click="deleteOrder(order.id)" class="btn remove-btn">Remove</button>
-              </td>
             </tr>
           </tbody>
           <tbody v-else>
             <tr>
-              <td colspan="6" class="no-orders">No Items in Cart</td>
+              <td colspan="5" class="no-orders">No Items in Cart</td>
             </tr>
           </tbody>
         </table>
       </div>
+
+      <!-- Remove Selected Button -->
+      <div class="remove-selected-footer" v-if="selectedItems.length > 0">
+        <button class="btn remove-selected-btn" @click="deleteSelectedOrders">
+          Remove Selected Items
+        </button>
+      </div>
+
+      <!-- Checkout Button -->
       <div class="checkout-footer">
         <button class="btn checkout-btn" @click="proceedToCheckout">
           Proceed to Checkout
@@ -70,12 +75,17 @@ export default {
   },
   methods: {
     async fetchOrders() {
+      const customerOrderId = localStorage.getItem("customer_order_id");
+      if (!customerOrderId) {
+        console.warn("No customer order ID found.");
+        return;
+      }
+
       try {
-        const ordersResponse = await fetch("http://localhost:8001/api/orders");
-        const ordersData = await ordersResponse.json();
-        this.orders = ordersData;
+        const response = await fetch(`http://localhost:8001/api/orders?customer_order_id=${customerOrderId}`);
+        this.orders = await response.json();
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching orders:", error);
       }
     },
 
@@ -98,17 +108,9 @@ export default {
           }),
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error("API Error:", errorData);
-          throw new Error("Failed to update quantity.");
-        }
+        if (!response.ok) throw new Error("Failed to update quantity.");
 
-        const index = this.orders.findIndex((o) => o.id === order.id);
-        if (index !== -1) {
-          this.orders[index].quantity = newQuantity;
-          this.orders = [...this.orders];
-        }
+        this.orders = this.orders.map(o => (o.id === order.id ? { ...o, quantity: newQuantity } : o));
       } catch (error) {
         console.error("Error updating quantity:", error);
       }
@@ -118,24 +120,25 @@ export default {
       return (order.quantity * order.price_per_unit).toFixed(2);
     },
 
-    async deleteOrder(orderId) {
-      if (confirm("Are you sure you want to remove this item?")) {
-        try {
-          const response = await fetch(`http://localhost:8001/api/orders/${orderId}`, {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-          });
+    async deleteSelectedOrders() {
+      if (!confirm("Are you sure you want to remove selected items?")) return;
 
-          if (!response.ok) {
-            throw new Error("Failed to remove the item.");
-          }
+      try {
+        await Promise.all(
+          this.selectedItems.map(async (id) => {
+            await fetch(`http://localhost:8001/api/orders/${id}`, {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+            });
+          })
+        );
 
-          this.orders = this.orders.filter((order) => order.id !== orderId);
-          alert("Item Removed.");
-        } catch (error) {
-          console.error("Error removing the item:", error);
-          alert("Error deleting item.");
-        }
+        this.orders = this.orders.filter(order => !this.selectedItems.includes(order.id));
+        this.selectedItems = [];
+        alert("Selected items removed.");
+      } catch (error) {
+        console.error("Error removing selected items:", error);
+        alert("Error deleting items.");
       }
     },
 
@@ -145,50 +148,23 @@ export default {
         return;
       }
 
-      console.log("📦 Selected Items to Checkout:", this.selectedItems);
-
-      // ✅ Remove checked-out items from cart
-      const checkedOutIds = this.selectedItems.map(item => item.id);
-
-      try {
-        // ✅ Call API to remove items from backend cart
-        await Promise.all(
-          checkedOutIds.map(async (id) => {
-            await fetch(`http://localhost:8001/api/orders/${id}`, {
-              method: "DELETE",
-              headers: { "Content-Type": "application/json" },
-            });
-          })
-        );
-
-        // ✅ Remove from frontend state
-        this.orders = this.orders.filter(order => !checkedOutIds.includes(order.id));
-
-        console.log("✅ Checked out items removed from cart:", checkedOutIds);
-      } catch (error) {
-        console.error("❌ Error removing checked-out items from cart:", error);
-      }
-
-      // ✅ Redirect to checkout page
+      const checkedOutOrders = this.orders.filter(order => this.selectedItems.includes(order.id));
       this.$router.push({
         name: "Checkout",
-        query: { orders: encodeURIComponent(JSON.stringify(this.selectedItems)) },
+        query: { orders: encodeURIComponent(JSON.stringify(checkedOutOrders)) },
       });
     },
   },
 };
 </script>
 
-
-
 <style scoped>
-/* General Container */
 .container {
   max-width: 1100px;
   margin: auto;
 }
 
-/* Card Styling */
+
 .card {
   border: none;
   border-radius: 15px;
@@ -313,18 +289,27 @@ export default {
 }
 
 /* Remove Button */
-.remove-btn {
-  background-color: #ff6b6b;
+/* Remove Selected Button */
+.remove-selected-footer {
+  background-color: #f8d7da;
+  padding: 15px;
+  text-align: center;
+  border-top: 1px solid #ddd;
+}
+
+.remove-selected-btn {
+  background-color: #dc3545;
   color: white;
-  border: none;
-  border-radius: 5px;
-  padding: 5px 10px;
+  padding: 10px 20px;
+  font-size: 16px;
   font-weight: bold;
+  border-radius: 50px;
+  border: none;
   transition: background 0.3s ease;
 }
 
-.remove-btn:hover {
-  background-color: #ff4a4a;
+.remove-selected-btn:hover {
+  background-color: #c82333;
 }
 
 /* Checkout Footer */
