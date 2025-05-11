@@ -75,7 +75,8 @@
           <h4 class="stocks">
             Stocks
             <RouterLink to="/stocks/uncreate" class="btn btn-primary float-end">Out</RouterLink>
-            <RouterLink to="/stocks/in" class="btn btn-primary float-end me-2">In</RouterLink>
+            <RouterLink to="/stocks/in" class="btn btn-primary float-end me-2" @refresh-stocks="getStocks">In
+            </RouterLink>
             <RouterLink to="/stocks/create" class="btn btn-primary float-end me-2">Add Item</RouterLink>
           </h4>
         </div>
@@ -142,31 +143,32 @@
                         {{ stock.showSkus ? "▲" : "▼" }}
                       </button>
                     </div>
+                  <td>
                     <div class="text-muted small">
-                      {{ getSupplierName(stock.supplier_id) }}
+                      {{ stock.supplier_name || 'Unknown' }}
                     </div>
-                    <div class="text-muted small">
-                      {{ stock.category ? stock.category.category_name : "N/A" }}
+                  </td>
+                  <div class="text-muted small">
+                    {{ stock.category ? stock.category.category_name : "N/A" }}
+                  </div>
+                  <div v-if="stock.showSkus" class="mt-2">
+                    <div v-if="stock.skus.length === 0" class="text-muted small">
+                      No stock.
                     </div>
-                    <div v-if="stock.showSkus" class="mt-2">
-                      <div v-if="stock.skus.length === 0" class="text-muted small">
-                        No stock.
+                    <div v-else>
+                      <div class="text-muted small">
+                        <strong>Stock(s): {{ stock.skus.length }}</strong>
                       </div>
-                      <div v-else>
-                        <div class="text-muted small">
-                          <strong>Stock(s): {{ stock.skus.length }}</strong>
-                        </div>
-                        <ul class="list-unstyled small">
-                          <li v-for="(sku, skuIndex) in stock.skus" :key="sku.id"
-                            class="d-flex justify-content-between">
-                            <span class="sku-text">{{ skuIndex + 1 }}. {{ sku.sku }}</span>
-                          </li>
-                        </ul>
-                      </div>
+                      <ul class="list-unstyled small">
+                        <li v-for="(sku, skuIndex) in stock.skus" :key="sku.id" class="d-flex justify-content-between">
+                          <span class="sku-text">{{ skuIndex + 1 }}. {{ sku.sku }}</span>
+                        </li>
+                      </ul>
                     </div>
-                    <div class="text-muted small text-end mt-2">
-                      <span class="logs-text" @click.stop="fetchStockLogs(stock.id)">→ log</span>
-                    </div>
+                  </div>
+                  <div class="text-muted small text-end mt-2">
+                    <span class="logs-text" @click.stop="fetchStockLogs(stock.id)">→ log</span>
+                  </div>
                   </td>
                   <td>{{ stock.unit_of_measure }}</td>
                   <td>
@@ -343,21 +345,54 @@ export default {
       transactionPopupVisible: false
     }
   },
-  mounted() {
-    this.getStocks()
-    this.getSuppliers()
-  },
-  methods: {
-    fetchStockLogs(stockId) {
 
+  mounted() {
+    this.getSuppliers().then(() => {
+      console.log("Suppliers fetched. Now fetching stocks...");
+      this.getStocks();
+    });
+  },
+
+  methods: {
+    getStocks() {
+      console.log("Refreshing stock data...");
+      console.log("Suppliers before mapping stocks:", this.suppliers);
+
+      axios.get('http://localhost:8001/api/stocks')
+        .then((res) => {
+          this.stocks = res.data.stocks.map((stock) => {
+            const supplier = this.suppliers.find(s => s.id === stock.supplier_id);
+            const supplierName = supplier ? supplier.supplier_name : 'Unknown';
+            console.log(`Mapping stock ID ${stock.id}: supplier_name = ${supplierName}`);
+            return {
+              ...stock,
+              supplier_name: supplierName,
+              showTransactions: false,
+              transactions: [],
+            };
+          });
+          console.log("Mapped Stocks:", this.stocks);
+          this.filteredStocks = [...this.stocks];
+          this.applySort();
+          this.filterStocks();
+        })
+        .catch((error) => {
+          console.error('Error fetching stocks:', error);
+        });
+    },
+
+    fetchStockLogs(stockId) {
       console.log("Fetching logs for stock ID:", stockId);
 
       axios.get(`http://localhost:8001/api/stock-log`)
         .then(response => {
-
           console.log("Stock Log Response:", response.data);
 
           const filteredLogs = response.data.stock_logs.filter(log => log.stock_id === stockId);
+
+          if (filteredLogs.length === 0) {
+            console.warn(`No logs found for stock ID ${stockId}`);
+          }
 
           this.stockLogs[stockId] = filteredLogs;
 
@@ -372,8 +407,10 @@ export default {
         })
         .catch(error => {
           console.error(`Failed to fetch stock logs:`, error);
+          alert('Failed to fetch stock logs. Please try again later.');
         });
     },
+
     editDescription(stockId, currentDescription) {
       this.editingStockId = stockId;
       this.editableDescription = currentDescription;
@@ -401,6 +438,7 @@ export default {
         .put(`http://localhost:8001/api/stocks/${stock.id}`, payload)
         .then((response) => {
           console.log('Response from server:', response);
+          this.getStocks();
         })
         .catch((error) => {
           console.error('Error updating stock:', error.response || error.message);
@@ -488,35 +526,22 @@ export default {
       }
     },
 
-    getSupplierName(supplierId) {
-      const supplier = this.suppliers.find(supplier => supplier.id === supplierId)
-      return supplier ? supplier.supplier_name : 'Unknown'
-    },
-
-    getStocks() {
-      axios.get('http://localhost:8001/api/stocks')
-        .then(res => {
-          this.stocks = res.data.stocks.map(stock => ({
-            ...stock,
-            showTransactions: false,
-            transactions: []
-          }));
-          this.filteredStocks = [...this.stocks];
-          this.applySort();
-        })
-        .catch(error => {
-          console.error('Error fetching stocks:', error);
-        });
+    getSupplierName(suppliers) {
+      if (!suppliers || suppliers.length === 0) {
+        return 'Unknown';
+      }
+      return suppliers.map(supplier => supplier.supplier_name).join(', ');
     },
 
     getSuppliers() {
-      axios.get('http://localhost:8001/api/suppliers')
+      return axios.get('http://localhost:8001/api/suppliers')
         .then(res => {
-          this.suppliers = res.data.suppliers
+          this.suppliers = res.data.suppliers;
+          console.log("Fetched Suppliers:", this.suppliers);
         })
         .catch(error => {
-          console.error('Error fetching suppliers:', error)
-        })
+          console.error('Error fetching suppliers:', error);
+        });
     },
 
     filterStocks() {

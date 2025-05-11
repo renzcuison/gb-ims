@@ -21,4 +21,8 @@ class Supplier extends Model
     {
         return $this->hasMany(Stock::class);
     }
+    public function stocks()
+    {
+        return $this->belongsToMany(Stock::class, 'stock_supplier', 'supplier_id', 'stock_id');
+    }
 }

@@ -207,6 +207,7 @@ export default {
   name: "StockCreate",
   data() {
     return {
+      isProfiling: true,
       errorList: {},
       model: {
         stocks: [
@@ -214,7 +215,7 @@ export default {
             item_name: "",
             description: "",
             category_id: "",
-            supplier_id: "",
+            suppliers: ['Unknown'],
             unit_of_measure: "",
             price_per_unit: "",
             buying_price: 0,
@@ -295,33 +296,24 @@ export default {
     },
 
     saveStocks() {
-      const hasDuplicate = this.model.stocks.some((stock, index) =>
-        this.isDuplicate(stock.item_name, index)
-      );
-
-      if (hasDuplicate) {
-        alert("There are duplicate item names in your stocks. Please resolve them before saving.");
-        return;
-      }
-
       const savePromises = this.model.stocks.map((stock) => {
         const payload = {
           ...stock,
+          suppliers: this.isProfiling ? [] : stock.suppliers.filter((supplier) => supplier !== "Unknown"),
           price_per_unit: parseFloat(stock.price_per_unit.replace(/[^0-9.]/g, "")),
         };
 
+        console.log("isProfiling:", this.isProfiling);
         console.log("Payload for saving stock:", payload);
 
-        return axios.post("http://localhost:8001/api/stocks", payload)
+        return axios.post("http://localhost:8001/api/stocks", payload, {
+          params: { is_profiling: this.isProfiling },
+        })
           .then((response) => {
             console.log("Stock saved successfully:", response.data);
           })
           .catch((error) => {
-            if (error.response && error.response.status === 409) {
-              alert(error.response.data.message);
-            } else {
-              console.error("Error saving stock:", error);
-            }
+            console.error("Error saving stock:", error);
             throw error;
           });
       });

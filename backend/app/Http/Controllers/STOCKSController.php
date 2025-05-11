@@ -7,12 +7,13 @@ use App\Models\Sku;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use App\Models\Supplier;
 
 class STOCKSController extends Controller
 {
     public function index()
     {
-        $stocks = Stock::with('category', 'supplier', 'skus')->get();
+        $stocks = Stock::with('category', 'suppliers', 'skus')->get();
 
         return $stocks->isNotEmpty()
             ? response()->json(['status' => 200, 'stocks' => $stocks], 200)
@@ -20,79 +21,86 @@ class STOCKSController extends Controller
     }
 
     public function store(Request $request)
-    {   
-        try{
-        $validator = Validator::make($request->all(), [
-            'item_name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'category_id' => 'required|exists:categories,id',
-            'supplier_id' => 'nullable|exists:suppliers,id',
-            'unit_of_measure' => 'required|string|max:50',
-            'physical_count' => 'required|integer|min:0',
-            'on_hand' => 'required|integer|min:0',
-            'sold' => 'required|integer|min:0',
-            'date' => 'nullable|date',
-            'price_per_unit' => 'required|numeric|min:0',
-            'buying_price' => 'required|numeric|min:0',
-        ]);
+    {
+        try {
+            \Log::info('Incoming Request:', $request->all());
+            $isProfiling = $request->input('is_profiling', false);
+            \Log::info('is_profiling:', ['is_profiling' => $isProfiling]);
     
-        if ($validator->fails()) {
-            return response()->json(['status' => 422, 'errors' => $validator->messages()], 422);
-        }
     
-        $existingStock = Stock::where('item_name', $request->item_name)
-            ->where('unit_of_measure', $request->unit_of_measure)
-            ->first();
+            $validator = Validator::make($request->all(), [
+                'item_name' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'category_id' => 'required|exists:categories,id',
+                'suppliers' => $isProfiling ? 'nullable|array' : 'required|array|min:1',
+                'suppliers.*' => $isProfiling ? 'nullable' : 'exists:suppliers,id',
+                'unit_of_measure' => 'required|string|max:50',
+                'physical_count' => 'required|integer|min:0',
+                'on_hand' => 'required|integer|min:0',
+                'sold' => 'required|integer|min:0',
+                'date' => 'nullable|date',
+                'price_per_unit' => 'required|numeric|min:0',
+                'buying_price' => 'required|numeric|min:0',
+            ]);
     
-        if ($existingStock) {
+            if ($validator->fails()) {
+                \Log::error('Validation Errors:', $validator->messages()->toArray());
+                return response()->json(['status' => 422, 'errors' => $validator->messages()], 422);
+            }
+    
+            $currentDate = Carbon::now()->format('my');
+            $lastItem = Stock::where('id', 'like', "{$currentDate}%")
+                ->orderBy('id', 'desc')
+                ->first();
+    
+            $newNumber = 1;
+            if ($lastItem) {
+                $lastNumber = (int) substr($lastItem->id, -3);
+                $newNumber = $lastNumber + 1;
+            }
+    
+            $newID = $currentDate . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
+    
+            $newStock = Stock::create([
+                'id' => $newID,
+                'item_name' => $request->item_name,
+                'description' => $request->description,
+                'category_id' => $request->category_id,
+                'unit_of_measure' => $request->unit_of_measure,
+                'physical_count' => $request->physical_count,
+                'on_hand' => $request->on_hand,
+                'sold' => $request->sold,
+                'date' => $request->date,
+                'price_per_unit' => $request->price_per_unit,
+                'buying_price' => $request->buying_price,
+            ]);
+    
+            if (!$isProfiling && $request->has('suppliers') && is_array($request->suppliers)) {
+                $validSuppliers = array_filter($request->suppliers, function ($supplier) {
+                    return !is_null($supplier);
+                });
+            
+                if (!empty($validSuppliers)) {
+                    $newStock->suppliers()->attach($validSuppliers);
+                } else {
+                    return response()->json(['status' => 422, 'message' => 'At least one supplier is required for stocking in.'], 422);
+                }
+            }
+            
             return response()->json([
-                'status' => 409, 
-                'message' => 'A stock with the same item name and unit of measure already exists.',
-            ], 409);
+                'status' => 200,
+                'message' => 'New stock added successfully.',
+                'stock' => $newStock,
+            ], 200);
+        } catch (\Exception $e) {
+            \Log::error("Error saving stock: " . $e->getMessage());
+            return response()->json(['status' => 500, 'message' => 'Internal server error'], 500);
         }
-    
-        $currentDate = Carbon::now()->format('my');
-        $lastItem = Stock::where('id', 'like', "{$currentDate}%")
-            ->orderBy('id', 'desc')
-            ->first();
-    
-        $newNumber = 1;
-        if ($lastItem) {
-            $lastNumber = (int) substr($lastItem->id, -3);
-            $newNumber = $lastNumber + 1;
-        }
-    
-        $newID = $currentDate . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
-    
-        $newStock = Stock::create([
-            'id' => $newID,
-            'item_name' => $request->item_name,
-            'description' => $request->description,
-            'category_id' => $request->category_id,
-            'supplier_id' => $request->supplier_id,
-            'unit_of_measure' => $request->unit_of_measure,
-            'physical_count' => $request->physical_count,
-            'on_hand' => $request->on_hand,
-            'sold' => $request->sold,
-            'date' => $request->date,
-            'price_per_unit' => $request->price_per_unit,
-            'buying_price' => $request->buying_price
-        ]);
-    
-        return response()->json([
-            'status' => 200,
-            'message' => 'New stock added successfully.',
-            'stock' => $newStock,
-        ], 200);
-    }catch (\Exception $e) {
-        \Log::error("Error saving stock: " . $e->getMessage());
-        return response()->json(['status' => 500, 'message' => 'Internal server error'], 500);
-    }
     }
        
     public function show($id)
     {
-        $stock = Stock::with('category', 'supplier', 'skus')->find($id);
+        $stock = Stock::with('category', 'suppliers', 'skus')->find($id);
 
         return $stock
             ? response()->json(['status' => 200, 'stock' => $stock], 200)
@@ -104,7 +112,8 @@ class STOCKSController extends Controller
             'item_name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'category_id' => 'required|exists:categories,id',
-            'supplier_id' => 'nullable|exists:suppliers,id',
+            'suppliers' => 'nullable|array',
+            'suppliers.*' => 'exists:suppliers,id', 
             'unit_of_measure' => 'required|string|max:50',
             'physical_count' => 'required|integer|min:0',
             'on_hand' => 'required|integer|min:0',
@@ -127,7 +136,6 @@ class STOCKSController extends Controller
                 'item_name' => $request->item_name,
                 'description' => $request->description ?? $stock->description,
                 'category_id' => $request->category_id,
-                'supplier_id' => $request->supplier_id,
                 'unit_of_measure' => $request->unit_of_measure,
                 'physical_count' => $request->physical_count,
                 'on_hand' => $request->on_hand,
@@ -136,6 +144,10 @@ class STOCKSController extends Controller
                 'price_per_unit' => $request->price_per_unit,
                 'buying_price' => $request->buying_price
             ]);
+
+            if ($request->has('suppliers')) {
+                $stock->suppliers()->sync($request->suppliers);
+            }
 
             if ($request->sku) {
                 $existingSku = $stock->skus()->where('sku', $request->sku)->first();

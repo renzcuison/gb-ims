@@ -13,7 +13,6 @@ class Stock extends Model
         'id',
         'item_name',
         'category_id',
-        'supplier_id',
         'unit_of_measure',
         'physical_count',
         'on_hand',
@@ -39,5 +38,10 @@ class Stock extends Model
     public function skus()
     {
         return $this->hasMany(Sku::class); 
+    }
+
+    public function suppliers()
+    {   
+        return $this->belongsToMany(Supplier::class, 'stock_supplier', 'stock_id', 'supplier_id');
     }
 }

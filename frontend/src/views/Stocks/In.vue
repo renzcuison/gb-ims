@@ -78,7 +78,7 @@
           <div class="mb-3">
             <label for="supplier">Supplier</label>
             <select v-model="selectedSupplier" class="form-control" id="supplier">
-              <option value="" disabled></option>
+              <option value="" disabled>Select Supplier</option>
               <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">
                 {{ supplier.supplier_name }}
               </option>
@@ -104,76 +104,77 @@
             <textarea v-model="descriptionText" class="form-control" id="description" rows="3"></textarea>
           </div>
 
-          <table class="table table-bordered">
-            <thead>
+          <table class="table table-striped table-hover align-middle text-center">
+            <thead class="table-primary">
               <tr>
-                <th>Product</th>
-                <th>Cost Price</th>
-                <th>Quantity</th>
+                <th>
+                  <button class="btn btn-success btn-sm" @click="addRow">Add</button>
+                </th>
+                <th class="product-column">Product</th>
+                <th class="cost-price-column">Cost Price</th>
+                <th class="quantity-column">Quantity</th>
                 <th>Serialized</th>
-                <th></th>
+                <th>Actions</th>
               </tr>
             </thead>
-            <td>
-              <button class="btn btn-success" @click="addRow">+</button>
-            </td>
-            <tbody v-if="items.length > 0">
+            <tbody>
               <tr v-for="(item, index) in items" :key="index">
+                <td class="numbering">{{ index + 1 + "." }}</td>
                 <td>
-                  <div class="d-flex">
-                    <select v-model="item.id" class="form-control" @change="updateSelectedItem(item, index)">
+                  <div class="d-flex align-items-center">
+                    <select v-model="item.id" class="form-select"
+                      @change="(e) => { console.log('Dropdown changed:', e.target.value); updateSelectedItem(item, index); }">
                       <option value="" disabled>Select Product</option>
                       <option v-for="product in filteredItems" :key="product.id" :value="product.id">
                         {{ product.item_name }}
                       </option>
                     </select>
-                    <button class="btn btn-primary ml-2" @click="openProductModal(index)">Select</button>
+                    <button class="btn btn-sm btn-primary ms-2" @click="openProductModal(index)">Select</button>
                   </div>
                 </td>
                 <td>
-                  <input type="text" class="form-control" v-model="item.buying_price"
+                  <input type="text" class="form-control text-end cost-price-input" v-model="item.buying_price"
                     @input="handleBuyingPriceInput($event, index)" @blur="formatBuyingPrice(item, index)"
-                    placeholder="Enter Cost Price" />
+                    placeholder="" />
                 </td>
                 <td>
-                  <div class="input-group">
-                    <input type="number" v-model="item.quantity" class="form-control"
-                      @input="handleQuantityInput($event, index)" @blur="validateQuantity(index)" min="1" step="1"
-                      placeholder="Enter Quantity" />
-                  </div>
+                  <input type="number" v-model="item.quantity" class="form-control text-center quantity-input"
+                    @input="handleQuantityInput($event, index)" @blur="validateQuantity(index)" min="1" step="1" />
                 </td>
                 <td>
-                  <input type="checkbox" v-model="item.sku" />
+                  <input type="checkbox" v-model="item.sku" @change="handleSerializedChange(index)" />
                 </td>
                 <td>
-                  <button class="btn btn-danger" @click="removeItem(index)">x</button>
+                  <button v-if="index > 0" class="btn btn-sm btn-danger" @click="removeItem(index)">Remove</button>
                 </td>
-              </tr>
-            </tbody>
-            <tbody v-else>
-              <tr>
-                <td colspan="6" class="text-center">No items added.</td>
               </tr>
             </tbody>
           </table>
 
           <div v-if="showModal" class="modal-overlay">
             <div class="modal-content">
-              <button class="close-button" @click="closeModal">×</button>
-              <h5>Select Product</h5>
-
-              <div class="mb-3">
-                <input v-model="stockSearchQuery" @input="filterItemList" class="form-control" type="text"
-                  id="stock-search" placeholder="Search by Item Name or Stock ID" />
+              <div class="modal-header">
+                <h5 class="modal-title">Select Product</h5>
+                <button class="close-button" @click="closeModal">×</button>
               </div>
-
-              <div v-for="(item, index) in filteredItems" :key="item.id" class="card p-2 m-2"
-                style="width: 18rem; cursor: pointer" @click="selectProduct(item)">
-                <img class="card-img-top" :src="item.image_url || ''" alt="Item image" />
-                <div class="card-body">
-                  <h5 class="card-title">{{ item.item_name }}</h5>
-                  <p class="card-text">Item ID: {{ item.id }}</p>
+              <div class="modal-body">
+                <div class="search-container mb-3">
+                  <input v-model="stockSearchQuery" @input="filterItemList" class="form-control" type="text"
+                    id="stock-search" placeholder="Search by Item Name or Stock ID" />
                 </div>
+                <div class="product-list">
+                  <div v-for="(item, index) in filteredItems" :key="item.id" class="product-card"
+                    @click="selectProduct(item)">
+                    <img class="product-image" :src="item.image_url || ''" alt="" />
+                    <div class="product-details">
+                      <h6 class="product-title">{{ item.item_name }}</h6>
+                      <p class="product-id">Item ID: {{ item.id }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-secondary" @click="closeModal">Cancel</button>
               </div>
             </div>
           </div>
@@ -262,7 +263,7 @@ export default {
       selectedItems: [],
       descriptionText: '',
       selectedReason: 'stock-in',
-      selectedSupplier: '',
+      selectedSupplier: null,
       selectedProductIndex: null,
       items: [],
       suppliers: [],
@@ -272,11 +273,98 @@ export default {
   },
 
   created() {
-    this.fetchItems();
+    this.fetchItems().then(() => {
+      this.addRow();
+    });
     this.fetchSuppliers();
   },
 
+  watch: {
+    selectedSupplier(newSupplierId) {
+      console.log("Selected Supplier ID:", newSupplierId);
+
+      const selectedSupplier = this.suppliers.find(supplier => supplier.id === newSupplierId);
+      console.log("Selected Supplier:", selectedSupplier);
+
+      this.items.forEach(item => {
+        item.supplier_name = selectedSupplier ? selectedSupplier.supplier_name : 'Unknown';
+      });
+
+      this.selectedItems.forEach(item => {
+        item.supplier_name = selectedSupplier ? selectedSupplier.supplier_name : 'Unknown';
+      });
+
+      console.log("Updated items and selectedItems with supplier name:", this.items, this.selectedItems);
+    },
+  },
+
+  watch: {
+    items: {
+      deep: true,
+      handler(newItems) {
+        newItems.forEach((item, index) => {
+          if (item.quantity > 1 && !item.sku) {
+            item.sku = true;
+            this.updateSkusForQuantity(index);
+          } else if (item.quantity <= 1 && item.sku) {
+            item.sku = false;
+            item.skus = [];
+          }
+        });
+      },
+    },
+  },
+
   methods: {
+    getStocks() {
+      axios.get('http://localhost:8001/api/stocks')
+        .then(res => {
+          this.items = res.data.stocks.map(stock => ({
+            ...stock,
+            showTransactions: false,
+            transactions: [],
+            unit_of_measure: stock.unit_of_measure || 'Pc',
+          }));
+          console.log("Fetched stocks:", this.items);
+        })
+        .catch(error => {
+          console.error('Error fetching stocks:', error);
+        });
+    },
+
+    handleSerializedChange(index) {
+      const item = this.items[index];
+
+      if (item.sku) {
+        if (item.quantity <= 0) {
+          item.quantity = 1;
+        }
+        this.updateSkusForQuantity(index);
+        console.log(`SKUs generated for item ${item.item_name} because the checkbox is checked.`);
+      } else {
+        item.skus = [];
+        console.log(`SKUs cleared for item ${item.item_name} because the checkbox is unchecked.`);
+      }
+    },
+
+    updateQuantities(index) {
+      const item = this.items[index];
+      const quantity = parseInt(item.quantity, 10);
+
+      if (isNaN(quantity) || quantity <= 0) {
+        item.quantity = 1;
+        return;
+      }
+
+      item.physical_count += quantity;
+      item.on_hand += quantity;
+
+      console.log(`Updated quantities for item ${item.item_name}:`, {
+        physical_count: item.physical_count,
+        on_hand: item.on_hand,
+      });
+    },
+
     handleBuyingPriceInput(event, index) {
       let input = event.target.value;
       input = String(input).replace(/[^0-9.]/g, "");
@@ -304,6 +392,11 @@ export default {
     },
 
     openProductModal(index) {
+      if (this.items.length === 0) {
+        console.error("Items array is empty. Add rows before opening the modal.");
+        return;
+      }
+
       this.selectedProductIndex = index;
       this.showModal = true;
     },
@@ -314,47 +407,111 @@ export default {
     },
 
     addRow() {
+      const supplier = this.suppliers.find(s => s.id === this.selectedSupplier);
+
       this.items.push({
         id: '',
         item_name: '',
         quantity: 1,
+        physical_count: 0,
+        on_hand: 0,
         sku: false,
-        buying_price: '0', // Default to '0'
-        price_per_unit: '0', // Default to '0'
+        buying_price: '',
+        price_per_unit: '0',
         skus: [],
         unit_of_measure: 'Pc',
+        supplier_name: supplier?.supplier_name || 'Unknown',
       });
+
+      console.log("Added new row with supplier name:", supplier?.supplier_name || 'Unknown');
     },
 
     updateSelectedItem(item, index) {
+      console.log("Dropdown value changed for item:", item);
+
       const selectedProduct = this.filteredItems.find(product => product.id === item.id);
+      const selectedSupplier = this.suppliers.find(s => s.id === this.selectedSupplier);
+
       if (selectedProduct) {
+        console.log("Selected Product from dropdown:", selectedProduct);
+
         this.items[index].item_name = selectedProduct.item_name;
-        this.items[index].buying_price = selectedProduct.buying_price || '';
+        this.items[index].price_per_unit = selectedProduct.price_per_unit || '0';
+        this.items[index].category_id = selectedProduct.category_id || null;
+        this.items[index].unit_of_measure = selectedProduct.unit_of_measure || 'Pc';
+        this.items[index].description = selectedProduct.description || '';
+        this.items[index].stock_id = selectedProduct.id;
+        this.items[index].physical_count = selectedProduct.physical_count || 0;
+        this.items[index].on_hand = selectedProduct.on_hand || 0;
+        this.items[index].transaction_type = "in";
+        this.items[index].supplier_name = selectedSupplier?.supplier_name || 'Unknown';
+
+        if (!this.items[index].quantity || this.items[index].quantity <= 0) {
+          this.items[index].quantity = 1;
+        }
+
+        if (this.items[index].sku) {
+          this.updateSkusForQuantity(index);
+        }
+
+        const existingItem = this.selectedItems.find(selected => selected.stock_id === selectedProduct.id);
+        if (!existingItem) {
+          const newItem = {
+            stock_id: selectedProduct.id,
+            item_name: selectedProduct.item_name,
+            unit_of_measure: selectedProduct.unit_of_measure,
+            supplier_id: this.selectedSupplier,
+            supplier_name: this.suppliers.find(s => s.id === this.selectedSupplier)?.supplier_name || 'Unknown',
+            category_id: selectedProduct.category_id,
+            skus: [...this.items[index].skus],
+            physical_count: this.items[index].physical_count || 0,
+            on_hand: this.items[index].on_hand || 0,
+            sold: 0,
+            price_per_unit: selectedProduct.price_per_unit,
+            buying_price: this.items[index].buying_price || '',
+            description: selectedProduct.description || '',
+            quantity: this.items[index].quantity || 1,
+            transaction_type: "in",
+          };
+
+          this.selectedItems.push(newItem);
+          console.log("Updated selectedItems:", this.selectedItems);
+        }
+      } else {
+        console.error("No product found for the selected ID:", item.id);
       }
     },
 
     selectProduct(product) {
       const selectedProductIndex = this.selectedProductIndex;
-      if (selectedProductIndex !== null) {
-        const selectedRow = this.items[selectedProductIndex];
-        selectedRow.id = product.id;
-        selectedRow.stock_id = product.id;
-        selectedRow.item_name = product.item_name;
-        selectedRow.buying_price = product.buying_price || '0'; // Default to '0' if undefined
-        selectedRow.price_per_unit = product.price_per_unit || '0'; // Default to '0' if undefined
-        selectedRow.category_id = product.category_id || null; // Assign category_id from the product
-        this.selectedItems.push(selectedRow);
-        this.closeModal();
+      if (selectedProductIndex === null || selectedProductIndex === undefined) {
+        console.error("Selected Product Index is not set.");
+        return;
       }
-    },
 
-    removeItem(index) {
-      this.items.splice(index, 1);
+      const selectedRow = this.items[selectedProductIndex];
+      if (!selectedRow) {
+        console.error("Selected row is undefined. Ensure items array is populated.");
+        return;
+      }
+
+      selectedRow.id = product.id;
+      selectedRow.stock_id = product.id;
+      selectedRow.item_name = product.item_name;
+      selectedRow.price_per_unit = product.price_per_unit || '0';
+      selectedRow.category_id = product.category_id || null;
+      selectedRow.physical_count = product.physical_count || 0;
+      selectedRow.on_hand = product.on_hand || 0;
+      selectedRow.transaction_type = "in";
+
+      console.log("Selected Product:", selectedRow);
+      this.selectedItems.push(selectedRow);
+      console.log("Updated selectedItems:", this.selectedItems);
+      this.closeModal();
     },
 
     fetchItems() {
-      axios
+      return axios
         .get('http://localhost:8001/api/stocks')
         .then((res) => {
           this.filteredItems = res.data.stocks.map(stock => ({
@@ -367,13 +524,16 @@ export default {
           this.items = [];
           console.log("Fetched Items for dropdown/modal:", this.filteredItems);
         })
-        .catch((error) => console.error('Error fetching stocks:', error));
+        .catch((error) => {
+          console.error('Error fetching stocks:', error);
+        });
     },
 
     fetchSuppliers() {
       axios
         .get('http://localhost:8001/api/suppliers')
         .then((res) => {
+          console.log("Fetched Suppliers:", res.data.suppliers);
           this.suppliers = res.data.suppliers;
         })
         .catch((error) => console.error('Error fetching suppliers:', error));
@@ -399,25 +559,28 @@ export default {
       if (!this.selectedItems.some((selected) => selected.stock_id === stock.id)) {
         const supplier = this.suppliers.find(s => s.id === this.selectedSupplier);
 
+        console.log("Selected Supplier in selectItem:", supplier);
+
         const newItem = {
           stock_id: stock.id,
           item_name: stock.item_name,
-          unit_of_measure: 'Pc',
+          unit_of_measure: stock.unit_of_measure,
           supplier_id: supplier?.id || null,
           supplier_name: supplier?.supplier_name || 'Unknown',
-          category_id: stock.category_id || null,
-          quantity: 1,
+          category_id: stock.category_id,
           skus: [],
-          physical_count: stock.physical_count || 0,
-          on_hand: stock.on_hand || 0,
-          sold: stock.sold || 0,
-          price_per_unit: stock.price_per_unit || 0,
-          buying_price: stock.buying_price || 0,
+          physical_count: stock.physical_count,
+          on_hand: stock.on_hand,
+          sold: stock.sold,
+          price_per_unit: stock.price_per_unit,
+          buying_price: stock.buying_price,
           description: stock.description || '',
         };
 
+        console.log("New Item with Supplier Name:", newItem);
+
         this.selectedItems.push(newItem);
-        console.log("Added selected stock item:", newItem);
+        console.log("Updated selectedItems:", this.selectedItems);
         this.addSku(this.selectedItems.length - 1);
       }
     },
@@ -430,53 +593,77 @@ export default {
       this.selectedItems = [];
     },
 
-    updateSkusForQuantity(index) {
-      const stock = this.items[index];
-      if (!stock) {
-        console.error(`Stock not found at index ${index}`);
-        return;
-      }
-
-      const newQuantity = parseInt(stock.quantity, 10);
-
-      if (newQuantity <= 0) {
-        stock.quantity = 1;
-        return;
-      }
-
-      const currentSkuCount = stock.skus.length;
-
-      if (currentSkuCount < newQuantity) {
-        const additionalSkus = newQuantity - currentSkuCount;
-        this.generateAdditionalSkus(index, additionalSkus);
-      }
-
-      if (currentSkuCount > newQuantity) {
-        stock.skus.splice(newQuantity);
+    removeItem(index) {
+      if (index >= 0 && index < this.items.length) {
+        this.items.splice(index, 1);
+        console.log(`Removed item at index ${index}. Updated items:`, this.items);
+      } else {
+        console.error(`Invalid index ${index}. Unable to remove item.`);
       }
     },
 
-    generateAdditionalSkus(index, additionalCount) {
-      const stock = this.items[index];
-      if (!stock) {
-        console.error(`Stock not found at index ${index}`);
+    updateSkusForQuantity(index) {
+      const item = this.items[index];
+      if (!item) {
+        console.error(`Item not found at index ${index}`);
         return;
       }
 
+      if (!item.sku) {
+        console.log(`SKU generation skipped for item ${item.item_name} because the checkbox is unchecked.`);
+        item.skus = [];
+        return;
+      }
+
+      const quantity = parseInt(item.quantity, 10);
+
+      if (quantity <= 0) {
+        item.quantity = 1;
+        return;
+      }
+
+      const currentSkuCount = item.skus.length;
+
+      if (currentSkuCount < quantity) {
+        const additionalSkus = quantity - currentSkuCount;
+        this.generateAdditionalSkus(index, additionalSkus);
+      } else if (currentSkuCount > quantity) {
+        item.skus.splice(quantity);
+      }
+
+      console.log(`Updated SKUs for item ${item.item_name}:`, item.skus);
+    },
+
+    generateAdditionalSkus(index, additionalCount) {
+      const item = this.items[index];
+      if (!item) {
+        console.error(`Item not found at index ${index}`);
+        return;
+      }
+
+      if (!item.supplier_name || item.supplier_name === 'Unknown') {
+        const supplier = this.suppliers.find(s => s.id === this.selectedSupplier);
+        item.supplier_name = supplier?.supplier_name || 'Unknown';
+      }
+
+      console.log("Supplier Name in generateAdditionalSkus:", item.supplier_name);
+
       for (let i = 0; i < additionalCount; i++) {
-        const supplier = (stock.supplier_name || 'Unknown').substring(0, 3).toUpperCase();
-        const itemName = (stock.item_name || 'Unknown').substring(0, 3).toUpperCase();
+        const supplier = (item.supplier_name || 'Unknown').substring(0, 3).toUpperCase();
+        const itemName = (item.item_name || 'Unknown').substring(0, 3).toUpperCase();
         const randomNumber = Math.floor(100 + Math.random() * 900);
-        const unitOfMeasure = (stock.unit_of_measure || 'Pc').toUpperCase();
+        const unitOfMeasure = (item.unit_of_measure || 'Pc').toUpperCase();
         const sku = `${supplier}-${itemName}-${randomNumber}-${unitOfMeasure}`;
 
-        stock.skus.push(sku);
+        item.skus.push(sku);
       }
+
+      console.log(`Generated SKUs for item ${item.item_name}:`, item.skus);
     },
 
     addSku(index) {
       const stock = this.selectedItems[index];
-      const quantity = stock.quantity;
+      const quantity = stock.on_hand;
 
       if (quantity <= 0) return;
 
@@ -484,51 +671,58 @@ export default {
     },
 
     saveStock() {
+      console.log("Selected Items before saving:", this.selectedItems);
+
       if (this.selectedItems.length === 0) {
         console.error("No items selected to save.");
         alert("Please add items before saving.");
         return;
       }
 
-      console.log("saveStock method called");
-      console.log("Selected Items:", this.selectedItems);
+      if (!this.selectedSupplier) {
+        alert("Please select a supplier.");
+        return;
+      }
 
       this.selectedItems.forEach((stock) => {
-        if (!stock.stock_id) {
-          console.error("Stock ID is undefined for item:", stock);
-          alert("Stock ID is missing for one or more items. Please check your data.");
-          return;
-        }
-
         const payload = {
           stock_id: stock.stock_id,
           item_name: stock.item_name,
-          quantity: parseInt(stock.quantity, 10) || 0,
           buying_price: parseFloat(stock.buying_price.replace(/[^\d.-]/g, '')) || 0,
           price_per_unit: parseFloat(stock.price_per_unit.replace(/[^\d.-]/g, '')) || 0,
           skus: Array.from(stock.skus),
-          supplier_id: this.selectedSupplier || null,
+          suppliers: [this.selectedSupplier],
           transaction_type: stock.transaction_type || 'in',
           unit_of_measure: stock.unit_of_measure || 'Pc',
-          reason: stock.reason || 'stock-in',
+          reason: stock.reason || (stock.transaction_type === 'in' ? 'stock-in' : 'stock-out'),
           date: stock.date || new Date().toISOString().split('T')[0],
           description: stock.description || '',
-          category_id: stock.category_id || null,
-          physical_count: parseInt(stock.physical_count, 10) || 0,
-          on_hand: parseInt(stock.on_hand, 10) || 0,
-          sold: parseInt(stock.sold, 10) || 0,
+          category_id: stock.category_id,
+          physical_count:
+            stock.transaction_type === 'in'
+              ? parseInt(stock.physical_count || 0, 10) + parseInt(stock.quantity || 0, 10)
+              : parseInt(stock.physical_count || 0, 10) - parseInt(stock.quantity || 0, 10),
+          on_hand:
+            stock.transaction_type === 'in'
+              ? parseInt(stock.on_hand || 0, 10) + parseInt(stock.quantity || 0, 10)
+              : parseInt(stock.on_hand || 0, 10) - parseInt(stock.quantity || 0, 10),
+          sold: parseInt(stock.sold || 0, 10),
         };
 
         console.log(`Payload for stock ID ${stock.stock_id}:`, payload);
 
         axios.put(`http://localhost:8001/api/stocks/${stock.stock_id}`, payload)
-          .then(response => {
+          .then((response) => {
             console.log(`Stock updated successfully for stock ID ${stock.stock_id}`, response.data);
             this.$router.push('/stocks');
           })
-          .catch(error => {
+          .catch((error) => {
             console.error("Error updating stock:", error.response ? error.response.data : error.message);
           });
+      });
+
+      this.selectedItems.forEach((item) => {
+        item.quantity = 1;
       });
     },
 
@@ -586,22 +780,31 @@ export default {
 
     handleQuantityInput(event, index) {
       let input = event.target.value;
-      input = input.replace(/[^0-9]/g, "");
-      this.items[index].quantity = input;
 
-      if (parseInt(input, 10) > 1) {
-        this.items[index].sku = true;
-        this.updateSkusForQuantity(index);
-      } else {
-        this.items[index].sku = false;
-        this.items[index].skus = [];
+      if (input === "") {
+        this.items[index].quantity = "";
+        return;
       }
+
+      input = input.replace(/[^0-9]/g, "");
+      this.items[index].quantity = parseInt(input, 10) || 0;
+
+      console.log(`Updated quantity for item ${this.items[index].item_name}:`, this.items[index].quantity);
+
+      this.updateSkusForQuantity(index);
     },
 
     validateQuantity(index) {
-      if (this.items[index].quantity <= 0) {
-        this.items[index].quantity = 1;
+      const item = this.items[index];
+
+      if (!item.quantity || parseInt(item.quantity, 10) <= 0) {
+        item.quantity = 1;
       }
+
+      item.physical_count = parseInt(item.quantity, 10);
+      item.on_hand = parseInt(item.quantity, 10);
+
+      console.log(`Validated quantity for item ${item.item_name}:`, item.quantity);
     },
 
     allowOnlyNumbers(event) {
@@ -630,21 +833,198 @@ export default {
 
 .modal-content {
   background-color: white;
-  padding: 20px;
   border-radius: 10px;
-  width: 300px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background-color: #007bff;
+  color: white;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin: 0;
 }
 
 .close-button {
   font-size: 20px;
-  color: red;
+  color: white;
   cursor: pointer;
   border: none;
   background: none;
+  margin-bottom: 15px;
 }
 
-.table {
+.modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.search-container {
+  display: flex;
+  justify-content: center;
+}
+
+.product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.product-card {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.product-card:hover {
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.product-image {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 5px;
+}
+
+.product-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.product-title {
+  font-size: 14px;
+  font-weight: bold;
+  margin: 0;
+}
+
+.product-id {
+  font-size: 12px;
+  color: #6c757d;
+  margin: 0;
+}
+
+.modal-footer {
+  padding: 4px 5px;
+  display: flex;
+  justify-content: flex-end;
+  background-color: #f1f1f1;
+}
+
+.btn {
+  padding: 8px 15px;
+  font-size: 14px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+}
+
+.cost-price-column {
+  width: 15%;
+}
+
+.quantity-column {
+  width: 10%;
+}
+
+.cost-price-input {
+  max-width: 100px;
+}
+
+.quantity-input {
+  max-width: 80px;
+}
+
+.form-select {
+  width: 100%;
+  padding-right: 20px;
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 7px;
+  appearance: none;
+}
+
+.form-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+input[type="checkbox"] {
+  width: 20px;
+  height: 10px;
+  transform: scale(1.3);
+  cursor: pointer;
+}
+
+.quantity-input::-webkit-inner-spin-button,
+.quantity-input::-webkit-outer-spin-button {
+  opacity: 1;
+}
+
+.numbering {
+  font-size: 12px;
+}
+
+table {
   margin-top: 1rem;
+  width: 100%;
+}
+
+.table th,
+.table td {
+  vertical-align: middle;
+  padding: 0.75rem;
+}
+
+.table th {
+  background-color: #f8f9fa;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 14px;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: #f9f9f9;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f1f1f1;
+}
+
+.table-primary {
+  background-color: #007bff;
+  color: white;
 }
 
 @font-face {

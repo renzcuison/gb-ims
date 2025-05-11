@@ -12,7 +12,6 @@ return new class extends Migration {
             $table->string('item_name');
             $table->text('description')->nullable();
             $table->unsignedBigInteger('category_id');
-            $table->unsignedBigInteger('supplier_id')->nullable();
             $table->string('unit_of_measure')->default('pc');
             $table->integer('physical_count');
             $table->integer('on_hand');
@@ -23,7 +22,6 @@ return new class extends Migration {
             $table->timestamp('time')->useCurrent();
 
             $table->foreign('category_id')->references('id')->on('categories')->onDelete('cascade');
-            $table->foreign('supplier_id')->references('id')->on('suppliers')->onDelete('cascade');
 
             $table->timestamps();
         });

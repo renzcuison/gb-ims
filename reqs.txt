@@ -1,18 +1,26 @@
-ADD ITEM    
-    - Can have many suppliers
+MAIN FUNCS.__
+
 STOCK IN
     - Should have complete details as if like a receipt
-VIEW
+    - Can have many suppliers
+TRANSACTION LOGS
     - Log should have more details who added it and such
+    - LOGS FOR IN AND OUT
 STOCK OUT
     - When user buys a product should immediately reflect in the site so that following users wont expect that it is still avaialable
     - Confirmed through the stock out form
+SALE SYSTEM
+    - xx
+
+
+ADDITIONAL FUNCS.__
+
 LOW STOCK
     - Currently not working
 EDIT STOCK
     - Currently not working
 PRICE HISTORY
     - xx
-LOGS FOR IN AND OUT
-
 ADD PICTURE FOR ITEM PROFILING
+    - xx
+RESPONSIVE UI
