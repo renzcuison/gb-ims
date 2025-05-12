@@ -158,10 +158,19 @@ export default {
         if (response.ok) {
           alert('Order placed successfully!');
           console.log(result);
+          const now = new Date();
+          const month = String(now.getMonth() + 1).padStart(2, '0');
+          const day = String(now.getDate()).padStart(2, '0');
+          const year = now.getFullYear();
+          const time = now.toLocaleTimeString();
+          const timestamp = `${month}/${day}/${year}, ${time}`;
+          const allOrderTimes = JSON.parse(localStorage.getItem('orderTimestamps') || '{}');
+          allOrderTimes[result.id] = timestamp;
+          localStorage.setItem('orderTimestamps', JSON.stringify(allOrderTimes));
           this.$router.push({ name: 'OrderPage' });
         } else {
           console.error('Error placing order:', result);
-          alert('Failed to place order.');
+          alert('Failed to place order. Not enough stock.');
         }
       } catch (error) {
         console.error('Network error:', error);
