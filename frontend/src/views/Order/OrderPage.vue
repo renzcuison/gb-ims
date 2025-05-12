@@ -1,5 +1,24 @@
 <template>
   <div class="container mt-4">
+    <div class="shop-view">
+      <!-- Header Section -->
+      <header class="shop-header">
+        <nav>
+          <ul class="menu">
+            <li><a href="/shop">SHOP</a></li>
+            <li><a href="/order">ORDERS</a></li>
+            <li><a href="#">MY ACCOUNT</a></li>
+            <li><a href="#">ABOUT US</a></li>
+            <li>
+              <RouterLink to="/orders" class="cart-icon">
+                🛒 <span class="cart-count">{{ cartQuantity }}</span>
+              </RouterLink>
+            </li>
+          </ul>
+        </nav>
+      </header>
+    </div>
+
     <div v-if="orders.length === 0" class="alert alert-warning text-center">
       No Order Found
       <br />
@@ -8,19 +27,37 @@
 
     <div v-for="order in orders" :key="order.id" class="card mb-5">
       <div class="card-header bg-dark text-white d-flex align-items-center">
-        <button class="btn btn-light btn-sm me-3" @click="goBack">Back</button>
-        <h4>Order Details - {{ order.order_code }}</h4>
+        <h4>
+          Order Details
+          <span v-if="order.status" class="ms-3 px-2 py-1 text-sm rounded-pill" :class="{
+            'bg-warning text-dark': order.status === 'Pending',
+            'bg-success text-white': order.status === 'Approved',
+            'bg-danger text-white': order.status === 'Cancelled',
+            'bg-secondary text-white': !['Pending', 'Approved', 'Cancelled'].includes(order.status)
+          }">
+            {{ order.status }}
+          </span>
+          <span v-else class="ms-3 px-2 py-1 text-sm rounded-pill bg-secondary text-white">
+            Unknown
+          </span>
+        </h4>
       </div>
+
       <div class="card-body">
         <div>
           <h5>Shipping Information</h5>
           <ul>
+            <li><strong>Order Code:</strong> {{ order.order_code }}</li>
             <li><strong>Name:</strong> {{ order.customer_name }}</li>
             <li><strong>Address:</strong> {{ order.shipping_address }}</li>
             <li><strong>City:</strong> {{ order.city }}</li>
             <li><strong>Postal Code:</strong> {{ order.postal_code }}</li>
             <li><strong>Phone:</strong> {{ order.phone }}</li>
           </ul>
+        </div>
+
+        <div v-if="order.orderTime" class="mb-3">
+          <strong>Order Placed At:</strong> {{ order.orderTime }}
         </div>
 
         <div class="mt-4">
@@ -70,6 +107,7 @@
 export default {
   data() {
     return {
+      cartQuantity: 0,
       orders: []
     };
   },
@@ -82,6 +120,12 @@ export default {
         const response = await fetch('http://localhost:8001/api/customer-orders');
         const data = await response.json();
         if (response.ok) {
+          const timestampMap = JSON.parse(localStorage.getItem('orderTimestamps') || '{}');
+          data.forEach(order => {
+            if (timestampMap[order.id]) {
+              order.orderTime = timestampMap[order.id];
+            }
+          });
           this.orders = data;
         } else {
           console.error('No orders found.');
@@ -89,9 +133,6 @@ export default {
       } catch (error) {
         console.error('Network error:', error);
       }
-    },
-    goBack() {
-      this.$router.go(-1);
     },
     goToShop() {
       this.$router.push('/shop');
@@ -108,8 +149,6 @@ export default {
           if (response.ok) {
             this.orders = this.orders.filter(order => order.id !== orderId);
             alert("Order canceled successfully.");
-
-            // ✅ Fetch updated stocks after cancellation
             this.fetchOrders();
           } else {
             alert(`Failed to cancel order: ${data.message || 'Unknown error'}`);
@@ -123,8 +162,6 @@ export default {
   },
 };
 </script>
-
-
 
 <style scoped>
 .container {
@@ -143,6 +180,29 @@ export default {
 
 .card-body {
   padding: 1.5rem;
+}
+
+.shop-header {
+  padding: 20px 0;
+}
+
+.menu {
+  list-style: none;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  padding: 0;
+  margin: 0;
+}
+
+.menu li {
+  display: inline-block;
+}
+
+.menu a {
+  text-decoration: none;
+  color: black;
+  font-weight: bold;
 }
 
 .table {
