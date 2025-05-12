@@ -11,7 +11,9 @@ STOCK OUT
     - Confirmed through the stock out form
 SALE SYSTEM
     - xx
-
+Order Module
+    - Order status (needs debugging)
+    - Multiple checkouts (needs debugging)
 
 ADDITIONAL FUNCS.__
 
