@@ -1,45 +1,51 @@
 <template>
   <div class="container mt-4">
-    <div class="shop-view">
-      <!-- Header Section -->
-      <header class="shop-header">
-        <nav>
-          <ul class="menu">
-            <li><a href="/shop">SHOP</a></li>
-            <li><a href="/order">ORDERS</a></li>
-            <li><a href="#">MY ACCOUNT</a></li>
-            <li><a href="#">ABOUT US</a></li>
-            <li>
-              <RouterLink to="/orders" class="cart-icon">
-                🛒 <span class="cart-count">{{ cartQuantity }}</span>
-              </RouterLink>
-            </li>
-          </ul>
-        </nav>
-      </header>
-    </div>
+    <header class="navbar">
+      <div class="navbar-brand">
+        <RouterLink to="/shop" class="brand-text">GREATBUY</RouterLink>
+        <RouterLink to="/shop" class="brand-text-follow">ORIGINALS</RouterLink>
+      </div>
+      <div class="navbar-center">
+        <a href="/shop">SHOP</a>
+        <a href="#brands-section">BRANDS</a>
+        <a href="/login">MY ACCOUNT</a>
+        <a href="https://www.facebook.com/profile.php?id=100075567471861" target="_blank">ABOUT US</a>
+      </div>
+      <div class="navbar-right">
+        <a href="/stocks" class="icon-button">
+          <img src="/star.png" alt="Star" class="icon-image-star">
+        </a>
+        <button class="icon-button">
+          <img src="/search.png" alt="Search" class="icon-image">
+        </button>
+        <button class="icon-button" @click="$router.push('/order')">
+          <img src="/bag.png" alt="Bag" class="icon-image">
+        </button>
+      </div>
+    </header>
 
-    <div v-if="orders.length === 0" class="alert alert-warning text-center">
+    <div v-if="orders.length === 0" class="alert alert-warning text-center mt-4">
       No Order Found
       <br />
-      <button class="btn btn-primary mt-2" @click="goToShop">Go to Shop</button>
+      <button class="btn btn-primary mt-3" @click="goToShop">Go to Shop</button>
     </div>
 
     <div v-for="order in orders" :key="order.id" class="card mb-5">
-      <div class="card-header bg-dark text-white d-flex align-items-center">
-        <h4>
+      <div class="card-header">
+        <h4 class="mb-0 d-flex align-items-center">
           Order Details
-          <span v-if="order.status" class="ms-3 px-2 py-1 text-sm rounded-pill" :class="{
-            'bg-warning text-dark': order.status === 'Pending',
-            'bg-success text-white': order.status === 'Approved',
-            'bg-danger text-white': order.status === 'Cancelled',
-            'bg-secondary text-white': !['Pending', 'Approved', 'Cancelled'].includes(order.status)
-          }">
-            {{ order.status }}
-          </span>
-          <span v-else class="ms-3 px-2 py-1 text-sm rounded-pill bg-secondary text-white">
-            Unknown
-          </span>
+          <div class="ms-3 order-status-wrapper">
+            <select v-if="isAdmin" v-model="order.status" @change="updateOrderStatus(order)"
+              class="form-select status-select">
+              <option v-for="status in statusOptions" :key="status" :value="status">{{ status }}</option>
+            </select>
+            <span v-else class="status-label" :class="{
+              'bg-warning text-dark': order.status === 'Pending',
+              'bg-success text-white': order.status === 'Approved',
+              'bg-danger text-white': order.status === 'Cancelled',
+              'bg-secondary text-white': !['Pending', 'Approved', 'Cancelled'].includes(order.status)
+            }">{{ order.status || 'Unknown' }}</span>
+          </div>
         </h4>
       </div>
 
@@ -62,7 +68,7 @@
 
         <div class="mt-4">
           <h5>Order Summary</h5>
-          <table class="table table-striped">
+          <table class="table">
             <thead>
               <tr>
                 <th>Item</th>
@@ -107,8 +113,9 @@
 export default {
   data() {
     return {
-      cartQuantity: 0,
-      orders: []
+      orders: [],
+      statusOptions: ['Pending', 'Approved', 'Cancelled', 'Processing', 'Shipped', 'Delivered', 'Refunded', 'On Hold'],
+      isAdmin: true
     };
   },
   async created() {
@@ -143,20 +150,29 @@ export default {
           const response = await fetch(`http://localhost:8001/api/customer-orders/${orderId}`, {
             method: 'DELETE',
           });
-
-          const data = await response.json();
-
           if (response.ok) {
             this.orders = this.orders.filter(order => order.id !== orderId);
             alert("Order canceled successfully.");
             this.fetchOrders();
           } else {
-            alert(`Failed to cancel order: ${data.message || 'Unknown error'}`);
+            alert("Failed to cancel order.");
           }
         } catch (error) {
           console.error("Error deleting order:", error);
-          alert("Network error. Please try again.");
         }
+      }
+    },
+    async updateOrderStatus(order) {
+      try {
+        await fetch(`http://localhost:8001/api/customer-orders/${order.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ status: order.status }),
+        });
+      } catch (error) {
+        console.error("Error updating status:", error);
       }
     },
   },
@@ -164,56 +180,132 @@ export default {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;700&display=swap');
+
+* {
+  font-family: 'Kantumruy Pro', sans-serif;
+}
+
 .container {
   max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+  margin-bottom: 200px;
 }
 
 .card {
-  border-radius: 10px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border: none;
 }
 
 .card-header {
-  padding: 16px 24px;
+  background-color: #000;
+  color: white;
+  padding: 20px 24px;
   font-size: 20px;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .card-body {
-  padding: 1.5rem;
+  padding: 2rem;
 }
 
-.shop-header {
-  padding: 20px 0;
-}
-
-.menu {
-  list-style: none;
+.navbar {
   display: flex;
-  justify-content: center;
-  gap: 20px;
-  padding: 0;
-  margin: 0;
+  align-items: center;
+  justify-content: space-between;
+  background-color: white;
+  height: 50px;
+  padding: 0 20px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  margin-bottom: -1px;
 }
 
-.menu li {
-  display: inline-block;
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  margin-left: 10%;
 }
 
-.menu a {
-  text-decoration: none;
+.navbar-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 30px;
+}
+
+.navbar-center a {
+  font-size: 12px;
   color: black;
-  font-weight: bold;
+  text-decoration: none;
+  font-weight: 400;
+  margin-top: 5px;
+}
+
+.navbar-center a:hover {
+  color: #0086E7;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  margin-right: 10%;
+}
+
+.icon-image {
+  width: 14px;
+  height: 14px;
+}
+
+.icon-image-star {
+  width: 16px;
+  height: 16px;
+  margin-bottom: 1px;
+}
+
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.brand-text {
+  font-family: 'LibreCaslonDisplay-Regular';
+  color: #0086E7;
+  font-size: 24px;
+  text-decoration: none;
+}
+
+.brand-text-follow {
+  font-family: 'LibreCaslonDisplay-Regular';
+  color: #0086E7;
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+h5 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
 }
 
 .table {
-  margin-top: 20px;
+  font-size: 14px;
   width: 100%;
+  border-collapse: collapse;
 }
 
 .table th,
 .table td {
-  padding: 12px 15px;
   text-align: center;
+  padding: 12px 15px;
 }
 
 .table thead {
@@ -221,11 +313,39 @@ export default {
   color: white;
 }
 
-.table tbody tr:hover {
-  background-color: #f8f9fa;
+.table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
 }
 
-.table tbody td {
-  border-top: 1px solid #ddd;
+.table tbody tr:hover {
+  background-color: #f1f1f1;
+}
+
+.btn {
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 50px;
+  padding: 8px 20px;
+}
+
+.btn-primary {
+  background-color: #000;
+  border: none;
+}
+
+.btn-primary:hover {
+  background-color: #0086E7;
+}
+
+.status-select {
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 14px;
+}
+
+.status-label {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 14px;
 }
 </style>
