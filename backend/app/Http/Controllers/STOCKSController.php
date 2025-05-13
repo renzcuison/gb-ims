@@ -6,6 +6,7 @@ use App\Models\Stock;
 use App\Models\Sku;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use App\Models\Supplier;
 
@@ -23,9 +24,9 @@ class STOCKSController extends Controller
     public function store(Request $request)
     {
         try {
-            \Log::info('Incoming Request:', $request->all());
+            Log::info('Incoming Request:', $request->all());
             $isProfiling = $request->input('is_profiling', false);
-            \Log::info('is_profiling:', ['is_profiling' => $isProfiling]);
+            Log::info('is_profiling:', ['is_profiling' => $isProfiling]);
     
     
             $validator = Validator::make($request->all(), [
@@ -44,7 +45,7 @@ class STOCKSController extends Controller
             ]);
     
             if ($validator->fails()) {
-                \Log::error('Validation Errors:', $validator->messages()->toArray());
+                Log::error('Validation Errors:', $validator->messages()->toArray());
                 return response()->json(['status' => 422, 'errors' => $validator->messages()], 422);
             }
     
@@ -93,9 +94,34 @@ class STOCKSController extends Controller
                 'stock' => $newStock,
             ], 200);
         } catch (\Exception $e) {
-            \Log::error("Error saving stock: " . $e->getMessage());
+            Log::error("Error saving stock: " . $e->getMessage());
             return response()->json(['status' => 500, 'message' => 'Internal server error'], 500);
         }
+    }
+    
+    public function stockInQuantity(Request $request, $id)
+    {
+        $stock = Stock::find($id);
+
+        if (!$stock) {
+            return response()->json(['status' => 404, 'message' => 'Stock not found.'], 404);
+        }
+
+        $quantity = (int) $request->input('quantity', 1); // defaults to 1 if not sent
+
+        if ($quantity < 1) {
+            return response()->json(['status' => 422, 'message' => 'Quantity must be at least 1.'], 422);
+        }
+
+        $stock->physical_count += $quantity;
+        $stock->on_hand += $quantity;
+        $stock->save();
+
+        return response()->json([
+            'status' => 200,
+            'message' => 'Stock updated successfully.',
+            'stock' => $stock,
+        ]);
     }
        
     public function show($id)
@@ -145,8 +171,15 @@ class STOCKSController extends Controller
                 'buying_price' => $request->buying_price
             ]);
 
-            if ($request->has('suppliers')) {
-                $stock->suppliers()->sync($request->suppliers);
+            if ($request->has('suppliers') && is_array($request->suppliers)) {
+                // Get current supplier IDs
+                $existingSuppliers = $stock->suppliers()->pluck('suppliers.id')->toArray();
+
+                // Merge + dedupe
+                $mergedSuppliers = array_unique(array_merge($existingSuppliers, $request->suppliers));
+
+                // Sync merged list
+                $stock->suppliers()->sync($mergedSuppliers);
             }
 
             if ($request->sku) {

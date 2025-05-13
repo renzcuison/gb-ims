@@ -145,7 +145,7 @@
                     </div>
                   <td>
                     <div class="text-muted small">
-                      {{ stock.supplier_name || 'Unknown' }}
+                      {{ getSupplierName(stock.suppliers) }}
                     </div>
                   </td>
                   <div class="text-muted small">
@@ -361,8 +361,9 @@ export default {
       axios.get('http://localhost:8001/api/stocks')
         .then((res) => {
           this.stocks = res.data.stocks.map((stock) => {
-            const supplier = this.suppliers.find(s => s.id === stock.supplier_id);
-            const supplierName = supplier ? supplier.supplier_name : 'Unknown';
+            const supplierName =
+              stock.supplier_name && stock.supplier_name !== '' ? stock.supplier_name
+                : (this.suppliers.find(s => s.id === stock.supplier_id)?.supplier_name);
             console.log(`Mapping stock ID ${stock.id}: supplier_name = ${supplierName}`);
             return {
               ...stock,
@@ -528,7 +529,7 @@ export default {
 
     getSupplierName(suppliers) {
       if (!suppliers || suppliers.length === 0) {
-        return 'Unknown';
+        return 'Supplier not found';
       }
       return suppliers.map(supplier => supplier.supplier_name).join(', ');
     },
