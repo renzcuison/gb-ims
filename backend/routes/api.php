@@ -141,4 +141,5 @@ Route::post('/customer-orders', [CustomerOrderController::class, 'store']);
  Route::get('/customer-orders', [CustomerOrderController::class, 'index']);
  Route::delete('/customer-orders/{id}', [CustomerOrderController::class, 'destroy']);
  Route::get('/customer-orders/{id}', [CustomerOrderController::class, 'show']);
+ Route::put('/customer-orders/{id}', [CustomerOrderController::class, 'update']);
 
