@@ -1,19 +1,30 @@
 <template>
+
   <div class="shop-view">
-    <header class="shop-header">
-      <nav>
-        <ul class="menu">
-          <li><a href="/shop">SHOP</a></li>
-          <li><a href="/order">ORDERS</a></li>
-          <li><a href="#">MY ACCOUNT</a></li>
-          <li><a href="#">ABOUT US</a></li>
-          <li>
-            <RouterLink to="/orders" class="cart-icon">
-              🛒 <span class="cart-count">{{ cartQuantity }}</span>
-            </RouterLink>
-          </li>
-        </ul>
-      </nav>
+    <header class="navbar">
+      <div class="navbar-brand">
+        <RouterLink :to="{ path: '/shop' }" class="brand-text">GREATBUY</RouterLink>
+        <RouterLink :to="{ path: '/shop' }" class="brand-text-follow">ORIGINALS</RouterLink>
+      </div>
+      <div class="navbar-center">
+        <a href="/shop">SHOP</a>
+        <a href="#brands-section">BRANDS</a>
+        <a href="login">MY ACCOUNT</a>
+        <a href="https://www.facebook.com/profile.php?id=100075567471861" target="_blank">ABOUT US</a>
+      </div>
+      <div class="navbar-right">
+        <a href="stocks">
+          <button class="icon-button">
+            <img src="/star.png" alt="Bag" class="icon-image-star">
+          </button>
+        </a>
+        <button class="icon-button">
+          <img src="/search.png" alt="Search" class="icon-image">
+        </button>
+        <button class="icon-button" onclick="window.location.href='/order'">
+          <img src="/bag.png" alt="Bag" class="icon-image">
+        </button>
+      </div>
     </header>
 
     <section class="item-section">
@@ -21,25 +32,30 @@
         <a href="/shop">Home</a> / {{ item.name }}
       </nav>
 
+      <h1 class="item-title-centered">{{ item.name }}</h1>
+
       <div class="item-main">
-        <div class="item-image"></div>
-        <div class="item-info">
-          <h1 class="item-title">{{ item.name }}</h1>
+        <div class="item-gallery">
+          <div class="item-image"></div>
+        </div>
+        <div class="item-details">
           <p class="item-price">₱{{ item.price }}</p>
           <div class="item-description">
             <p>{{ item.description }}</p>
           </div>
+          <p class="stock-status">In stock</p>
+          <div class="quantity-selector">
+            <button class="quantity-btn" @click="decreaseQuantity">-</button>
+            <span class="quantity-display">{{ quantity }}</span>
+            <button class="quantity-btn" @click="increaseQuantity">+</button>
+          </div>
           <div class="actions">
-            <div class="quantity-selector">
-              <button class="quantity-btn" @click="decreaseQuantity">-</button>
-              <span class="quantity-display">{{ quantity }}</span>
-              <button class="quantity-btn" @click="increaseQuantity">+</button>
-            </div>
             <button class="buy-now" @click="buyNow">Buy Now</button>
             <button class="add-to-cart" @click="createOrder">Add to Cart</button>
           </div>
         </div>
       </div>
+
     </section>
   </div>
 </template>
@@ -261,211 +277,287 @@ export default {
 
 
 <style scoped>
+@font-face {
+  font-family: 'LibreCaslonDisplay-Regular';
+  src: url('/assets/LibreCaslonDisplay-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Kantumruy Pro';
+  src: url('/assets/KantumruyPro-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+}
+
 .shop-view {
-  font-family: 'Roboto', sans-serif;
-  color: #2d3436;
-  text-align: center;
-  max-width: 1200px;
+  font-family: 'Kantumruy Pro', sans-serif;
+  color: #000;
+  background-color: white;
   margin: 0 auto;
+  max-width: 1140px;
+  padding: 0 20px;
 }
 
 .shop-header {
-  padding: 20px 0;
-  background-color: #f7f7f7;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  background-color: white;
+  border-bottom: 1px solid #ddd;
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 10px 350px;
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: white;
+  color: #fff;
+  height: 50px;
+  padding: 0 20px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  margin-bottom: -1px;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  margin-left: 10%;
+}
+
+.navbar-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 30px;
+}
+
+.navbar-center a {
+  font-family: 'Kantumruy Pro', sans-serif;
+  font-size: 12px;
+  color: black;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  margin-top: 5px;
+  font-weight: 400;
+}
+
+.navbar-center a:hover {
+  color: #0086E7;
+}
+
+.brand-text {
+  font-family: 'LibreCaslonDisplay-Regular';
+  text-decoration: none;
+  color: #0086E7;
+  font-size: 24px;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.brand-text-follow {
+  font-family: 'LibreCaslonDisplay-Regular';
+  text-decoration: none;
+  color: #0086E7;
+  font-size: 12px;
+  font-weight: normal;
+  cursor: pointer;
+  margin-top: 10px;
 }
 
 .menu {
   list-style: none;
   display: flex;
-  justify-content: center;
-  gap: 30px;
-  margin: 0;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 40px;
   padding: 0;
+  margin: 0;
 }
 
 .menu a {
+  font-size: 12px;
+  text-transform: uppercase;
   text-decoration: none;
-  font-weight: bold;
-  font-size: 16px;
-  color: #34495e;
+  font-weight: 400;
+  color: black;
   transition: color 0.3s ease;
 }
 
 .menu a:hover {
-  color: #2980b9;
+  color: #0086E7;
 }
 
 .cart-icon {
   position: relative;
 }
 
+.navbar-right {
+  display: flex;
+  align-items: center;
+  margin-right: 10%;
+}
+
+.icon-image {
+  width: 14x;
+  height: 14px;
+}
+
+.icon-image-star {
+  width: 16px;
+  height: 16px;
+  margin-bottom: 1px;
+}
+
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
 .cart-count {
-  background: #e74c3c;
-  color: #fff;
-  font-size: 12px;
-  border-radius: 50%;
-  padding: 2px 6px;
   position: absolute;
-  top: -10px;
+  top: -6px;
   right: -10px;
+  background: #0086E7;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 50%;
 }
 
 .item-section {
-  margin: 40px 0;
+  padding: 40px 11%;
+}
+
+/* Centered product title */
+.item-title-centered {
+  font-size: 28px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 40px;
+  font-family: 'LibreCaslonDisplay-Regular', serif;
+  color: black;
+  text-transform: uppercase;
 }
 
 .breadcrumb {
-  font-size: 14px;
-  color: #95a5a6;
+  font-size: 12px;
+  color: #999;
   margin-bottom: 20px;
+  text-transform: uppercase;
 }
 
 .breadcrumb a {
+  color: #0086E7;
   text-decoration: none;
-  color: #2980b9;
 }
 
 .breadcrumb a:hover {
   text-decoration: underline;
 }
 
+/* Layout alignment for image + product info */
 .item-main {
   display: flex;
+  flex-wrap: wrap;
   gap: 40px;
+  justify-content: center;
   align-items: flex-start;
-  margin-bottom: 40px;
-}
-
-.quantity-selector {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin: 20px 0;
-}
-
-.quantity-btn {
-  width: 50px;
-  height: 50px;
-  background-color: #ecf0f1;
-  color: #2c3e50;
-  font-size: 20px;
-  font-weight: bold;
-  border: 2px solid #bdc3c7;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.quantity-btn:hover {
-  background-color: #bdc3c7;
-  color: #fff;
-}
-
-.quantity-btn:active {
-  transform: scale(0.95);
-}
-
-.quantity-display {
-  font-size: 20px;
-  font-weight: bold;
-  padding: 0 10px;
-  min-width: 40px;
-  text-align: center;
-  color: #2c3e50;
+  margin: 0 auto;
 }
 
 .item-image {
-  flex: 1;
+  width: 300px;
   height: 400px;
-  background: linear-gradient(135deg, #11095c, #0a3992);
-  border-radius: 12px;
+  background-image: url('/sample.jpg');
+  background-size: cover;
+  background-position: center;
+  border: 1px solid #ccc;
+  flex-shrink: 0;
 }
 
 .item-info {
   flex: 1;
-  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  max-width: 400px;
+  min-width: 280px;
 }
 
 .item-title {
-  font-size: 28px;
-  font-weight: 600;
-  color: #2c3e50;
+  font-family: 'LibreCaslonDisplay-Regular';
+  font-size: 24px;
+  color: #0086E7;
+  margin-bottom: 5px;
 }
 
 .item-price {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: bold;
-  color: #e74c3c;
   margin: 10px 0 20px;
+  color: #000;
 }
 
-.options {
-  margin: 20px 0;
+.item-description p {
+  font-size: 12px;
+  color: #333;
+  line-height: 1.6;
+}
+
+.quantity-selector {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin: 15px 0;
+}
+
+.quantity-btn {
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+  font-weight: bold;
+  background-color: #f5f5f5;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.quantity-display {
+  font-size: 14px;
+  font-weight: bold;
+  width: 30px;
+  text-align: center;
 }
 
 .actions {
   display: flex;
-  gap: 15px;
+  gap: 10px;
   margin-top: 20px;
+  flex-wrap: wrap;
 }
 
-.buy-now {
-  background: linear-gradient(135deg, #27ae60, #2ecc71);
-  padding: 12px 30px;
-  font-size: 16px;
-  border: none;
-  border-radius: 8px;
+.buy-now,
+.add-to-cart {
+  background-color: #000000;
   color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 12px;
+  text-transform: uppercase;
+  font-weight: bold;
+  border-radius: 5px;
   cursor: pointer;
-  transition: box-shadow 0.3s ease;
 }
 
 .buy-now:hover {
-  box-shadow: 0 4px 10px rgba(39, 174, 96, 0.5);
-}
-
-.add-to-cart {
-  background: linear-gradient(135deg, #2980b9, #3498db);
-  padding: 12px 30px;
-  font-size: 16px;
-  border: none;
-  border-radius: 8px;
-  color: white;
-  cursor: pointer;
-  transition: box-shadow 0.3s ease;
+  background-color: #006ec4;
 }
 
 .add-to-cart:hover {
-  box-shadow: 0 4px 10px rgba(41, 128, 185, 0.5);
-}
-
-.size-chart {
-  background: #fff;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-}
-
-.size-chart h3 {
-  font-size: 20px;
-  margin-bottom: 10px;
-}
-
-.size-chart table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.size-chart th,
-.size-chart td {
-  padding: 10px;
-  text-align: center;
-  border: 1px solid #ddd;
+  background-color: #0086E7;
 }
 </style>
