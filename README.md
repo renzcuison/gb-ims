@@ -1,13 +1,37 @@
-# SAD Project - Inventory Management System and E-commerce Website
+# 📦 SAD Project – Inventory Management System & E-Commerce Website
 
-# Backend run
-```cd backend```
-```php artisan migrate```
-```php artisan serve --port=8001```
+This project is a full-stack web application built with **Laravel** (backend) and **Vue.js** (frontend). It includes features for inventory management and e-commerce functionality.
 
-# For Admin seeder
-```php artisan db:seed --class=AdminUserSeeder```
+---
 
-# Frontend run
-```npm install```
-```npm run dev```
+## 🚀 Getting Started
+
+### 📁 Backend Setup (Laravel)
+```
+cd backend
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+php artisan db:seed --class=AdminUserSeeder
+php artisan serve --port=8001
+```
+### 🌐 Frontend Setup (Vue.js)
+
+```
+npm install
+npm run dev
+```
+
+## 👤 Default Admin Credentials
+
+- **Email**: `admin`  
+- **Password**: `adminpassword`
+
+## 🛠 Technologies Used
+
+- Laravel
+- Vue.js
+- MySQL
+- Vite
+
