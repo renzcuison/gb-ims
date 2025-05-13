@@ -1,11 +1,11 @@
-#SAD Project - Inventory Management System and E-commerce Website
+# SAD Project - Inventory Management System and E-commerce Website
 
-#Backend run
+# Backend run
 ```cd backend```
 ```php artisan migrate```
 ```php artisan serve --port=8001```
 
-For Admin seeder
+# For Admin seeder
 ```php artisan db:seed --class=AdminUserSeeder```
 
 # Frontend run
