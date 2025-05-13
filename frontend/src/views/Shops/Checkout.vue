@@ -1,7 +1,33 @@
 <template>
+  <header class="navbar">
+    <div class="navbar-brand">
+      <RouterLink :to="{ path: '/shop' }" class="brand-text">GREATBUY</RouterLink>
+      <RouterLink :to="{ path: '/shop' }" class="brand-text-follow">ORIGINALS</RouterLink>
+    </div>
+    <div class="navbar-center">
+      <a href="/shop">SHOP</a>
+      <a href="#brands-section">BRANDS</a>
+      <a href="login">MY ACCOUNT</a>
+      <a href="https://www.facebook.com/profile.php?id=100075567471861" target="_blank">ABOUT US</a>
+    </div>
+    <div class="navbar-right">
+      <a href="stocks">
+        <button class="icon-button">
+          <img src="/star.png" alt="Bag" class="icon-image-star">
+        </button>
+      </a>
+      <button class="icon-button">
+        <img src="/search.png" alt="Search" class="icon-image">
+      </button>
+      <button class="icon-button" onclick="window.location.href='/order'">
+        <img src="/bag.png" alt="Bag" class="icon-image">
+      </button>
+    </div>
+  </header>
+
   <div class="container mt-4">
     <div class="card mb-5">
-      <div class="card-header bg-dark text-white d-flex align-items-center">
+      <div class="card-header text-white d-flex align-items-center">
         <button class="btn btn-light btn-sm me-3" @click="goBack">Back</button>
         <h4>Checkout</h4>
       </div>
@@ -188,34 +214,163 @@ export default {
 
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;700&display=swap');
+
+* {
+  font-family: 'Kantumruy Pro', sans-serif;
+}
+
 .container {
   max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
 .card {
-  border-radius: 10px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border: none;
 }
 
 .card-header {
-  padding: 16px 24px;
+  background-color: #000000;
+  color: white;
+  padding: 20px 24px;
   font-size: 20px;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.card-header h4 {
+  margin: 0;
 }
 
 .card-body {
-  padding: 1.5rem;
+  padding: 2rem;
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: white;
+  color: #fff;
+  height: 50px;
+  padding: 0 20px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  margin-bottom: -1px;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  margin-left: 10%;
+}
+
+.navbar-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 30px;
+}
+
+.navbar-center a {
+  font-family: 'Kantumruy Pro', sans-serif;
+  font-size: 12px;
+  color: black;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  margin-top: 5px;
+  font-weight: 400;
+}
+
+.navbar-center a:hover {
+  color: #0086E7;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  margin-right: 10%;
+}
+
+.icon-image {
+  width: 14x;
+  height: 14px;
+}
+
+.icon-image-star {
+  width: 16px;
+  height: 16px;
+  margin-bottom: 1px;
+}
+
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.brand-text {
+  font-family: 'LibreCaslonDisplay-Regular';
+  text-decoration: none;
+  color: #0086E7;
+  font-size: 24px;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.brand-text-follow {
+  font-family: 'LibreCaslonDisplay-Regular';
+  text-decoration: none;
+  color: #0086E7;
+  font-size: 12px;
+  font-weight: normal;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+h5 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+label.form-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+input.form-control {
+  font-size: 14px;
+  border-radius: 6px;
+  padding: 10px;
+  border: 1px solid #ced4da;
+}
+
+input.form-control.is-invalid {
+  border-color: #dc3545;
+}
+
+.invalid-feedback {
+  font-size: 12px;
 }
 
 .table {
-  margin-top: 20px;
+  font-size: 14px;
   border-collapse: collapse;
   width: 100%;
 }
 
 .table th,
 .table td {
-  padding: 12px 15px;
   text-align: center;
+  padding: 12px 15px;
 }
 
 .table thead {
@@ -223,46 +378,67 @@ export default {
   color: white;
 }
 
-.table tbody tr:hover {
-  background-color: #f8f9fa;
-}
-
 .table tbody tr:nth-child(even) {
   background-color: #f9f9f9;
 }
 
-.table tbody td {
-  border-top: 1px solid #ddd;
+.table tbody tr:hover {
+  background-color: #f1f1f1;
 }
 
 .btn {
   font-weight: 600;
+  font-size: 14px;
+  border-radius: 50px;
+  padding: 8px 20px;
 }
 
 .btn-primary {
-  background-color: #007bff;
-  color: white;
-  border-radius: 50px;
+  background-color: #000000;
+  border: none;
 }
 
 .btn-primary:hover {
-  background-color: #0056b3;
-  color: white;
+  background-color: #0086E7;
+}
+
+.btn-light {
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 20px;
+  padding: 5px 14px;
+}
+
+.mt-4 h5 {
+  margin-top: 20px;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.mt-4 h6 {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mt-4 p {
+  font-size: 13px;
+  margin-bottom: 6px;
 }
 
 @media (max-width: 768px) {
   .card-body {
-    padding: 1rem;
+    padding: 1.25rem;
   }
 
   .table th,
   .table td {
     font-size: 12px;
+    padding: 10px;
   }
 
   .btn {
     font-size: 12px;
-    padding: 5px 12px;
+    padding: 6px 16px;
   }
 }
 </style>
