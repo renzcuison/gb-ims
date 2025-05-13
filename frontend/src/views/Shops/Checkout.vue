@@ -210,9 +210,6 @@ export default {
 };
 </script>
 
-
-
-
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;700&display=swap');
 
