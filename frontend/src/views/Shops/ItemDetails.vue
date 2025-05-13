@@ -1,5 +1,4 @@
 <template>
-
   <div class="shop-view">
     <header class="navbar">
       <div class="navbar-brand">
@@ -21,7 +20,7 @@
         <button class="icon-button">
           <img src="/search.png" alt="Search" class="icon-image">
         </button>
-        <button class="icon-button" onclick="window.location.href='/order'">
+        <button class="icon-button" @click="goToOrder">
           <img src="/bag.png" alt="Bag" class="icon-image">
         </button>
       </div>
@@ -43,7 +42,12 @@
           <div class="item-description">
             <p>{{ item.description }}</p>
           </div>
-          <p class="stock-status">In stock</p>
+
+          <!-- ✅ Fixed stock status logic -->
+          <p v-if="stockItem && stockItem.on_hand > 0">In Stock</p>
+          <p v-else-if="stockItem && stockItem.on_hand === 0">Out of Stock</p>
+          <p v-else>Loading stock info...</p>
+
           <div class="quantity-selector">
             <button class="quantity-btn" @click="decreaseQuantity">-</button>
             <span class="quantity-display">{{ quantity }}</span>
@@ -55,7 +59,6 @@
           </div>
         </div>
       </div>
-
     </section>
   </div>
 </template>
@@ -65,35 +68,18 @@ export default {
   data() {
     return {
       item: {},
-      items: [],
-      cart: [],
+      stockItem: null,
       quantity: 1,
-      customerOrderId: null, // Stores customer order ID
+      cart: [],
+      customerOrderId: null,
     };
   },
-  computed: {
-    cartQuantity() {
-      return this.cart.reduce((total, item) => total + item.quantity, 0);
-    },
-  },
   created() {
-    this.fetchItemDetails();
-    this.fetchItems();
+    this.fetchItemAndStockDetails();
     this.loadCart();
   },
   methods: {
-    loadCart() {
-      const savedCart = localStorage.getItem("cart");
-      if (savedCart) {
-        this.cart = JSON.parse(savedCart);
-      }
-
-      const savedOrderId = localStorage.getItem("customer_order_id");
-      if (savedOrderId) {
-        this.customerOrderId = savedOrderId;
-      }
-    },
-    async fetchItemDetails() {
+    async fetchItemAndStockDetails() {
       const itemId = this.$route.params.id;
       if (!itemId) {
         console.error("Item ID is missing");
@@ -105,31 +91,37 @@ export default {
         const data = await response.json();
 
         if (!data || !data.stock) {
-          console.error("Item not found in the response");
+          console.error("Stock not found");
           return;
         }
 
+        const stock = data.stock;
+
         this.item = {
-          id: String(data.stock.id),
-          name: data.stock.item_name || "No name available",
-          price: data.stock.price_per_unit || "Price not available",
-          description: data.stock.description || "No description available",
+          id: String(stock.id),
+          name: stock.item_name || "No name available",
+          price: stock.price_per_unit || "0",
+          description: stock.description || "No description available",
+        };
+
+        // ✅ Assign correct stock data including on_hand
+        this.stockItem = {
+          on_hand: Number(stock.on_hand),
         };
       } catch (error) {
-        console.error("Error fetching item details:", error);
+        console.error("Error fetching stock details:", error);
       }
     },
 
-    async fetchItems() {
-      try {
-        const response = await fetch("http://localhost:8001/api/stocks");
-        if (!response.ok) {
-          throw new Error("Failed to fetch items");
-        }
-        const data = await response.json();
-        this.items = data.stocks;
-      } catch (error) {
-        console.error("Error fetching items:", error);
+    loadCart() {
+      const savedCart = localStorage.getItem("cart");
+      if (savedCart) {
+        this.cart = JSON.parse(savedCart);
+      }
+
+      const savedOrderId = localStorage.getItem("customer_order_id");
+      if (savedOrderId) {
+        this.customerOrderId = savedOrderId;
       }
     },
 
@@ -141,7 +133,9 @@ export default {
         this.quantity--;
       }
     },
-
+    goToOrder() {
+      window.location.href = '/order';
+    },
     buyNow() {
       if (!this.item.id) {
         console.error("Item ID is missing in buyNow function.");
@@ -166,66 +160,15 @@ export default {
         },
       });
     },
-
-    async createOrder() {
+    createOrder() {
       if (!this.item.id) {
         console.error("Stock ID is missing.");
         alert("Error: Stock ID is missing.");
         return;
       }
 
-      // Ensure there's a valid customer order ID first
-      if (!this.customerOrderId) {
-        console.warn("No existing customer order found. Creating a new one...");
-
-        try {
-          const newOrderResponse = await fetch("http://localhost:8001/api/customer-orders", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json",
-            },
-            body: JSON.stringify({
-              customer_name: "Guest",
-              shipping_address: "Default Address",
-              city: "Default City",
-              postal_code: "0000",
-              phone: "0000000000",
-              payment_method: "cod",
-              total_price: (this.quantity * parseFloat(this.item.price)).toFixed(2),
-              stocks: [
-                {
-                  stock_id: String(this.item.id),
-                  quantity: parseInt(this.quantity, 10),
-                  price_per_unit: parseFloat(this.item.price),
-                },
-              ],
-            }),
-          });
-
-          const newOrderData = await newOrderResponse.json();
-
-          if (newOrderResponse.ok) {
-            this.customerOrderId = newOrderData.id;
-            localStorage.setItem("customer_order_id", this.customerOrderId);
-            console.log("✅ New Customer Order Created:", newOrderData);
-          } else {
-            console.error("❌ Failed to create customer order:", newOrderData.message);
-            alert(`Failed to create order: ${newOrderData.message}`);
-            return;
-          }
-        } catch (error) {
-          console.error("❌ Error creating customer order:", error);
-          alert("Failed to create customer order.");
-          return;
-        }
-      }
-
-      // Check if the item already exists in the cart
       const existingItemIndex = this.cart.findIndex(cartItem => cartItem.stock_id === this.item.id);
-
       if (existingItemIndex !== -1) {
-        // ✅ Vue 3: Correct way to update object properties in reactive arrays
         this.cart[existingItemIndex] = {
           ...this.cart[existingItemIndex],
           quantity: this.cart[existingItemIndex].quantity + this.quantity
@@ -238,43 +181,11 @@ export default {
         });
       }
 
-      // Save updated cart to localStorage
       localStorage.setItem("cart", JSON.stringify(this.cart));
-
-      // Send updated cart item to API
-      const orderData = {
-        customer_order_id: this.customerOrderId,
-        stock_id: String(this.item.id),
-        quantity: parseInt(this.quantity, 10),
-        price_per_unit: parseFloat(this.item.price),
-      };
-
-      try {
-        const response = await fetch("http://localhost:8001/api/orders", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify(orderData),
-        });
-
-        const data = await response.json();
-        if (response.ok) {
-          alert("Item added to cart!");
-        } else {
-          alert(`Failed to add item: ${data.message}`);
-        }
-      } catch (error) {
-        console.error("Error creating order:", error);
-        alert("Failed to add item to cart.");
-      }
     },
-
   },
 };
 </script>
-
 
 <style scoped>
 @font-face {
