@@ -10,7 +10,7 @@ class CustomerOrder extends Model {
 
     protected $fillable = [
         'order_code', 'customer_name', 'shipping_address', 'city', 
-        'postal_code', 'phone', 'payment_method', 'total_price'
+        'postal_code', 'phone', 'payment_method', 'total_price', 'status'
     ];
 
     public function orders() { 

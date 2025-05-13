@@ -40,6 +40,7 @@ class CustomerOrderController extends Controller
             'stocks.*.stock_id' => 'required|exists:stocks,id',
             'stocks.*.quantity' => 'required|integer|min:1',
             'stocks.*.price_per_unit' => 'required|numeric|min:0',
+            'status' => 'nullable|string|in:Pending,Approved,Cancelled,Processing,Shipped,Delivered,Refunded,On Hold',
         ]);
 
         DB::beginTransaction();
@@ -55,6 +56,7 @@ class CustomerOrderController extends Controller
                 'phone' => $validated['phone'],
                 'payment_method' => $validated['payment_method'],
                 'total_price' => $validated['total_price'],
+                'status' => $validated['status'] ?? 'Pending',
             ]);
 
             // Process each ordered stock
@@ -92,6 +94,25 @@ class CustomerOrderController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function update(Request $request, $id)
+    {
+        $order = CustomerOrder::find($id);
+
+        if (!$order) {
+            return response()->json(['message' => 'Order not found.'], 404);
+        }
+
+        $validated = $request->validate([
+            'status' => 'required|string|in:Pending,Approved,Cancelled,Processing,Shipped,Delivered,Refunded,On Hold',  // Only allow these statuses
+        ]);
+
+        // Update the order's status
+        $order->status = $validated['status'];
+        $order->save();
+
+        return response()->json($order, 200);
     }
 
     public function destroy($id)
