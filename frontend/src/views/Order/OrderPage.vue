@@ -94,7 +94,7 @@
           </div>
         </div>
 
-        <!-- Cancel button only for non-admins -->
+
         <div class="mt-4 text-end" v-if="!isAdmin">
           <button class="btn btn-danger" @click="cancelOrder(order.id)">Cancel Order</button>
         </div>
@@ -124,6 +124,7 @@ export default {
     console.log("isAdmin:", this.isAdmin);
     this.fetchOrders();
   },
+
   methods: {
     async fetchOrders() {
       try {
