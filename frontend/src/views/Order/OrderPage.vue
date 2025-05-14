@@ -34,17 +34,10 @@
       <div class="card-header">
         <h4 class="mb-0 d-flex align-items-center">
           Order Details
-          <div class="ms-3 order-status-wrapper">
-            <select v-if="isAdmin" v-model="order.status" @change="updateOrderStatus(order)"
-              class="form-select status-select">
+          <div class="ms-3 order-status-wrapper" v-if="isAdmin">
+            <select v-model="order.status" @change="updateOrderStatus(order)" class="form-select status-select">
               <option v-for="status in statusOptions" :key="status" :value="status">{{ status }}</option>
             </select>
-            <span v-else class="status-label" :class="{
-              'bg-warning text-dark': order.status === 'Pending',
-              'bg-success text-white': order.status === 'Approved',
-              'bg-danger text-white': order.status === 'Cancelled',
-              'bg-secondary text-white': !['Pending', 'Approved', 'Cancelled'].includes(order.status)
-            }">{{ order.status || 'Unknown' }}</span>
           </div>
         </h4>
       </div>
@@ -101,7 +94,8 @@
           </div>
         </div>
 
-        <div class="mt-4 text-end">
+        <!-- Cancel button only for non-admins -->
+        <div class="mt-4 text-end" v-if="!isAdmin">
           <button class="btn btn-danger" @click="cancelOrder(order.id)">Cancel Order</button>
         </div>
       </div>
@@ -114,11 +108,20 @@ export default {
   data() {
     return {
       orders: [],
-      statusOptions: ['Pending', 'Approved', 'Cancelled', 'Processing', 'Shipped', 'Delivered', 'Refunded', 'On Hold'],
-      isAdmin: true
+      statusOptions: [
+        'Pending', 'Approved', 'Cancelled', 'Processing',
+        'Shipped', 'Delivered', 'Refunded', 'On Hold'
+      ]
     };
   },
+  computed: {
+    isAdmin() {
+      return localStorage.getItem('user_role') === 'admin';
+    }
+  },
   async created() {
+    console.log("User role:", localStorage.getItem('user_role'));
+    console.log("isAdmin:", this.isAdmin);
     this.fetchOrders();
   },
   methods: {
@@ -175,9 +178,10 @@ export default {
         console.error("Error updating status:", error);
       }
     },
-  },
+  }
 };
 </script>
+
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;700&display=swap');
