@@ -79,130 +79,155 @@ const router = createRouter({
       name: 'ItemDetails',
       component: ItemDetails,
       props: true,
+      meta: { requiresAdmin: true }
     },
     {
       path: '/categories',
       name: 'categories',
       component: CategoriesView,
+      meta: { requiresAdmin: true }
     },
     {
       path: '/categories/create',
       name: 'categoriesCreate',
       component: CategoriesCreate,
+      meta: { requiresAdmin: true }
     },
     {
       path: '/categories/:id/edit',
       name: 'categoriesEdit',
       component: CategoriesEdit,
+      meta: { requiresAdmin: true }
     },
 
     {
       path: '/suppliers',
       name: 'suppliers',
       component: SuppliersView,
+      meta: { requiresAdmin: true }
     },
     {
       path: '/suppliers/create',
       name: 'suppliersCreate',
       component: SuppliersCreate,
+      meta: { requiresAdmin: true }
     },
     {
       path: '/suppliers/:id/edit',
       name: 'suppliersEdit',
       component: SuppliersEdit,
+      meta: { requiresAdmin: true }
     },
 
     {
       path: '/transactions',
       name: 'transactions',
       component: TransactionsView,
+      meta: { requiresAdmin: true }
     },
     {
       path: '/transactions/create',
       name: 'transactionsCreate',
       component: TransactionsCreate,
+      meta: { requiresAdmin: true }
     },
     {
       path: '/transactions/:id/edit',
       name: 'transactionsEdit',
       component: TransactionsEdit,
+      meta: { requiresAdmin: true }
     },
     {
       path: '/employees',
       name: 'employees',
       component: EmployeesView,
+      meta: { requiresAdmin: true }
     },
     {
       path: '/employees/create',
       name: 'employeesCreate',
       component: EmployeesCreate,
+      meta: { requiresAdmin: true }
     },
     {
       path: '/employees/:id/edit',
       name: 'employeesEdit',
       component: EmployeesEdit,
+      meta: { requiresAdmin: true }
     },
 
     {
       path: '/customers',
       name: 'customers',
       component: CustomersView,
+      meta: { requiresAdmin: true }
     },
     {
       path: '/customers/create',
       name: 'customersCreate',
       component: CustomersCreate,
+      meta: { requiresAdmin: true }
     },
     {
       path: '/customers/:id/edit',
       name: 'customersEdit',
       component: CustomersEdit,
+      meta: { requiresAdmin: true }
     },
 
     {
       path: '/stocks',
       name: 'stocks',
       component: StocksView,
+      meta: { requiresAdmin: true }
     },
     {
       path: '/stocks/lowstock/:stockId?',
       name: 'stocksLowStock',
       component: StocksLowStock,
+      meta: { requiresAdmin: true }
     },
     {
       path: '/stocks/uncreate/:stockId?',
       name: 'stocksUncreate',
       component: StocksUncreate,
+      meta: { requiresAdmin: true }
     },
     {
       path: '/stocks/in',
       name: 'stocksIn',
       component: StocksIn,
+      meta: { requiresAdmin: true }
     },
     {
       path: '/stocks/create',
       name: 'stocksCreate',
       component: StocksCreate,
+      meta: { requiresAdmin: true }
     },
     {
       path: '/stocks/:id/edit',
       name: 'stocksEdit',
       component: StocksEdit,
+      meta: { requiresAdmin: true }
     },
     {
       path: '/orders',
       name: 'orders',
       component: OrderView,
+      meta: { requiresAdmin: true }
     },
     {
       path: '/orders/create',
       name: 'orderCreate',
       component: OrderCreate,
+      meta: { requiresAdmin: true }
     },
     {
       path: '/orders/:id/edit',
       name: 'orderEdit',
       component: OrderEdit,
+      meta: { requiresAdmin: true }
     },
 
     {
@@ -222,7 +247,6 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
   const authToken = localStorage.getItem('authToken');
-
 
   if (to.path === '/login' && authToken) {
     try {
@@ -246,8 +270,7 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
-  
-  if (to.matched.some((record) => record.meta.requiresAuth)) {
+  if (to.matched.some((record) => record.meta.requiresAuth || record.meta.requiresAdmin)) {
     if (!authToken) {
       return next('/login');
     }
@@ -267,12 +290,15 @@ router.beforeEach(async (to, from, next) => {
 
       const user = await response.json();
 
-      
       if (!user.email_verified_at && to.path !== '/email-waiting') {
         return next('/email-waiting');
       }
 
-    
+      
+      if (to.matched.some((record) => record.meta.requiresAdmin) && user.role !== 'admin') {
+        return next('/shop');
+      }
+
       return next();
     } catch (err) {
       console.error('Route guard error:', err);
@@ -281,9 +307,9 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
-
   return next();
 });
+
 
 
 export default router
