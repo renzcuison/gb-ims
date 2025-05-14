@@ -10,6 +10,7 @@ This project is a full-stack web application built with **Laravel** (backend) an
 ```
 cd backend
 composer install
+composer require laravel/socialite
 cp .env.example .env
 php artisan key:generate
 php artisan migrate
