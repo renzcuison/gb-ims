@@ -24,6 +24,11 @@ watch(() => route.name, (newRoute) => {
   isRegisterPage.value = newRoute === 'create-login';
 });
 
+const handleLogout = () => {
+  localStorage.removeItem('authToken');
+  router.push('/login');
+};
+
 const fetchUserData = async () => {
   try {
     const token = localStorage.getItem('authToken');
@@ -64,13 +69,18 @@ const fetchUserData = async () => {
 };
 
 onMounted(async () => {
-  await fetchUserData();
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
+
+  if (token) {
+    localStorage.setItem('authToken', token);
+    window.history.replaceState({}, document.title, "/shop");
+    await fetchUserData();
+    console.log("Token from Google login stored, user data fetched.");
+  } else {
+    await fetchUserData();
+  }
+
   console.log('isAdmin:', isAdmin.value);
 });
-
-
-const handleLogout = () => {
-  localStorage.removeItem('authToken');
-  router.push('/login');
-};
 </script>

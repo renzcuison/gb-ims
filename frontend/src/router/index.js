@@ -40,6 +40,7 @@ import Checkout from '../views/Shops/Checkout.vue'
 import OrderPage from '../views/Order/OrderPage.vue'
 
 import EmailVerification from '../views/Verify/EmailVerification.vue'
+import EmailWaiting from '../views/Verify/EmailWaiting.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -54,7 +55,7 @@ const router = createRouter({
       component: LoginView,
     },
     {
-      path: '/login/create',
+      path: '/register',
       name: 'create-login',
       component: RegisterView,
     },
@@ -209,16 +210,46 @@ const router = createRouter({
       name: 'EmailVerification',
       component: EmailVerification,
     },
+    {
+      path: '/email-waiting',
+      name: 'EmailWaiting',
+      component: EmailWaiting,
+      
+    },
+    
   ],
 })
 
 router.beforeEach(async (to, from, next) => {
-  const authToken = localStorage.getItem('authToken')
-  const userRole = localStorage.getItem('role') 
+  const authToken = localStorage.getItem('authToken');
 
+
+  if (to.path === '/login' && authToken) {
+    try {
+      const res = await fetch('http://localhost:8001/api/user', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      const user = await res.json();
+
+      if (user.email_verified_at) {
+        return next('/shop');
+      } else {
+        return next('/email-waiting');
+      }
+    } catch (err) {
+      localStorage.removeItem('authToken');
+      return next();
+    }
+  }
+
+  
   if (to.matched.some((record) => record.meta.requiresAuth)) {
     if (!authToken) {
-      return next('/login') 
+      return next('/login');
     }
 
     try {
@@ -227,37 +258,32 @@ router.beforeEach(async (to, from, next) => {
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
-      })
+      });
 
       if (response.status === 401) {
-        localStorage.removeItem('authToken')
-        return next('/login')
+        localStorage.removeItem('authToken');
+        return next('/login');
       }
 
-      const user = await response.json()
+      const user = await response.json();
 
-      if (!user.email_verified_at && to.path !== '/verify-email') {
-        return next('/verify-email')
+      
+      if (!user.email_verified_at && to.path !== '/email-waiting') {
+        return next('/email-waiting');
       }
 
-      if (
-        to.matched.some((record) => record.meta.requiresAdmin) &&
-        user.role !== 'admin'
-      ) {
-        return next('/forbidden')
-      }
-    } catch (error) {
-      console.error('Error in route guard:', error)
-      localStorage.removeItem('authToken')
-      return next('/login')
+    
+      return next();
+    } catch (err) {
+      console.error('Route guard error:', err);
+      localStorage.removeItem('authToken');
+      return next('/login');
     }
   }
 
-  if (to.path === '/login' && authToken) {
-    return next('/shop')
-  }
 
-  next()
-})
+  return next();
+});
+
 
 export default router

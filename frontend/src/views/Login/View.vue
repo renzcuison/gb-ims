@@ -33,13 +33,15 @@
           <span class="forgot-password" @click="handleForgotPassword">FORGOT PASSWORD</span>
         </div>
         <button type="submit">LOGIN</button>
-        <div>
-          <span class="seperator">OR</span>
-        </div>
-        <button class="google" type="submit">
+
+        <button @click="redirectToRegister" type="button" class="register-btn">
+          Don't have a google account? Register here
+        </button>
+        <button class="google" type="button" @click="handleGoogleSignIn">
           <img src="/google.png" alt="Google Icon" class="google-icon" />
           SIGN IN WITH GOOGLE
         </button>
+
       </form>
     </div>
   </div>
@@ -59,6 +61,12 @@ export default {
   methods: {
     togglePasswordVisibility() {
       this.isPasswordVisible = !this.isPasswordVisible;
+    },
+    handleGoogleSignIn() {
+      window.location.href = "http://localhost:8001/api/auth/redirect/google";
+    },
+    redirectToRegister() {
+      this.$router.push("/register");
     },
     async handleLogin() {
       if (!this.username || !this.password) {
@@ -364,6 +372,21 @@ input[type="password"]::-ms-clear {
   margin-top: 15px;
   margin-bottom: -15px;
   justify-content: center;
+}
+
+.register-btn {
+  margin-top: 20px;
+  padding: 10px;
+  background-color: #0a3992;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.register-btn:hover {
+  background-color: #082a72;
 }
 
 .google {
