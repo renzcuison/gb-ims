@@ -1,56 +1,65 @@
 <template>
-  <div class="page-wrapper" :class="{ fadeOut: isAccountCreated }">
-    <div class="create-login-container">
-      <img src="/src/assets/companylogo.jpg" alt="GreatBuy Logo" class="brand-logo" />
-      <h1>Create an Account</h1>
+  <div>
+    <header class="navbar">
+      <div class="navbar-brand">
+        <RouterLink :to="{ path: '/shop' }" class="brand-text">GREATBUY</RouterLink>
+        <RouterLink :to="{ path: '/shop' }" class="brand-sub">ORIGINALS</RouterLink>
+      </div>
+      <div class="navbar-links">
+        <a href="/shop">SHOP</a>
+        <a href="https://www.facebook.com/profile.php?id=100075567471861" target="_blank">ABOUT US</a>
+      </div>
+    </header>
 
-      <ul class="alert alert-warning" v-if="Object.keys(errorList).length > 0">
-        <li v-for="(error, index) in errorList" :key="index">
-          {{ error[0] }}
-        </li>
-      </ul>
+    <div class="login-wrapper">
+      <form @submit.prevent="handleCreateAccount" class="login-form">
+        <h2 class="login-header">CREATE ACCOUNT</h2>
 
-      <form @submit.prevent="handleCreateAccount">
+        <ul class="alert" v-if="Object.keys(errorList).length > 0">
+          <li v-for="(error, index) in errorList" :key="index">{{ error[0] }}</li>
+        </ul>
+
         <div class="form-group">
-          <label for="newUsername">Username</label>
-          <input type="text" id="newUsername" v-model="user.name" required />
+          <label>USERNAME</label>
+          <input type="text" v-model="user.name" required />
         </div>
 
         <div class="form-group">
-          <label for="email">Email</label>
-          <input type="email" id="email" v-model="user.email" required />
+          <label>EMAIL</label>
+          <input type="email" v-model="user.email" required />
         </div>
 
         <div class="form-group">
-          <label for="phoneNumber">Phone Number</label>
-          <input type="text" id="phoneNumber" v-model="user.phone_number" pattern="^(09\d{9}|\+639\d{9})$"
-            title="Please enter a valid PH phone number (e.g., 09123456789 or +639123456789)" required />
+          <label>PHONE NUMBER</label>
+          <input type="text" v-model="user.phone_number" pattern="^(09\d{9}|\+639\d{9})$" title="Enter valid PH number"
+            required />
         </div>
 
         <div class="form-group">
-          <label for="newPassword">Password</label>
-          <div class="password-container">
-            <input :type="isPasswordVisible ? 'text' : 'password'" id="newPassword" v-model="user.password" required />
-            <button type="button" @click="togglePasswordVisibility" class="password-toggle"
-              aria-label="Toggle password visibility">
-              👁️
-            </button>
+          <label>PASSWORD</label>
+          <div class="password-wrapper">
+            <input :type="isPasswordVisible ? 'text' : 'password'" v-model="user.password" required />
+            <img v-if="user.password" :src="isPasswordVisible ? '/eye-slash.png' : '/eye.png'"
+              @click="togglePasswordVisibility" class="eye-icon" alt="Toggle" />
           </div>
         </div>
 
-        <button type="submit">Create Account</button>
-      </form>
+        <button type="submit">REGISTER</button>
 
-      <div v-if="isAccountCreated" class="alert alert-success">
-        <p>Your account was created successfully! Please check your email for a verification link.</p>
-      </div>
+        <button class="google" type="button" @click="handleGoogleSignIn">
+          <img src="/google.png" alt="Google Icon" class="google-icon" />
+          SIGN IN WITH GOOGLE
+        </button>
+
+        <button class="redirect-button" @click="$router.push('/login')">Already have an account? Login here</button>
+      </form>
     </div>
   </div>
 </template>
 
 <script>
 export default {
-  name: "CreateLoginView",
+  name: "CreateAccountView",
   data() {
     return {
       user: {
@@ -59,9 +68,8 @@ export default {
         password: "",
         phone_number: "",
       },
-      isPasswordVisible: false,
-      isAccountCreated: false,
       errorList: {},
+      isPasswordVisible: false,
     };
   },
   methods: {
@@ -77,24 +85,17 @@ export default {
 
         if (!response.ok) {
           if (response.status === 422) {
-            const errorData = await response.json();
-            this.errorList = errorData.errors;
-            throw new Error("Validation errors occurred.");
+            const data = await response.json();
+            this.errorList = data.errors;
+            return;
           }
-          throw new Error("Failed to create account.");
+          throw new Error("Something went wrong.");
         }
 
-        const data = await response.json();
-        alert("Account created successfully! Please check your email for a verification link.");
-
+        alert("Account created successfully! Please check your email.");
         this.user = { name: "", email: "", password: "", phone_number: "" };
         this.errorList = {};
-
-        this.isAccountCreated = true;
-
-        setTimeout(() => {
-          this.$router.push("/login");
-        }, 500);
+        this.$router.push("/login");
       } catch (error) {
         console.error(error);
       }
@@ -102,142 +103,217 @@ export default {
     togglePasswordVisibility() {
       this.isPasswordVisible = !this.isPasswordVisible;
     },
+    handleGoogleSignIn() {
+      window.location.href = "http://localhost:8001/api/auth/redirect/google";
+    }
+
   },
 };
 </script>
 
 <style scoped>
-/* Background Styling */
-.page-wrapper {
+@font-face {
+  font-family: 'LibreCaslonDisplay-Regular';
+  src: url('/assets/LibreCaslonDisplay-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Kantumruy Pro';
+  src: url('/assets/KantumruyPro-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+}
+
+* {
+  font-family: 'Kantumruy Pro', sans-serif;
+}
+
+body {
+  background-color: #ffffff;
+}
+
+.navbar {
+  width: 100%;
+  height: 60px;
+  background-color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 10%;
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: url("/images/login_img.png") no-repeat center center/cover;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+}
+
+.brand-text {
+  font-size: 22px;
+  color: #0086E7;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.brand-sub {
+  font-size: 10px;
+  color: #0086E7;
+  margin-left: 5px;
+  text-decoration: none;
+  margin-top: 10px;
+}
+
+.navbar-links a {
+  font-size: 12px;
+  color: black;
+  margin-left: 20px;
+  text-decoration: none;
+}
+
+.login-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
-  opacity: 1;
+  padding-top: 100px;
+  min-height: 100vh;
+  background-color: #ffffff;
 }
 
-.page-wrapper.fadeOut {
-  opacity: 0;
+.login-form {
+  background: white;
+  padding: 30px;
+  width: 100%;
+  max-width: 350px;
+  border-radius: 6px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Container Design */
-.create-login-container {
-  max-width: 400px;
-  padding: 40px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 1);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+.login-form h2 {
   text-align: center;
-}
-
-/* Centered Logo */
-.brand-logo {
-  width: 120px;
-  border-radius: 10%;
-  object-fit: cover;
-  display: block;
-  margin: 0 auto 20px;
-}
-
-/* Heading */
-h1 {
-  text-align: center;
-  color: #0a3992;
-  font-size: 1.8rem;
-  font-weight: bold;
   margin-bottom: 20px;
+  font-weight: 600;
+  font-size: 20px;
 }
 
-/* Form Group */
+.alert {
+  list-style: none;
+  padding: 10px;
+  background-color: #ffe6e6;
+  color: #d8000c;
+  margin-bottom: 15px;
+  border-radius: 4px;
+}
+
 .form-group {
   margin-bottom: 15px;
-  text-align: left;
 }
 
 label {
   display: block;
-  font-weight: 600;
+  font-size: 11px;
   margin-bottom: 5px;
-  color: #0a3992;
+  font-weight: 600;
 }
 
-/* Input Fields */
 input {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #aaa;
+  margin: 5px 0 15px;
+  background-color: rgb(238, 238, 238);
+  border: 1px solid rgb(238, 238, 238);
   border-radius: 5px;
-  font-size: 1rem;
-  background-color: white;
-  color: #0a3992;
+  color: black;
+  font-size: 12px;
+  padding: 5px 10px;
 }
 
-input:focus {
-  border-color: #0a3992;
-  outline: none;
-}
-
-/* Buttons */
-button {
-  width: 100%;
-  padding: 12px;
-  background-color: #0a3992;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: 0.3s ease-in-out;
-}
-
-button:hover {
-  background-color: #082a72;
-}
-
-/* Password Visibility Toggle */
-.password-container {
+.password-wrapper {
   position: relative;
-  display: flex;
-  align-items: center;
 }
 
-.password-container input {
-  width: 100%;
-  padding-right: 30px;
-}
-
-.password-toggle {
-  background: none;
-  width: 20%;
-  border: none;
-  font-size: 1.2rem;
+.eye-icon {
+  width: 12px;
+  height: 12px;
   cursor: pointer;
-  color: #0a3992;
   position: absolute;
-  right: 0px;
-  top: 50%;
+  right: 10px;
+  margin-top: 4px;
   transform: translateY(-50%);
 }
 
-/* Alerts */
-.alert {
-  margin-top: 15px;
-  padding: 10px;
+button {
+  width: 100%;
+  padding: 8px;
+  background-color: #ffffff;
+  border: 1px solid #0086E7;
   border-radius: 5px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 20px;
+  appearance: none;
+  color: #0086E7;
+  font-weight: 500;
 }
 
-.alert-warning {
-  background-color: #ffc107;
-  color: #0e0e0e;
+button:hover {
+  background-color: #0086E7;
+  color: white;
 }
 
-.alert-success {
-  background-color: #28a745;
+.divider {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 11px;
+  color: #000000;
+}
+
+.google {
+  width: 100%;
+  padding: 8px;
+  background-color: #ffffff;
+  border: 1px solid #000000;
+  border-radius: 5px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 15px;
+  appearance: none;
+  color: #000000;
+  font-weight: 500;
+}
+
+.google:hover {
+  background-color: #000000;
+  color: white;
+}
+
+.google .google-icon {
+  width: 15px;
+  height: 14px;
+  margin-right: 5px;
+}
+
+.redirect-button {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  background-color: #ffffff;
+  border: 1px solid #0086E7;
+  border-radius: 5px;
+  font-size: 11px;
+  color: #0086E7;
+  cursor: pointer;
+  text-align: center;
+  margin-top: 15px;
+  font-weight: 500;
+}
+
+.redirect-button:hover {
+  background-color: #0086E7;
   color: white;
 }
 </style>

@@ -15,6 +15,15 @@ use App\Http\Controllers\Auth\VerificationController;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Support\Facades\Mail;
+use App\Http\Controllers\GoogleAuthController;
+use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Facades\Auth;
+
+
+
+Route::get('/auth/redirect/google', [GoogleAuthController::class, 'redirectToGoogle']);
+Route::get('/auth/callback/google', [GoogleAuthController::class, 'handleGoogleCallback']);
 
 Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 Route::prefix('categories')->group(function () {
