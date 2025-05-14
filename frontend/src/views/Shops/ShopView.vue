@@ -112,6 +112,7 @@
           style="cursor: pointer;">
           <div class="placeholder-image"></div>
           <p>{{ item.item_name }}</p>
+          <p v-if="Number(item.on_hand) === 0"> ❌ Out of Stock</p>
           <p>₱{{ item.price_per_unit }}</p>
         </div>
       </section>
@@ -247,6 +248,7 @@ export default {
     return {
       items: [],
       cart: [],
+      stockItem: null,
     };
   },
 
@@ -258,6 +260,7 @@ export default {
 
   created() {
     this.fetchItems();
+    this.fetchItemAndStockDetails();
     this.updateCartQuantity();
 
     const savedCart = localStorage.getItem("cart");
@@ -267,6 +270,40 @@ export default {
   },
 
   methods: {
+    async fetchItemAndStockDetails() {
+      const itemId = this.$route.params.id;
+      if (!itemId) {
+        console.error("Item ID is missing");
+        return;
+      }
+
+      try {
+        const response = await fetch(`http://localhost:8001/api/stocks/${itemId}`);
+        const data = await response.json();
+
+        if (!data || !data.stock) {
+          console.error("Stock not found");
+          return;
+        }
+
+        const stock = data.stock;
+
+        this.item = {
+          id: String(stock.id),
+          name: stock.item_name || "No name available",
+          price: stock.price_per_unit || "0",
+          description: stock.description || "No description available",
+        };
+
+        // ✅ Assign correct stock data including on_hand
+        this.stockItem = {
+          on_hand: Number(stock.on_hand),
+        };
+      } catch (error) {
+        console.error("Error fetching stock details:", error);
+      }
+    },
+
     updateCartQuantity() {
       const savedCart = localStorage.getItem("cart");
       if (savedCart) {
@@ -281,7 +318,11 @@ export default {
           throw new Error('Failed to fetch items');
         }
         const data = await response.json();
-        this.items = data.stocks;
+
+        // Assuming each stock has item_name, on_hand, and price_per_unit
+        this.items = data.stocks.map(stock => ({
+          ...stock
+        }));
       } catch (error) {
         console.error('Error fetching items:', error);
       }
