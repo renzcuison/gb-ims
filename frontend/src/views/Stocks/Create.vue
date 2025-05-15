@@ -232,9 +232,26 @@ export default {
       duplicateItems: [],
     };
   },
+
   mounted() {
     this.fetchCategories();
   },
+
+  watch: {
+    'model.stocks': {
+      handler(newStocks) {
+        if (this.isProfiling) {
+          newStocks.forEach((stock, idx) => {
+            if (stock.item_name && stock.item_name !== stock.item_name.toUpperCase()) {
+              this.model.stocks[idx].item_name = stock.item_name.toUpperCase();
+            }
+          });
+        }
+      },
+      deep: true,
+    },
+  },
+
   methods: {
     isDuplicate(name, currentIndex) {
       const normalizedName = name.trim().toLowerCase();

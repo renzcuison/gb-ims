@@ -78,6 +78,7 @@ export default {
       units: ['Pc', 'Box', 'Kg', 'G', 'Liter', 'Ml', 'Meter', 'Cm', 'Bundle'],
     };
   },
+
   created() {
     this.fetchSuppliers()
       .then(() => {
@@ -91,6 +92,7 @@ export default {
         console.error('Error fetching suppliers:', error);
       });
   },
+
   methods: {
     fetchStock(stockId) {
       axios.get(`http://localhost:8001/api/stocks/${stockId}`)
