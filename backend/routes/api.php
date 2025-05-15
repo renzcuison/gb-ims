@@ -140,15 +140,20 @@ Route::get('customers/{id}', [CUSTOMERSController::class, 'show']);
 Route::put('customers/{id}', [CUSTOMERSController::class, 'update']);
 Route::delete('customers/{id}', [CUSTOMERSController::class, 'destroy']);
 
-Route::get('/orders', [OrderController::class, 'index']);
-Route::post('/orders', [OrderController::class, 'store']);
-Route::get('/orders/{id}', [OrderController::class, 'show']);
-Route::put('/orders/{id}', [OrderController::class, 'update']);
-Route::delete('/orders/{id}', [OrderController::class, 'destroy']);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/orders', [OrderController::class, 'index']);
+    Route::post('/orders', [OrderController::class, 'store']);
+    Route::get('/orders/{id}', [OrderController::class, 'show']);
+    Route::put('/orders/{id}', [OrderController::class, 'update']);
+    Route::delete('/orders/{id}', [OrderController::class, 'destroy']);
 
-Route::post('/customer-orders', [CustomerOrderController::class, 'store']);
- Route::get('/customer-orders', [CustomerOrderController::class, 'index']);
- Route::delete('/customer-orders/{id}', [CustomerOrderController::class, 'destroy']);
- Route::get('/customer-orders/{id}', [CustomerOrderController::class, 'show']);
- Route::put('/customer-orders/{id}', [CustomerOrderController::class, 'update']);
+    Route::prefix('customer-orders')->group(function () {
+        Route::post('/', [CustomerOrderController::class, 'store']);
+        Route::get('/', [CustomerOrderController::class, 'index']);
+        Route::get('/{id}', [CustomerOrderController::class, 'show']);
+        Route::put('/{id}', [CustomerOrderController::class, 'update']);
+        Route::delete('/{id}', [CustomerOrderController::class, 'destroy']);
+    });
+});
+
 

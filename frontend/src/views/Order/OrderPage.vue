@@ -12,7 +12,7 @@
         <a href="https://www.facebook.com/profile.php?id=100075567471861" target="_blank">ABOUT US</a>
       </div>
       <div class="navbar-right">
-        <a href="/stocks" class="icon-button">
+        <a v-if="isAdmin" href="/stocks" class="icon-button">
           <img src="/star.png" alt="Star" class="icon-image-star">
         </a>
         <button class="icon-button">
@@ -128,8 +128,17 @@ export default {
   methods: {
     async fetchOrders() {
       try {
-        const response = await fetch('http://localhost:8001/api/customer-orders');
+        const token = localStorage.getItem('authToken');
+        const response = await fetch('http://localhost:8001/api/customer-orders', {
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          }
+        });
+
         const data = await response.json();
+
         if (response.ok) {
           const timestampMap = JSON.parse(localStorage.getItem('orderTimestamps') || '{}');
           data.forEach(order => {
@@ -139,7 +148,7 @@ export default {
           });
           this.orders = data;
         } else {
-          console.error('No orders found.');
+          console.error('Failed to fetch orders:', data);
         }
       } catch (error) {
         console.error('Network error:', error);
@@ -149,21 +158,30 @@ export default {
       this.$router.push('/shop');
     },
     async cancelOrder(orderId) {
-      if (confirm("Are you sure you want to cancel this order?")) {
-        try {
-          const response = await fetch(`http://localhost:8001/api/customer-orders/${orderId}`, {
-            method: 'DELETE',
-          });
-          if (response.ok) {
-            this.orders = this.orders.filter(order => order.id !== orderId);
-            alert("Order canceled successfully.");
-            this.fetchOrders();
-          } else {
-            alert("Failed to cancel order.");
-          }
-        } catch (error) {
-          console.error("Error deleting order:", error);
+      const token = localStorage.getItem('authToken');
+
+      try {
+        const response = await fetch(`http://localhost:8001/api/customer-orders/${orderId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error(`Cancel order failed: ${response.statusText}`);
         }
+
+        alert('Order canceled successfully!');
+
+        // Re-fetch orders here:
+        await this.fetchOrders();
+
+      } catch (error) {
+        console.error('Cancel order failed:', error);
+        alert('Failed to cancel order.');
       }
     },
     async updateOrderStatus(order) {

@@ -79,7 +79,7 @@ const router = createRouter({
       name: 'ItemDetails',
       component: ItemDetails,
       props: true,
-      meta: { requiresAdmin: true }
+      
     },
     {
       path: '/categories',
