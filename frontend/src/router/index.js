@@ -250,7 +250,11 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
-  if (to.matched.some((record) => record.meta.requiresAuth)) {
+  if (
+    to.matched.some(
+      (record) => record.meta.requiresAuth || record.meta.requiresAdmin
+    )
+  ) {
     if (!authToken) {
       return next('/login')
     }
@@ -272,6 +276,13 @@ router.beforeEach(async (to, from, next) => {
 
       if (!user.email_verified_at && to.path !== '/email-waiting') {
         return next('/email-waiting')
+      }
+
+      if (
+        to.matched.some((record) => record.meta.requiresAdmin) &&
+        user.role !== 'admin'
+      ) {
+        return next('/shop')
       }
 
       return next()
