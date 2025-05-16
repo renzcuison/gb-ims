@@ -564,7 +564,7 @@ export default {
 
     getSupplierName(suppliers) {
       if (!suppliers || suppliers.length === 0) {
-        return 'Supplier not found';
+        return '-';
       }
       return suppliers.map(supplier => supplier.supplier_name).join(', ');
     },

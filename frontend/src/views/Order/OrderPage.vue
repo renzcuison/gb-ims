@@ -12,7 +12,7 @@
         <a href="https://www.facebook.com/profile.php?id=100075567471861" target="_blank">ABOUT US</a>
       </div>
       <div class="navbar-right">
-        <a href="/stocks" class="icon-button">
+        <a v-if="isAdmin" href="/stocks" class="icon-button">
           <img src="/star.png" alt="Star" class="icon-image-star">
         </a>
         <button class="icon-button">
@@ -34,17 +34,10 @@
       <div class="card-header">
         <h4 class="mb-0 d-flex align-items-center">
           Order Details
-          <div class="ms-3 order-status-wrapper">
-            <select v-if="isAdmin" v-model="order.status" @change="updateOrderStatus(order)"
-              class="form-select status-select">
+          <div class="ms-3 order-status-wrapper" v-if="isAdmin">
+            <select v-model="order.status" @change="updateOrderStatus(order)" class="form-select status-select">
               <option v-for="status in statusOptions" :key="status" :value="status">{{ status }}</option>
             </select>
-            <span v-else class="status-label" :class="{
-              'bg-warning text-dark': order.status === 'Pending',
-              'bg-success text-white': order.status === 'Approved',
-              'bg-danger text-white': order.status === 'Cancelled',
-              'bg-secondary text-white': !['Pending', 'Approved', 'Cancelled'].includes(order.status)
-            }">{{ order.status || 'Unknown' }}</span>
           </div>
         </h4>
       </div>
@@ -101,7 +94,8 @@
           </div>
         </div>
 
-        <div class="mt-4 text-end">
+
+        <div class="mt-4 text-end" v-if="!isAdmin">
           <button class="btn btn-danger" @click="cancelOrder(order.id)">Cancel Order</button>
         </div>
       </div>
@@ -114,18 +108,37 @@ export default {
   data() {
     return {
       orders: [],
-      statusOptions: ['Pending', 'Approved', 'Cancelled', 'Processing', 'Shipped', 'Delivered', 'Refunded', 'On Hold'],
-      isAdmin: true
+      statusOptions: [
+        'Pending', 'Approved', 'Cancelled', 'Processing',
+        'Shipped', 'Delivered', 'Refunded', 'On Hold'
+      ]
     };
   },
+  computed: {
+    isAdmin() {
+      return localStorage.getItem('user_role') === 'admin';
+    }
+  },
   async created() {
+    console.log("User role:", localStorage.getItem('user_role'));
+    console.log("isAdmin:", this.isAdmin);
     this.fetchOrders();
   },
+
   methods: {
     async fetchOrders() {
       try {
-        const response = await fetch('http://localhost:8001/api/customer-orders');
+        const token = localStorage.getItem('authToken');
+        const response = await fetch('http://localhost:8001/api/customer-orders', {
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          }
+        });
+
         const data = await response.json();
+
         if (response.ok) {
           const timestampMap = JSON.parse(localStorage.getItem('orderTimestamps') || '{}');
           data.forEach(order => {
@@ -135,7 +148,7 @@ export default {
           });
           this.orders = data;
         } else {
-          console.error('No orders found.');
+          console.error('Failed to fetch orders:', data);
         }
       } catch (error) {
         console.error('Network error:', error);
@@ -145,21 +158,30 @@ export default {
       this.$router.push('/shop');
     },
     async cancelOrder(orderId) {
-      if (confirm("Are you sure you want to cancel this order?")) {
-        try {
-          const response = await fetch(`http://localhost:8001/api/customer-orders/${orderId}`, {
-            method: 'DELETE',
-          });
-          if (response.ok) {
-            this.orders = this.orders.filter(order => order.id !== orderId);
-            alert("Order canceled successfully.");
-            this.fetchOrders();
-          } else {
-            alert("Failed to cancel order.");
-          }
-        } catch (error) {
-          console.error("Error deleting order:", error);
+      const token = localStorage.getItem('authToken');
+
+      try {
+        const response = await fetch(`http://localhost:8001/api/customer-orders/${orderId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error(`Cancel order failed: ${response.statusText}`);
         }
+
+        alert('Order canceled successfully!');
+
+        // Re-fetch orders here:
+        await this.fetchOrders();
+
+      } catch (error) {
+        console.error('Cancel order failed:', error);
+        alert('Failed to cancel order.');
       }
     },
     async updateOrderStatus(order) {
@@ -175,9 +197,10 @@ export default {
         console.error("Error updating status:", error);
       }
     },
-  },
+  }
 };
 </script>
+
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;700&display=swap');

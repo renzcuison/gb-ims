@@ -10,10 +10,26 @@ use Illuminate\Support\Facades\DB;
 
 class CustomerOrderController extends Controller
 {
-    public function index()
-    {
-        return response()->json(CustomerOrder::with('orders.stock')->get());
+    public function index(Request $request)
+{
+    $user = $request->user();
+
+    if (!$user) {
+        return response()->json(['error' => 'Unauthenticated.'], 401);
     }
+
+    if ($user->role === 'admin') {
+        
+        $orders = CustomerOrder::with('orders.stock')->get();
+    } else {
+        
+        $orders = CustomerOrder::with('orders.stock')
+            ->where('user_id', $user->id)
+            ->get();
+    }
+
+    return response()->json($orders);
+}
 
     public function show($id)
     {
@@ -46,7 +62,14 @@ class CustomerOrderController extends Controller
         DB::beginTransaction();
 
         try {
-            // Create the customer order
+            // Get authenticated user
+            $user = auth()->user();
+
+            if (!$user) {
+                return response()->json(['error' => 'Unauthenticated.'], 401);
+            }
+
+            // Create the customer order with user_id included
             $order = CustomerOrder::create([
                 'order_code' => uniqid('ORD-'),
                 'customer_name' => $validated['customer_name'],
@@ -57,25 +80,23 @@ class CustomerOrderController extends Controller
                 'payment_method' => $validated['payment_method'],
                 'total_price' => $validated['total_price'],
                 'status' => $validated['status'] ?? 'Pending',
+                'user_id' => $user->id,  // **Important: assign user_id here**
             ]);
 
             // Process each ordered stock
             foreach ($validated['stocks'] as $stockData) {
                 $stock = Stock::find($stockData['stock_id']);
 
-                // Check if enough stock is available
                 if ($stock->on_hand < $stockData['quantity']) {
                     return response()->json([
                         'error' => "Not enough stock available for item: {$stock->item_name}"
                     ], 400);
                 }
 
-                // Deduct stock quantity
                 $stock->on_hand -= $stockData['quantity'];
-                $stock->sold += $stockData['quantity']; // Track sold quantity
+                $stock->sold += $stockData['quantity'];
                 $stock->save();
 
-                // Store order details
                 Order::create([
                     'customer_order_id' => $order->id,
                     'stock_id' => $stockData['stock_id'],
@@ -105,10 +126,9 @@ class CustomerOrderController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => 'required|string|in:Pending,Approved,Cancelled,Processing,Shipped,Delivered,Refunded,On Hold',  // Only allow these statuses
+            'status' => 'required|string|in:Pending,Approved,Cancelled,Processing,Shipped,Delivered,Refunded,On Hold',
         ]);
 
-        // Update the order's status
         $order->status = $validated['status'];
         $order->save();
 
@@ -126,7 +146,6 @@ class CustomerOrderController extends Controller
         DB::beginTransaction();
 
         try {
-            // Restore stock quantities
             foreach ($order->orders as $orderItem) {
                 $stock = $orderItem->stock;
                 $stock->on_hand += $orderItem->quantity;
@@ -134,10 +153,7 @@ class CustomerOrderController extends Controller
                 $stock->save();
             }
 
-            // Delete order details first
             $order->orders()->delete();
-            
-            // Delete the main order
             $order->delete();
 
             DB::commit();
@@ -148,5 +164,5 @@ class CustomerOrderController extends Controller
             return response()->json(['error' => 'Failed to cancel order.', 'message' => $e->getMessage()], 500);
         }
     }
-
 }
+

@@ -96,6 +96,8 @@ export default {
 
         if (response.ok) {
           localStorage.setItem("authToken", data.token);
+          localStorage.setItem("user_role", data.role);
+          localStorage.setItem("user_token", data.token);
 
           const userResponse = await fetch("http://localhost:8001/api/user", {
             method: "GET",

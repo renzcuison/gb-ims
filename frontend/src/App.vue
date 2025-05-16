@@ -26,6 +26,8 @@ watch(() => route.name, (newRoute) => {
 
 const handleLogout = () => {
   localStorage.removeItem('authToken');
+  localStorage.removeItem('user_token');
+  localStorage.removeItem('user_role');
   router.push('/login');
 };
 
@@ -71,12 +73,40 @@ const fetchUserData = async () => {
 onMounted(async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get('token');
+  const role = urlParams.get('role');
 
   if (token) {
+
     localStorage.setItem('authToken', token);
-    window.history.replaceState({}, document.title, "/shop");
-    await fetchUserData();
-    console.log("Token from Google login stored, user data fetched.");
+    localStorage.setItem('user_token', token);
+    if (role) {
+      localStorage.setItem('user_role', role);
+    }
+
+    try {
+      const res = await fetch('http://localhost:8001/api/user', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: 'include',
+      });
+
+      const user = await res.json();
+      console.log('OAuth User:', user);
+
+      window.history.replaceState({}, document.title, '/shop');
+
+
+      if (role === 'admin') {
+        router.replace('/stocks');
+      } else {
+        router.replace('/shop');
+      }
+    } catch (err) {
+      console.error('Failed to fetch user after OAuth login', err);
+      router.replace('/login');
+    }
   } else {
     await fetchUserData();
   }

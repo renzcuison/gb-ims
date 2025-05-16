@@ -352,7 +352,7 @@ export default {
       const quantity = parseInt(item.quantity, 10);
 
       if (isNaN(quantity) || quantity <= 0) {
-        item.quantity = 1;
+        item.quantity = 1; // could be the possible error
         return;
       }
 
@@ -360,7 +360,6 @@ export default {
       item.on_hand += quantity;
 
       console.log(`Updated quantities for item ${item.item_name}:`, {
-        quantity: item.quantity,
         physical_count: item.physical_count,
         on_hand: item.on_hand,
       });
@@ -685,47 +684,30 @@ export default {
         return;
       }
 
+      this.selectedItems.forEach(selected => {
+        const match = this.items.find(item => item.stock_id === selected.stock_id);
+        if (match) {
+          selected.quantity = match.quantity;
+          selected.skus = [...match.skus];
+        }
+      });
+
       this.selectedItems.forEach((stock) => {
-        // Get the new supplier ID from selectedSupplier
-        const newSupplier = this.suppliers.find(s => s.id === this.selectedSupplier);
-        const newSupplierId = newSupplier?.id;
-
-        // Extract existing supplier IDs from the stock (handles both objects and plain IDs)
-        const existingSupplierIds = Array.isArray(stock.suppliers)
-          ? stock.suppliers.map(s => typeof s === 'object' ? s.id : s)
-          : [];
-
-        // Merge new + existing supplier IDs, remove duplicates
-        const mergedSupplierIds = Array.from(new Set([...existingSupplierIds, newSupplierId])).filter(Boolean);
-
-        // Optional: If you want to send supplier names for display
-        const supplierName = mergedSupplierIds
-          .map(id => this.suppliers.find(s => s.id === id)?.supplier_name)
-          .filter(Boolean)
-          .join(', ');
-
         const payload = {
           stock_id: stock.stock_id,
           item_name: stock.item_name,
           buying_price: parseFloat(stock.buying_price.replace(/[^\d.-]/g, '')) || 0,
           price_per_unit: parseFloat(stock.price_per_unit.replace(/[^\d.-]/g, '')) || 0,
           skus: Array.from(stock.skus),
-          suppliers: mergedSupplierIds, // ✅ Send supplier IDs
-          supplier_name: supplierName,  // ✅ Optional - for display only
+          suppliers: [this.selectedSupplier],
           transaction_type: stock.transaction_type || 'in',
           unit_of_measure: stock.unit_of_measure || 'Pc',
           reason: stock.reason || (stock.transaction_type === 'in' ? 'stock-in' : 'stock-out'),
           date: stock.date || new Date().toISOString().split('T')[0],
           description: stock.description || '',
           category_id: stock.category_id,
-          physical_count:
-            stock.transaction_type === 'in'
-              ? parseInt(stock.physical_count || 0, 10) + parseInt(stock.quantity || 0, 10)
-              : parseInt(stock.physical_count || 0, 10) - parseInt(stock.quantity || 0, 10),
-          on_hand:
-            stock.transaction_type === 'in'
-              ? parseInt(stock.on_hand || 0, 10) + parseInt(stock.quantity || 0, 10)
-              : parseInt(stock.on_hand || 0, 10) - parseInt(stock.quantity || 0, 10),
+          physical_count: parseInt(stock.physical_count || 0, 10) + parseInt(stock.quantity || 0, 10),
+          on_hand: parseInt(stock.on_hand || 0, 10) + parseInt(stock.quantity || 0, 10),
           sold: parseInt(stock.sold || 0, 10),
         };
 
@@ -745,7 +727,6 @@ export default {
         item.quantity = 1;
       });
     },
-
 
     validatePayload(payload) {
       if (!payload.stock_id) {
@@ -821,9 +802,6 @@ export default {
       if (!item.quantity || parseInt(item.quantity, 10) <= 0) {
         item.quantity = 1;
       }
-
-      item.physical_count = parseInt(item.quantity, 10);
-      item.on_hand = parseInt(item.quantity, 10);
 
       console.log(`Validated quantity for item ${item.item_name}:`, item.quantity);
     },
