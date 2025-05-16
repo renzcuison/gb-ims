@@ -13,14 +13,14 @@
     <div class="navbar-right">
       <a href="stocks">
         <button class="icon-button">
-          <img src="/star.png" alt="Bag" class="icon-image-star">
+          <img src="/star.png" alt="Bag" class="icon-image-star" />
         </button>
       </a>
       <button class="icon-button">
-        <img src="/search.png" alt="Search" class="icon-image">
+        <img src="/search.png" alt="Search" class="icon-image" />
       </button>
-      <button class="icon-button" onclick="window.location.href='/order'">
-        <img src="/bag.png" alt="Bag" class="icon-image">
+      <button class="icon-button" @click="() => window.location.href = '/order'">
+        <img src="/bag.png" alt="Bag" class="icon-image" />
       </button>
     </div>
   </header>
@@ -94,6 +94,8 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   data() {
     return {
@@ -104,7 +106,7 @@ export default {
         address: "Address",
         city: "City",
         postalCode: "Postal Code",
-        phone: "Phone Number"
+        phone: "Phone Number",
       },
       errors: {},
       paymentMethod: '',
@@ -124,10 +126,14 @@ export default {
   },
   computed: {
     totalPrice() {
-      return this.orders.reduce((acc, order) =>
-        acc + (Number(order.quantity) * Number(order.item.price_per_unit)), 0
-      ).toFixed(2);
-    }
+      return this.orders
+        .reduce(
+          (acc, order) =>
+            acc + Number(order.quantity) * Number(order.item.price_per_unit),
+          0
+        )
+        .toFixed(2);
+    },
   },
   methods: {
     calculateTotalPrice(order) {
@@ -171,38 +177,52 @@ export default {
 
       console.log("Sending order request:", requestBody);
 
+      const token = localStorage.getItem('authToken'); // Ensure this is the correct key
+
+      if (!token) {
+        alert('You are not authenticated. Please login.');
+        this.$router.push('/login');
+        return;
+      }
+
       try {
-        const response = await fetch('http://localhost:8001/api/customer-orders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody),
-        });
+        const response = await axios.post(
+          'http://localhost:8001/api/customer-orders',
+          requestBody,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            withCredentials: true, // Optional but can help with some setups
+          }
+        );
 
-        console.log("Response:", response);
-        const result = await response.json();
+        alert('Order placed successfully!');
+        console.log(response.data);
 
-        if (response.ok) {
-          alert('Order placed successfully!');
-          console.log(result);
-          const now = new Date();
-          const month = String(now.getMonth() + 1).padStart(2, '0');
-          const day = String(now.getDate()).padStart(2, '0');
-          const year = now.getFullYear();
-          const time = now.toLocaleTimeString();
-          const timestamp = `${month}/${day}/${year}, ${time}`;
-          const allOrderTimes = JSON.parse(localStorage.getItem('orderTimestamps') || '{}');
-          allOrderTimes[result.id] = timestamp;
-          localStorage.setItem('orderTimestamps', JSON.stringify(allOrderTimes));
-          this.$router.push({ name: 'OrderPage' });
-        } else {
-          console.error('Error placing order:', result);
-          alert('Failed to place order. Not enough stock.');
-        }
+        const now = new Date();
+        const timestamp = now.toLocaleString();
+
+        const allOrderTimes = JSON.parse(localStorage.getItem('orderTimestamps') || '{}');
+        allOrderTimes[response.data.id] = timestamp;
+        localStorage.setItem('orderTimestamps', JSON.stringify(allOrderTimes));
+
+        this.$router.push({ name: 'OrderPage' });
       } catch (error) {
-        console.error('Network error:', error);
-        alert('Network error. Please try again.');
+        if (error.response) {
+          console.error('Error placing order:', error.response.data);
+          alert('Failed to place order: ' + (error.response.data.error || 'Not enough stock.'));
+        } else if (error.request) {
+          console.error('Network error:', error.request);
+          alert('Network error. Please try again.');
+        } else {
+          console.error('Unexpected error:', error.message);
+          alert('An unexpected error occurred.');
+        }
       }
     },
+
     goBack() {
       this.$router.go(-1);
     },

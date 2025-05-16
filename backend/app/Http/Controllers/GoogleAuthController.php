@@ -25,12 +25,18 @@ public function handleGoogleCallback()
             'email_verified_at' => now()
         ]
     );
-    $token = $user->createToken('authToken')->plainTextToken;
-    Auth::login($user);
-    
-    
 
-    return redirect("http://localhost:5173/shop?token=$token");
+    $token = $user->createToken('authToken')->plainTextToken;
+
+    
+    if (!$user->role) {
+        $user->role = 'user';
+        $user->save();
+    }
+
+    $role = $user->role ?? 'user';
+
+    return redirect("http://localhost:5173/shop?token=$token&role=$role");
 }
 
 }
