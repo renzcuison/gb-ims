@@ -53,7 +53,7 @@
             </router-link>
           </li>
           <li>
-            <router-link to="/order" active-class="router-link-active">
+            <router-link to="/admin/orders" active-class="router-link-active">
               <img src="/order.png" alt="Orders" class="sidebar-icon"> ORDERS
             </router-link>
           </li>
@@ -61,6 +61,36 @@
             <router-link to="/shop" active-class="router-link-active">
               <img src="/shop.png" alt="Shop" class="sidebar-icon"> SHOP
             </router-link>
+          </li>
+          <li>
+            <div @click="toggleReportsSubmenu" class="sidebar-menu-item"
+              style="cursor: pointer; display: flex; align-items: center;">
+              <img src="" alt="Reports" class="sidebar-icon" />
+              <span>REPORTS</span>
+              <span style="margin-left:auto;">{{ reportsSubmenuOpen ? '▲' : '▼' }}</span>
+            </div>
+            <ul v-if="reportsSubmenuOpen" class="submenu">
+              <li>
+                <router-link to="/reports/sales-report" active-class="router-link-active">
+                  Sales Report
+                </router-link>
+              </li>
+              <li>
+                <router-link to="/reports/sales-by-item" active-class="router-link-active">
+                  Sales by Item
+                </router-link>
+              </li>
+              <li>
+                <router-link to="/reports/on-hand-summary" active-class="router-link-active">
+                  On Hand Summary
+                </router-link>
+              </li>
+              <li>
+                <router-link to="/reports/physical-count-summary" active-class="router-link-active">
+                  Physical Count Summary
+                </router-link>
+              </li>
+            </ul>
           </li>
         </ul>
       </nav>
@@ -342,7 +372,8 @@ export default {
       expandedStockIds: [],
       editableDescription: '',
       stockLogs: {},
-      transactionPopupVisible: false
+      transactionPopupVisible: false,
+      reportsSubmenuOpen: false,
     }
   },
 
@@ -354,6 +385,10 @@ export default {
   },
 
   methods: {
+    toggleReportsSubmenu() {
+      this.reportsSubmenuOpen = !this.reportsSubmenuOpen;
+    },
+
     getStocks() {
       console.log("Refreshing stock data...");
       console.log("Suppliers before mapping stocks:", this.suppliers);
@@ -787,6 +822,21 @@ export default {
   margin-right: 10px;
   margin-bottom: 2px;
   filter: brightness(0) invert(1);
+}
+
+.submenu {
+  padding-left: 20px;
+  list-style: none;
+}
+
+.submenu li {
+  margin: 8px 0;
+}
+
+.submenu li a.router-link-active {
+  font-weight: bold;
+  color: #007bff;
+  /* Highlight active submenu item */
 }
 
 .router-link-active {
