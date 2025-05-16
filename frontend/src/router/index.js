@@ -42,6 +42,8 @@ import OrderPage from '../views/Order/OrderPage.vue'
 import EmailVerification from '../views/Verify/EmailVerification.vue'
 import EmailWaiting from '../views/Verify/EmailWaiting.vue'
 
+import AdminOrder from '../views/Order/AdminOrder.vue'
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -79,6 +81,11 @@ const router = createRouter({
       name: 'ItemDetails',
       component: ItemDetails,
       props: true,
+    },
+    {
+      path: '/admin/orders',
+      name: 'adminOrders',
+      component: AdminOrder,
     },
     {
       path: '/categories',

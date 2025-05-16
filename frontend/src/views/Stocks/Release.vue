@@ -53,7 +53,7 @@
             </router-link>
           </li>
           <li>
-            <router-link to="/orders" active-class="router-link-active">
+            <router-link to="/admin/orders" active-class="router-link-active">
               <img src="/order.png" alt="Orders" class="sidebar-icon"> ORDERS
             </router-link>
           </li>
@@ -402,7 +402,7 @@ export default {
           buying_price: stock.buying_price || 0,
           description: stock.description || '',
           date_released: this.dateReleased,
-          receiver: this.receiverName
+          receiver: this.receiverName,
         };
 
         console.log(`Updating stock for stock ID ${stock.stock_id}:`, stockPayload);
