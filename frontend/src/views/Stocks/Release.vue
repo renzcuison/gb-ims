@@ -53,7 +53,7 @@
             </router-link>
           </li>
           <li>
-            <router-link to="/admin/orders" active-class="router-link-active">
+            <router-link to="/orders" active-class="router-link-active">
               <img src="/order.png" alt="Orders" class="sidebar-icon"> ORDERS
             </router-link>
           </li>
@@ -72,7 +72,7 @@
     <div class="container mt-4">
       <div class="card mb-5">
         <div class="card-header">
-          <h4>Stock Out</h4>
+          <h4>Release Item</h4>
         </div>
         <div class="card-body">
           <div class="mb-3">
@@ -80,33 +80,37 @@
               placeholder="Search by Item Name or Stock ID" />
           </div>
 
-          <div class="d-flex flex-wrap">
-            <div v-for="(item, index) in filteredItems" :key="item.id" class="card p-2 m-2"
-              style="width: 18rem; cursor: pointer" @click="selectItem(item)">
-              <img class="card-img-top" :src="item.image_url || ''" alt="Item image" />
-              <div class="card-body">
-                <h5 class="card-title">{{ item.item_name }}</h5>
-                <p class="card-text">Item ID: {{ item.id }}</p>
-                <button class="btn btn-primary">Select</button>
-              </div>
-            </div>
+          <div class="item-table-scrollable">
+            <table class="item-table">
+              <thead>
+                <tr>
+                  <th>Item Name</th>
+                  <th>Stock ID</th>
+                  <th>On-hand</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in filteredItems" :key="item.id" @dblclick="selectItem(item)" class="item-table-row"
+                  :title="'Double-click to add ' + item.item_name" tabindex="0">
+                  <td>{{ item.item_name }}</td>
+                  <td>{{ item.id }}</td>
+                  <td>{{ item.on_hand }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
+          <small class="text-muted item-table-hint">Double-click a row to add to selected items.</small>
 
           <div v-if="selectedItems.length > 0">
             <div class="border p-3 rounded mb-3">
               <div class="d-flex justify-content-between align-items-center">
-                <h5>Stock/s Selected</h5>
+                <h5>Item/s for Release</h5>
                 <button class="btn btn-danger mb-3" @click="clearAllSelectedItems">Clear All</button>
               </div>
               <div v-for="(stock, index) in selectedItems" :key="stock.stock_id" class="mb-2 p-3 border rounded">
                 <div class="d-flex justify-content-between align-items-center">
                   <span>{{ stock.item_name }}</span>
                   <button type="button" class="btn btn-danger ms-3" @click="removeSelectedItem(index)">Remove</button>
-                </div>
-
-                <div class="mt-1">
-                  <small><strong>Supplier:</strong> {{ stock.supplier_name || 'Unknown' }}</small><br />
-                  <small><strong>Contact:</strong> {{ stock.contact_name || 'Unknown' }}</small><br />
                 </div>
 
                 <div class="mb-3 mt-3">
@@ -133,14 +137,14 @@
             </div>
           </div>
 
-          <div class="mb-3 mt-3">
-            <label for="reason">Reason for Stock Out</label>
-            <select v-model="selectedReason" class="form-control">
-              <option value="Sold">Sold</option>
-              <option value="Expired">Expired</option>
-              <option value="Damaged">Damaged</option>
-              <option value="Other">Other</option>
-            </select>
+          <div class="mb-3">
+            <label for="dateReleased">Date Released</label>
+            <input type="date" v-model="dateReleased" class="form-control" id="dateReleased" />
+          </div>
+
+          <div class="mb-3">
+            <label for="receiverName">Receiver</label>
+            <input type="text" v-model="receiverName" class="form-control" id="receiverName" />
           </div>
 
           <div class="mb-3">
@@ -149,7 +153,7 @@
           </div>
 
           <RouterLink to="/stocks" class="btn btn-primary">Back</RouterLink>
-          <button type="button" @click="saveStock" class="btn btn-primary float-end">Process Stock Out</button>
+          <button type="button" @click="saveStock" class="btn btn-primary float-end">Confirm</button>
         </div>
       </div>
     </div>
@@ -232,12 +236,15 @@ export default {
       selectedReason: 'Sold',
       items: [],
       suppliers: [],
+      dateReleased: '',
+      receiverName: '',
     };
   },
 
   created() {
-    this.fetchItems();
-    this.fetchSuppliers();
+    this.fetchSuppliers().then(() => {
+      this.fetchItems();
+    });
   },
 
   methods: {
@@ -280,18 +287,25 @@ export default {
       axios
         .get('http://localhost:8001/api/stocks')
         .then((res) => {
-          this.items = res.data.stocks.map(stock => ({
-            ...stock,
-            showTransactions: false,
-            transactions: []
-          }));
+          this.items = res.data.stocks.map(stock => {
+            // Find the supplier object using supplier_id
+            const supplier = this.suppliers
+              ? this.suppliers.find(s => s.id === stock.supplier_id)
+              : null;
+            return {
+              ...stock,
+              supplier: supplier || null,
+              showTransactions: false,
+              transactions: []
+            };
+          });
           this.filteredItems = [...this.items];
         })
         .catch((error) => console.error('Error fetching stocks:', error));
     },
 
     fetchSuppliers() {
-      axios.get('http://localhost:8001/api/suppliers')
+      return axios.get('http://localhost:8001/api/suppliers')
         .then((res) => {
           this.suppliers = res.data.suppliers;
         })
@@ -312,15 +326,22 @@ export default {
     selectItem(stock) {
       if (!this.selectedItems.some((selected) => selected.stock_id === stock.id)) {
         const selectedStock = this.items.find((s) => s.id === stock.id);
-        const supplier = selectedStock.supplier;
+
+
+        let supplier_ids = [];
+        if (Array.isArray(selectedStock.suppliers) && selectedStock.suppliers.length > 0) {
+          // If suppliers is an array of objects
+          supplier_ids = selectedStock.suppliers.map(s => s.id);
+        } else if (selectedStock.supplier_id) {
+          // Fallback if only a single supplier_id exists
+          supplier_ids = [selectedStock.supplier_id];
+        }
 
         const newItem = {
           stock_id: stock.id,
           item_name: stock.item_name,
           unit_of_measure: 'Pc',
-          supplier_id: supplier?.id || null,
-          supplier_name: supplier?.supplier_name || 'Unknown',
-          contact_name: supplier?.contact_name || 'Unknown',
+          supplier_ids,
           quantity: 1,
           skus: selectedStock.skus || [],
           selectedSkus: [],
@@ -372,13 +393,16 @@ export default {
           stock_id: stock.stock_id,
           item_name: stock.item_name,
           category_id: stock.category_id,
-          supplier_id: stock.supplier_id,
+          suppliers: stock.supplier_ids,
           unit_of_measure: stock.unit_of_measure,
-          physical_count: stock.physical_count,
-          on_hand: Math.max(0, (stock.on_hand || 0) - quantityToRemove),
+          physical_count: Math.max(0, (stock.physical_count || 0) - quantityToRemove),
+          on_hand: stock.on_hand,
           sold: this.selectedReason === 'Sold' ? (stock.sold || 0) + quantityToRemove : stock.sold,
           price_per_unit: stock.price_per_unit,
+          buying_price: stock.buying_price || 0,
           description: stock.description || '',
+          date_released: this.dateReleased,
+          receiver: this.receiverName,
         };
 
         console.log(`Updating stock for stock ID ${stock.stock_id}:`, stockPayload);
@@ -440,6 +464,55 @@ export default {
 
 * {
   font-family: 'Kantumruy Pro', sans-serif;
+}
+
+.item-table-hint {
+  display: block;
+  /* Less top margin */
+  margin-bottom: 15px;
+  margin-left: 13px
+    /* More bottom margin */
+}
+
+.item-table-scrollable {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background: #fafbfc;
+  margin-bottom: 8px;
+}
+
+.item-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.item-table th,
+.item-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #e0e0e0;
+  text-align: left;
+}
+
+.item-table th {
+  background: #f3f6fa;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.item-table-row {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.item-table-row:hover,
+.item-table-row:focus {
+  background: #e6f0fa;
+  outline: none;
 }
 
 .wrapper {
