@@ -55,7 +55,7 @@
             </router-link>
           </li>
           <li>
-            <router-link to="/orders" active-class="router-link-active">
+            <router-link to="/admin/orders" active-class="router-link-active">
               <img src="/order.png" alt="Orders" class="sidebar-icon"> ORDERS
             </router-link>
           </li>

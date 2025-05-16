@@ -10,12 +10,9 @@
             <button class="icon-button" @click="toggleDropdown">
                 <img src="/drop.png" alt="Dropdown" class="icon-image">
             </button>
-
             <div v-if="dropdownVisible" class="dropdown-menu">
                 <ul>
-                    <li>
-                        <button @click="handleLogout" class="dropdown-item">Logout</button>
-                    </li>
+                    <li><button @click="handleLogout" class="dropdown-item">Logout</button></li>
                 </ul>
             </div>
         </div>
@@ -33,36 +30,18 @@
                             INVENTORY
                         </router-link>
                     </li>
-                    <li>
-                        <router-link to="/suppliers" active-class="router-link-active">
-                            <img src="/supplier.png" alt="Suppliers" class="sidebar-icon"> SUPPLIERS
-                        </router-link>
-                    </li>
-                    <li>
-                        <router-link to="/categories" active-class="router-link-active">
-                            <img src="/category.png" alt="Categories" class="sidebar-icon"> CATEGORIES
-                        </router-link>
-                    </li>
-                    <li>
-                        <router-link to="/customers" active-class="router-link-active">
-                            <img src="/customer1.png" alt="Customers" class="sidebar-icon"> CUSTOMERS
-                        </router-link>
-                    </li>
-                    <li>
-                        <router-link to="/employees" active-class="router-link-active">
-                            <img src="/employees.png" alt="Employees" class="sidebar-icon"> EMPLOYEES
-                        </router-link>
-                    </li>
-                    <li>
-                        <router-link to="/admin/orders" active-class="router-link-active">
-                            <img src="/order.png" alt="Orders" class="sidebar-icon"> ORDERS
-                        </router-link>
-                    </li>
-                    <li>
-                        <router-link to="/shop" active-class="router-link-active">
-                            <img src="/shop.png" alt="Shop" class="sidebar-icon"> SHOP
-                        </router-link>
-                    </li>
+                    <li><router-link to="/suppliers" active-class="router-link-active"><img src="/supplier.png"
+                                class="sidebar-icon"> SUPPLIERS</router-link></li>
+                    <li><router-link to="/categories" active-class="router-link-active"><img src="/category.png"
+                                class="sidebar-icon"> CATEGORIES</router-link></li>
+                    <li><router-link to="/customers" active-class="router-link-active"><img src="/customer1.png"
+                                class="sidebar-icon"> CUSTOMERS</router-link></li>
+                    <li><router-link to="/employees" active-class="router-link-active"><img src="/employees.png"
+                                class="sidebar-icon"> EMPLOYEES</router-link></li>
+                    <li><router-link to="/admin/orders" active-class="router-link-active"><img src="/order.png"
+                                class="sidebar-icon"> ORDERS</router-link></li>
+                    <li><router-link to="/shop" active-class="router-link-active"><img src="/shop.png"
+                                class="sidebar-icon"> SHOP</router-link></li>
                 </ul>
             </nav>
         </div>
@@ -70,9 +49,7 @@
         <div class="container mt-5">
             <h2 class="mb-4 text-center">Admin - Customers Orders Table</h2>
 
-            <div v-if="orders.length === 0" class="alert alert-info text-center">
-                No orders available.
-            </div>
+            <div v-if="orders.length === 0" class="alert alert-info text-center">No orders available.</div>
 
             <table v-else class="table table-bordered table-hover align-middle text-center">
                 <thead class="table-dark">
@@ -89,36 +66,47 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="order in orders" :key="order.id">
-                        <td>{{ order.order_code }}</td>
-                        <td>{{ order.customer_name }}</td>
-                        <td>₱{{ parseFloat(order.total_price).toFixed(2) }}</td>
-                        <td>{{ order.quantity || 'N/A' }}</td>
-                        <td>{{ order.item_name || 'N/A' }}</td> <!-- ✅ NEW -->
-                        <td>
-                            <select v-model="order.status" @change="updateOrderStatus(order)"
-                                class="form-select form-select-sm" :disabled="order.status === 'Approved'">
-                                <option v-for="status in statusOptions" :key="status" :value="status">
-                                    {{ status }}
-                                </option>
-                            </select>
-                        </td>
-                        <td>{{ order.payment_method === 'gcash' ? 'GCash' : 'COD' }}</td>
-                        <td>{{ order.orderTime || 'N/A' }}</td>
-                        <td>
-                            <template v-if="order.payment_method === 'gcash'">
-                                <button class="btn btn-sm text-white" :style="{
-                                    backgroundColor: order.status === 'Approved' ? 'green' : '#0086E7',
-                                    cursor: order.status === 'Approved' ? 'default' : 'pointer'
-                                }" :disabled="order.status === 'Approved'" @click="verifyPayment(order)">
-                                    {{ order.status === 'Approved' ? 'Verified' : 'Verify Payment' }}
-                                </button>
-                            </template>
-                            <template v-else-if="order.payment_method === 'cod'">
-                                <!-- No action -->
-                            </template>
-                        </td>
-                    </tr>
+                    <template v-for="order in orders" :key="order.id">
+                        <tr @click="toggleRow(order.id)" style="cursor: pointer">
+                            <td>{{ order.order_code }}</td>
+                            <td>{{ order.customer_name }}</td>
+                            <td>₱{{ parseFloat(order.total_price).toFixed(2) }}</td>
+                            <td>{{ order.quantity || 'N/A' }}</td>
+                            <td>{{ order.item_name || 'N/A' }}</td>
+                            <td @click.stop>
+                                <select v-model="order.status" @change="updateOrderStatus(order)"
+                                    class="form-select form-select-sm" :disabled="order.status === 'Approved'">
+                                    <option v-for="status in statusOptions" :key="status" :value="status">{{ status }}
+                                    </option>
+                                </select>
+                            </td>
+                            <td>{{ order.payment_method === 'gcash' ? 'GCash' : 'COD' }}</td>
+                            <td>{{ order.orderTime || 'N/A' }}</td>
+                            <td @click.stop>
+                                <template v-if="order.payment_method === 'gcash'">
+                                    <button class="btn btn-sm text-white" :style="{
+                                        backgroundColor: order.status === 'Approved' ? 'green' : '#0086E7',
+                                        cursor: order.status === 'Approved' ? 'default' : 'pointer'
+                                    }" :disabled="order.status === 'Approved'" @click="verifyPayment(order)">
+                                        {{ order.status === 'Approved' ? 'Verified' : 'Verify Payment' }}
+                                    </button>
+                                </template>
+                            </td>
+                        </tr>
+                        <tr v-if="expandedOrders.includes(order.id)">
+                            <td colspan="9">
+                                <div class="p-3 text-start bg-light rounded">
+                                    <p><strong>Address:</strong> {{ order.shipping_address }}</p>
+                                    <p><strong>City:</strong> {{ order.city }}</p>
+                                    <p><strong>Postal Code:</strong> {{ order.postal_code }}</p>
+                                    <p><strong>Phone:</strong> {{ order.phone }}</p>
+                                    <p><strong>Payment Method:</strong> {{ order.payment_method === 'gcash' ? 'GCash' :
+                                        'Cash on Delivery' }}
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
                 </tbody>
             </table>
         </div>
@@ -130,6 +118,7 @@ export default {
     data() {
         return {
             orders: [],
+            expandedOrders: [],
             statusOptions: [
                 'Pending',
                 'Approved',
@@ -148,30 +137,32 @@ export default {
     methods: {
         async fetchOrders() {
             try {
-                const response = await fetch('http://localhost:8001/api/customer-orders');
+                const token = localStorage.getItem('authToken');
+                const response = await fetch('http://localhost:8001/api/customer-orders', {
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                    }
+                });
+
                 const data = await response.json();
 
                 if (response.ok) {
                     const timestampMap = JSON.parse(localStorage.getItem('orderTimestamps') || '{}');
 
                     data.forEach(order => {
-                        // 🕒 Timestamp (optional)
                         if (timestampMap[order.id]) {
                             order.orderTime = timestampMap[order.id];
                         }
 
-                        // 🧾 Item Name logic
                         if (Array.isArray(order.orders) && order.orders.length > 0) {
                             const itemNames = order.orders.map(o => o.stock?.item_name).filter(Boolean);
-
-                            order.item_name = itemNames.length === 1
-                                ? itemNames[0]
-                                : 'Multiple Items';
+                            order.item_name = itemNames.length === 1 ? itemNames[0] : 'Multiple Items';
                         } else {
                             order.item_name = 'N/A';
                         }
 
-                        // 🔢 Quantity logic
                         if (Array.isArray(order.orders)) {
                             order.quantity = order.orders.reduce((sum, o) => sum + (o.quantity || 0), 0);
                         } else {
@@ -188,6 +179,15 @@ export default {
             }
         },
 
+        toggleRow(orderId) {
+            const i = this.expandedOrders.indexOf(orderId);
+            if (i > -1) {
+                this.expandedOrders.splice(i, 1);
+            } else {
+                this.expandedOrders.push(orderId);
+            }
+        },
+
         async verifyPayment(order) {
             order.status = 'Approved';
             try {
@@ -198,6 +198,7 @@ export default {
                 alert('Failed to verify payment.');
             }
         },
+
         async updateOrderStatus(order) {
             try {
                 await fetch(`http://localhost:8001/api/customer-orders/${order.id}`, {
@@ -211,6 +212,7 @@ export default {
                 console.error("Error updating status:", error);
             }
         },
+
         async cancelOrder(orderId) {
             if (confirm('Are you sure you want to cancel this order?')) {
                 try {
@@ -305,7 +307,7 @@ h2 {
 }
 
 .icon-image {
-    width: 10x;
+    width: 10px;
     height: 10px;
     margin-top: 3px;
     margin-left: -10px;
@@ -377,10 +379,6 @@ h2 {
     font-weight: 200;
 }
 
-.router-link-active {
-    background: transparent;
-}
-
 .router-link-active::before {
     content: "";
     position: absolute;
@@ -406,13 +404,13 @@ h2 {
     transition: transform 0.2s ease-in-out;
 }
 
-.router-link-active:hover {
-    transform: none !important;
-}
-
 .table th,
 .table td {
     vertical-align: middle;
+}
+
+tr:hover {
+    background-color: #f2f2f2;
 }
 
 .form-select {
