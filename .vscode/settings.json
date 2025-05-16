@@ -15,5 +15,6 @@
   },
   "[vue]": {
     "editor.defaultFormatter": "Vue.volar"
-  }
+  },
+  "codium.codeCompletion.enable": false
 }

@@ -1,28 +1,45 @@
-MAIN FUNCS.__
+LOGIN MODULE
+	- Accounts for Administrator
+	- User Accesibility
+	- Button for logout
+	- My Account page
 
-STOCK IN
-    - Should have complete details as if like a receipt
-    - Can have many suppliers
-TRANSACTION LOGS
-    - Log should have more details who added it and such
-    - LOGS FOR IN AND OUT
-STOCK OUT
-    - When user buys a product should immediately reflect in the site so that following users wont expect that it is still avaialable
-    - Confirmed through the stock out form
-SALE SYSTEM
-    - xx
-Order Module
-    - Order status (needs debugging)
-    - Multiple checkouts (needs debugging)
+INVENTORY MODULE
+	- Convert SKU# to actual serial number
+        solution: add a text-field(String) in form. 
 
-ADDITIONAL FUNCS.__
+	- Clarify Stock-out form (pickup). This is automatically sold as status. This removes PHYSICAL COUNT. Add date, and Name of person
+        solution: for this specific page set status automatically to sold. 
+                - remove other statuses
+                - minus only physical count
+                - add date in form  
+                - add text-field(String-only allowable text) for claim-person
 
-LOW STOCK
-    - Currently not working
-EDIT STOCK
-    - Currently not working
-PRICE HISTORY
-    - xx
-ADD PICTURE FOR ITEM PROFILING
-    - xx
-RESPONSIVE UI
+	- Add Inventory Logs (Flow)
+        solution: add a new page.
+                - add 'Logs' in sidebar
+                - transfer stock-out logs-table from view.vue to logs.vue
+
+	- Sales Report (Figure, e.g., daily, weekly, monthly)
+        solution: add a new page.
+                - add 'Sales' in sidebar
+
+	- Sales by Item (Quantity)
+        solution: add a new page.
+
+	- On-hand Summary (List of on-hand)
+	- Physical Count Summary (List of physical-count)
+	- Problems Report (Same with stock-out form but remove status: sold)
+
+ORDER MODULE
+	- GCASH: remove send to e-mail, use textbox to save reference no.
+	- For status, change verify payment through button
+	- Item STATUS
+    - Automatically stock out upon transaction (order), Automatically remove ON-HAND (availability)
+
+ADDITIONAL FUNCS. (to-follow)
+    - Sale SYSTEM  
+    - Low stock feature
+    - Add picture for item profiling
+    - Responsive UI
+    - Import Excel

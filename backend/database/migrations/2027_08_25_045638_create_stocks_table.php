@@ -19,6 +19,8 @@ return new class extends Migration {
             $table->decimal('price_per_unit', 10, 2);
             $table->decimal('buying_price', 10, 2);
             $table->date('date')->nullable();
+            $table->date('date_released')->nullable();
+            $table->string('receiver')->nullable();;
             $table->timestamp('time')->useCurrent();
 
             $table->foreign('category_id')->references('id')->on('categories')->onDelete('cascade');
