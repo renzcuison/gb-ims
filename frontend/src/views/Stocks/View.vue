@@ -74,7 +74,8 @@
         <div class="card-header">
           <h4 class="stocks">
             Stocks
-            <RouterLink to="/stocks/uncreate" class="btn btn-primary float-end">Out</RouterLink>
+            <RouterLink to="/stocks/adjust" class="btn btn-primary float-end">Adjust</RouterLink>
+            <RouterLink to="/stocks/release" class="btn btn-primary float-end me-2">Release</RouterLink>
             <RouterLink to="/stocks/in" class="btn btn-primary float-end me-2" @refresh-stocks="getStocks">In
             </RouterLink>
             <RouterLink to="/stocks/create" class="btn btn-primary float-end me-2">Add Item</RouterLink>
@@ -129,7 +130,7 @@
                 <th>Quantity</th>
                 <th>Description</th>
                 <th>Price /unit</th>
-                <th>•</th>
+                <th></th>
               </tr>
             </thead>
             <tbody v-if="filteredStocks.length > 0">
@@ -174,7 +175,7 @@
                   <td>
                     <div>
                       <div>
-                        On Hand:
+                        On-hand:
                         <span>
                           {{ stock.on_hand }}
                           <RouterLink v-if="stock.on_hand < 5"
@@ -196,59 +197,61 @@
                   </td>
                   <td>{{ formatPrice(stock.price_per_unit) }}</td>
                   <td>
-                    <button v-if="stock.id === selectedStockId" type="button" @click="editStock(stock.id)"
-                      class="btn btn-success me-2">
-                      Edit
-                    </button>
                     <button v-if="stock.id === selectedStockId" type="button" @click="deleteStock(stock.id)"
                       class="btn btn-danger">
                       Delete
                     </button>
                   </td>
                 </tr>
-                <transition name="fade-slide">
-                  <tr v-if="expandedStockIds.includes(stock.id)">
-                    <td colspan="↺">
-                      <div class="transaction-log-container">
-                        <p class="transaction-log-title">Transaction Log:</p>
 
-                        <p v-if="!stockLogs[stock.id] || stockLogs[stock.id].length === 0" class="no-logs">
-                          No stock logs available.
-                        </p>
+                <tr v-if="expandedStockIds.includes(stock.id)">
+                  <td colspan="7">
+                    <div class="transaction-log-container">
+                      <p class="transaction-log-title">Activity Log:</p>
 
-                        <table v-if="stockLogs[stock.id] && stockLogs[stock.id].length > 0"
-                          class="table table-sm transaction-table">
-                          <thead>
-                            <tr>
-                              <th>Date</th>
-                              <th>Item ID</th>
-                              <th>SKU</th>
-                              <th>Quantity</th>
-                              <th>Reason</th>
-                              <th>Description</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr v-for="log in stockLogs[stock.id]" :key="log.id">
-                              <td>{{ formatDate(log.created_at) }}</td>
-                              <td>{{ log.stock_id }}</td>
-                              <td>{{ log.sku || 'N/A' }}</td>
-                              <td>{{ log.qty }}</td>
-                              <td>{{ log.reason }}</td>
-                              <td>{{ log.description || '' }}</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </td>
-                  </tr>
-                </transition>
+                      <p v-if="!stockLogs[stock.id] || stockLogs[stock.id].length === 0" class="no-logs">
+                        -
+                      </p>
+
+                      <table v-if="stockLogs[stock.id] && stockLogs[stock.id].length > 0"
+                        class="table table-sm transaction-table">
+                        <thead>
+                          <tr>
+                            <th>Action</th>
+                            <th>Date Performed</th>
+                            <th>Item ID</th>
+                            <th>SKU</th>
+                            <th>Quantity</th>
+                            <th>Reason</th>
+                            <th>Description</th>
+                            <th>Released</th>
+                            <th>Reciever</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-for="log in stockLogs[stock.id]" :key="log.id">
+                            <td>{{ log.description || '-' }}</td>
+                            <td>{{ formatDate(log.created_at) }}</td>
+                            <td>{{ log.stock_id }}</td>
+                            <td>{{ log.sku || '-' }}</td>
+                            <td>{{ log.qty }}</td>
+                            <td>{{ log.reason }}</td>
+                            <td>{{ log.description || '-' }}</td>
+                            <td>{{ stock.date_released || '' }}</td>
+                            <td>{{ stock.receiver || '-' }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+
               </template>
             </tbody>
 
             <tbody v-else>
               <tr>
-                <td colspan="↺">.</td>
+                <td colspan="7">.</td>
               </tr>
             </tbody>
           </table>
@@ -317,6 +320,7 @@ const fetchUserData = async () => {
 
 onMounted(() => {
   fetchUserData();
+
 });
 </script>
 
@@ -348,12 +352,25 @@ export default {
 
   mounted() {
     this.getSuppliers().then(() => {
-      console.log("Suppliers fetched. Now fetching stocks...");
-      this.getStocks();
+      this.getStocks().then(() => {
+        this.preloadAllLogs();
+      });
     });
   },
 
   methods: {
+    preloadAllLogs() {
+      axios.get('http://localhost:8001/api/stock-log')
+        .then(response => {
+          const logsByStock = {};
+          response.data.stock_logs.forEach(log => {
+            if (!logsByStock[log.stock_id]) logsByStock[log.stock_id] = [];
+            logsByStock[log.stock_id].push(log);
+          });
+          this.stockLogs = logsByStock;
+        });
+    },
+
     getStocks() {
       console.log("Refreshing stock data...");
       console.log("Suppliers before mapping stocks:", this.suppliers);
@@ -383,18 +400,19 @@ export default {
     },
 
     fetchStockLogs(stockId) {
-      console.log("Fetching logs for stock ID:", stockId);
+      if (this.stockLogs[stockId]) {
+        const index = this.expandedStockIds.indexOf(stockId);
+        if (index === -1) {
+          this.expandedStockIds.push(stockId);
+        } else {
+          this.expandedStockIds.splice(index, 1);
+        }
+        return;
+      }
 
       axios.get(`http://localhost:8001/api/stock-log`)
         .then(response => {
-          console.log("Stock Log Response:", response.data);
-
           const filteredLogs = response.data.stock_logs.filter(log => log.stock_id === stockId);
-
-          if (filteredLogs.length === 0) {
-            console.warn(`No logs found for stock ID ${stockId}`);
-          }
-
           this.stockLogs[stockId] = filteredLogs;
 
           const index = this.expandedStockIds.indexOf(stockId);
@@ -403,8 +421,6 @@ export default {
           } else {
             this.expandedStockIds.splice(index, 1);
           }
-
-          console.log(`Expanded stock logs:`, this.expandedStockIds);
         })
         .catch(error => {
           console.error(`Failed to fetch stock logs:`, error);

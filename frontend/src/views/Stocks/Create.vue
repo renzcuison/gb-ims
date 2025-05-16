@@ -299,6 +299,8 @@ export default {
         description: "",
         category_id: "",
         supplier_id: "",
+        date_released: null,
+        receiver: null,
         unit_of_measure: "",
         price_per_unit: "",
         buying_price: "",
@@ -318,6 +320,9 @@ export default {
           ...stock,
           suppliers: this.isProfiling ? [] : stock.suppliers.filter((supplier) => supplier !== "Unknown"),
           price_per_unit: parseFloat(stock.price_per_unit.replace(/[^0-9.]/g, "")),
+          date_released: null,
+          receiver: null,
+          date: new Date().toISOString().slice(0, 10),
         };
 
         console.log("isProfiling:", this.isProfiling);
@@ -330,6 +335,11 @@ export default {
             console.log("Stock saved successfully:", response.data);
           })
           .catch((error) => {
+            if (error.response && error.response.data && error.response.data.errors) {
+              this.errorList = error.response.data.errors;
+            } else {
+              this.errorList = { general: ["An unknown error occurred."] };
+            }
             console.error("Error saving stock:", error);
             throw error;
           });

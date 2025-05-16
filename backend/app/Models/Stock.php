@@ -18,6 +18,8 @@ class Stock extends Model
         'on_hand',
         'sold',
         'date',
+        'date_released',
+        'receiver',
         'price_per_unit',
         'buying_price',
         'description',

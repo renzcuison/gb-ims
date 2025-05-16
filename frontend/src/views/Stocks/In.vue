@@ -113,8 +113,8 @@
                 <th class="product-column">Product</th>
                 <th class="cost-price-column">Cost Price</th>
                 <th class="quantity-column">Quantity</th>
-                <th>Serialized</th>
-                <th>Actions</th>
+                <th>ITEM SN</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -142,7 +142,16 @@
                     @input="handleQuantityInput($event, index)" @blur="validateQuantity(index)" min="1" step="1" />
                 </td>
                 <td>
-                  <input type="checkbox" v-model="item.sku" @change="handleSerializedChange(index)" />
+                  <div class="serial-inputs-container">
+                    <div v-for="n in item.quantity" :key="n" class="serial-input-row">
+                      <label class="serial-label">#{{ n }}</label>
+                      <input type="text" v-model="item.serial_numbers[n - 1]" placeholder="Serial #"
+                        class="serial-input" @input="updateSkuWithSerial(index, n - 1)" />
+                      <span v-if="item.skus && item.skus[n - 1]" class="sku-text">
+                        {{ item.skus[n - 1] }}
+                      </span>
+                    </div>
+                  </div>
                 </td>
                 <td>
                   <button v-if="index > 0" class="btn btn-sm btn-danger" @click="removeItem(index)">Remove</button>
@@ -316,6 +325,16 @@ export default {
   },
 
   methods: {
+    updateSkuWithSerial(index, serialIndex) {
+      const item = this.items[index];
+      const serial = item.serial_numbers[serialIndex] || '';
+      const supplier = (item.supplier_name || 'Unknown').substring(0, 3).toUpperCase();
+      const itemName = (item.item_name || 'Unknown').substring(0, 3).toUpperCase();
+      const unitOfMeasure = (item.unit_of_measure || 'Pc').toUpperCase();
+      const sku = `${supplier}-${itemName}-${serial}-${unitOfMeasure}`;
+      item.skus[serialIndex] = sku;
+    },
+
     getStocks() {
       axios.get('http://localhost:8001/api/stocks')
         .then(res => {
@@ -415,10 +434,10 @@ export default {
         quantity: 1,
         physical_count: 0,
         on_hand: 0,
-        sku: false,
         buying_price: '',
         price_per_unit: '0',
         skus: [],
+        serial_numbers: [],
         unit_of_measure: 'Pc',
         supplier_name: supplier?.supplier_name || 'Unknown',
       });
@@ -604,34 +623,21 @@ export default {
 
     updateSkusForQuantity(index) {
       const item = this.items[index];
-      if (!item) {
-        console.error(`Item not found at index ${index}`);
-        return;
-      }
+      if (!item) return;
 
-      if (!item.sku) {
-        console.log(`SKU generation skipped for item ${item.item_name} because the checkbox is unchecked.`);
-        item.skus = [];
-        return;
-      }
-
-      const quantity = parseInt(item.quantity, 10);
-
-      if (quantity <= 0) {
+      let quantity = parseInt(item.quantity, 10);
+      if (isNaN(quantity) || quantity <= 0) {
+        quantity = 1;
         item.quantity = 1;
-        return;
       }
 
-      const currentSkuCount = item.skus.length;
+      if (!Array.isArray(item.serial_numbers)) item.serial_numbers = [];
+      if (!Array.isArray(item.skus)) item.skus = [];
 
-      if (currentSkuCount < quantity) {
-        const additionalSkus = quantity - currentSkuCount;
-        this.generateAdditionalSkus(index, additionalSkus);
-      } else if (currentSkuCount > quantity) {
-        item.skus.splice(quantity);
-      }
-
-      console.log(`Updated SKUs for item ${item.item_name}:`, item.skus);
+      while (item.serial_numbers.length < quantity) item.serial_numbers.push('');
+      while (item.skus.length < quantity) item.skus.push('');
+      if (item.serial_numbers.length > quantity) item.serial_numbers.length = quantity;
+      if (item.skus.length > quantity) item.skus.length = quantity;
     },
 
     generateAdditionalSkus(index, additionalCount) {
@@ -709,6 +715,8 @@ export default {
           physical_count: parseInt(stock.physical_count || 0, 10) + parseInt(stock.quantity || 0, 10),
           on_hand: parseInt(stock.on_hand || 0, 10) + parseInt(stock.quantity || 0, 10),
           sold: parseInt(stock.sold || 0, 10),
+          date_released: new Date().toISOString().split('T')[0],
+          receiver: 'N/A',
         };
 
         console.log(`Payload for stock ID ${stock.stock_id}:`, payload);
@@ -719,7 +727,18 @@ export default {
             this.$router.push('/stocks');
           })
           .catch((error) => {
-            console.error("Error updating stock:", error.response ? error.response.data : error.message);
+            if (error.response && error.response.data && error.response.data.errors) {
+              console.error("Validation errors:", error.response.data.errors);
+
+              const messages = Object.values(error.response.data.errors)
+                .map(arr => arr.join('\n'))
+                .join('\n');
+              alert("Validation Error(s):\n" + messages);
+            } else {
+              // Log any other error
+              console.error("Error saving stock:", error);
+              alert("An unknown error occurred.");
+            }
           });
       });
 
@@ -783,13 +802,14 @@ export default {
     handleQuantityInput(event, index) {
       let input = event.target.value;
 
-      if (input === "") {
-        this.items[index].quantity = "";
-        return;
+      input = input.replace(/[^0-9]/g, "");
+
+      let value = parseInt(input, 10);
+      if (isNaN(value) || value < 1) {
+        value = 1;
       }
 
-      input = input.replace(/[^0-9]/g, "");
-      this.items[index].quantity = parseInt(input, 10) || 0;
+      this.items[index].quantity = value;
 
       console.log(`Updated quantity for item ${this.items[index].item_name}:`, this.items[index].quantity);
 
@@ -817,6 +837,34 @@ export default {
 </script>
 
 <style scoped>
+.serial-inputs-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.serial-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.serial-label {
+  font-size: 11px;
+  color: #888;
+  width: 22px;
+  text-align: right;
+}
+
+.serial-input {
+  width: 90px;
+  font-size: 12px;
+  padding: 2px 6px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;

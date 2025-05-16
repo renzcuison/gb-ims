@@ -25,10 +25,10 @@ import CustomersEdit from '../views/Customers/Edit.vue'
 
 import StocksView from '../views/Stocks/View.vue'
 import StocksIn from '../views/Stocks/In.vue'
-import StocksUncreate from '../views/Stocks/Uncreate.vue'
+import StocksRelease from '../views/Stocks/Release.vue'
+import StocksAdjust from '../views/Stocks/Adjustment.vue'
 import StocksLowStock from '../views/Stocks/LowStock.vue'
 import StocksCreate from '../views/Stocks/Create.vue'
-import StocksEdit from '../views/Stocks/Edit.vue'
 
 import OrderView from '../views/Shops/View.vue'
 import OrderCreate from '../views/Order/Create.vue'
@@ -170,9 +170,14 @@ const router = createRouter({
       component: StocksLowStock,
     },
     {
-      path: '/stocks/uncreate/:stockId?',
-      name: 'stocksUncreate',
-      component: StocksUncreate,
+      path: '/stocks/release/:stockId?',
+      name: 'stocksRelease',
+      component: StocksRelease,
+    },
+        {
+      path: '/stocks/adjust/:stockId?',
+      name: 'stocksAdjustment',
+      component: StocksAdjust,
     },
     {
       path: '/stocks/in',
@@ -183,11 +188,6 @@ const router = createRouter({
       path: '/stocks/create',
       name: 'stocksCreate',
       component: StocksCreate,
-    },
-    {
-      path: '/stocks/:id/edit',
-      name: 'stocksEdit',
-      component: StocksEdit,
     },
     {
       path: '/orders',

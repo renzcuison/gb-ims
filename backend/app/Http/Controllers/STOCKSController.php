@@ -39,7 +39,9 @@ class STOCKSController extends Controller
                 'physical_count' => 'required|integer|min:0',
                 'on_hand' => 'required|integer|min:0',
                 'sold' => 'required|integer|min:0',
-                'date' => 'nullable|date',
+                'date' => 'required|date',
+                'date_released' => 'nullable|date',
+                'receiver' => 'nullable|string|max:255',
                 'price_per_unit' => 'required|numeric|min:0',
                 'buying_price' => 'required|numeric|min:0',
             ]);
@@ -72,6 +74,8 @@ class STOCKSController extends Controller
                 'on_hand' => $request->on_hand,
                 'sold' => $request->sold,
                 'date' => $request->date,
+                'date_released' => $request->date_released,
+                'receiver' => $request->receiver,
                 'price_per_unit' => $request->price_per_unit,
                 'buying_price' => $request->buying_price,
             ]);
@@ -145,6 +149,8 @@ class STOCKSController extends Controller
             'on_hand' => 'required|integer|min:0',
             'sold' => 'required|integer|min:0',
             'date' => 'nullable|date',
+            'date_released' => 'required|date',
+            'receiver' => 'required|string|max:255',
             'price_per_unit' => 'required|numeric|min:0',
             'buying_price' => 'required|numeric|min:0',
             'skus' => 'nullable|array',
@@ -167,6 +173,8 @@ class STOCKSController extends Controller
                 'on_hand' => $request->on_hand,
                 'sold' => $request->sold,
                 'date' => $request->date,
+                'date_released' => $request->date_released,
+                'receiver' => $request->receiver,
                 'price_per_unit' => $request->price_per_unit,
                 'buying_price' => $request->buying_price
             ]);

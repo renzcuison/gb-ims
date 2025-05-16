@@ -28,7 +28,7 @@
 
     <section class="item-section">
       <nav class="breadcrumb">
-        <a href="/shop">Home</a> / {{ item.name }}
+        <a href="/shop">Home&nbsp;</a>/ {{ item.name }}
       </nav>
 
       <h1 class="item-title-centered">{{ item.name }}</h1>
@@ -345,11 +345,10 @@ export default {
 
 /* Centered product title */
 .item-title-centered {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: bold;
   text-align: center;
   margin-bottom: 40px;
-  font-family: 'LibreCaslonDisplay-Regular', serif;
   color: black;
   text-transform: uppercase;
 }
