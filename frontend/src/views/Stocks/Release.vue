@@ -402,7 +402,7 @@ export default {
           buying_price: stock.buying_price || 0,
           description: stock.description || '',
           date_released: this.dateReleased,
-          receiver: this.receiverName,
+          receiver: this.receiverName
         };
 
         console.log(`Updating stock for stock ID ${stock.stock_id}:`, stockPayload);
