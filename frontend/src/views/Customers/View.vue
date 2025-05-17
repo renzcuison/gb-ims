@@ -82,37 +82,48 @@
           </h4>
         </div>
         <div class="card-body">
-          <table class="table table-bordered">
+          <table class="table table-bordered compact-table">
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Last Name</th>
-                <th>First Name</th>
-                <th>Phone</th>
+                <th>Name</th>
+                <th>Phone Number</th>
                 <th>Email</th>
+                <th>Role</th>
+                <th>Verification Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody v-if="customers.length > 0">
               <tr v-for="(customer, index) in customers" :key="index">
                 <td>{{ customer.id }}</td>
-                <td>{{ customer.last_name }}</td>
-                <td>{{ customer.first_name }}</td>
-                <td>{{ customer.phone }}</td>
+                <td>{{ customer.name }}</td>
+                <td>{{ customer.phone_number }}</td>
                 <td>{{ customer.email }}</td>
+                <td>{{ customer.role }}</td>
                 <td>
-                  <RouterLink :to="{ path: '/customers/' + customer.id + '/edit' }" class="btn btn-success">Edit
+                  <span :class="customer.email_verified_at ? 'text-success' : 'text-danger'">
+                    {{ customer.email_verified_at ? 'Verified' : 'Not Verified' }}
+                  </span>
+                </td>
+                <td>
+                  <RouterLink :to="{ path: '/customers/' + customer.id + '/edit' }"
+                    class="btn btn-success btn-sm compact-btn">
+                    Edit
                   </RouterLink>
-                  <button type="button" @click="deleteCustomer(customer.id)" class="btn btn-danger">Delete</button>
+                  <button type="button" @click="deleteCustomer(customer.id)"
+                    class="btn btn-danger btn-sm compact-btn">Delete</button>
                 </td>
               </tr>
             </tbody>
             <tbody v-else>
               <tr>
-                <td colspan="6">↺</td>
+                <td colspan="7">Loading customers...</td>
               </tr>
             </tbody>
           </table>
+
+
         </div>
       </div>
     </div>
@@ -127,6 +138,7 @@ const router = useRouter();
 const route = useRoute();
 const dropdownVisible = ref(false);
 const username = ref("");
+const customers = ref([]);
 
 const toggleDropdown = () => {
   dropdownVisible.value = !dropdownVisible.value;
@@ -176,8 +188,50 @@ const fetchUserData = async () => {
   }
 };
 
+const fetchCustomers = async () => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const response = await fetch('http://localhost:8001/api/users', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) throw new Error('Failed to fetch users');
+
+    const data = await response.json();
+    customers.value = data;
+  } catch (error) {
+    console.error('Error loading customers:', error);
+  }
+};
+
+const deleteCustomer = async (id) => {
+  try {
+    const confirmed = confirm('Are you sure you want to delete this user?');
+    if (!confirmed) return;
+
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`http://localhost:8001/api/users/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) throw new Error('Failed to delete user');
+
+    fetchCustomers(); // refresh list after deletion
+  } catch (error) {
+    console.error('Error deleting user:', error);
+  }
+};
+
 onMounted(() => {
   fetchUserData();
+  fetchCustomers();
 });
 </script>
 
@@ -254,6 +308,31 @@ export default {
 
 .table {
   width: 100%;
+  font-size: 12px;
+}
+
+.compact-table {
+  font-size: 12px;
+}
+
+.compact-table th,
+.compact-table td {
+  padding: 4px 6px !important;
+  vertical-align: middle;
+}
+
+.compact-btn {
+  font-size: 12px !important;
+  padding: 2px 6px !important;
+
+  height: auto !important;
+
+  line-height: 1 !important;
+
+  min-width: 0 !important;
+
+  white-space: nowrap;
+  margin-right: 10px;
 }
 
 .navbar {
