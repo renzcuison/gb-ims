@@ -39,7 +39,7 @@
                     <li><router-link to="/employees" active-class="router-link-active"><img src="/employees.png"
                                 class="sidebar-icon"> EMPLOYEES</router-link></li>
                     <li><router-link to="/admin/orders" active-class="router-link-active"><img src="/order.png"
-                                class="sidebar-icon"> ORDERS</router-link></li>
+                                class="sidebar-icon"> CUSTOMER ORDERS</router-link></li>
                     <li><router-link to="/shop" active-class="router-link-active"><img src="/shop.png"
                                 class="sidebar-icon"> SHOP</router-link></li>
                 </ul>
@@ -80,7 +80,7 @@
                                     </option>
                                 </select>
                             </td>
-                            <td>{{ order.payment_method === 'gcash' ? 'GCash' : 'COD' }}</td>
+                            <td>{{ order.payment_method === 'gcash' ? 'GCash' : 'Cash on Pickup' }}</td>
                             <td>{{ order.orderTime || 'N/A' }}</td>
                             <td @click.stop>
                                 <template v-if="order.payment_method === 'gcash'">
@@ -96,12 +96,17 @@
                         <tr v-if="expandedOrders.includes(order.id)">
                             <td colspan="9">
                                 <div class="p-3 text-start bg-light rounded">
-                                    <p><strong>Address:</strong> {{ order.shipping_address }}</p>
-                                    <p><strong>City:</strong> {{ order.city }}</p>
-                                    <p><strong>Postal Code:</strong> {{ order.postal_code }}</p>
+                                    <p><strong>{{ order.payment_method === 'gcash' ? 'GCash Name' : 'Customer Name'
+                                            }}:</strong> {{
+                                                order.customer_name }}</p>
                                     <p><strong>Phone:</strong> {{ order.phone }}</p>
+
+                                    <template v-if="order.payment_method === 'gcash'">
+                                        <p><strong>Reference Number:</strong> {{ order.shipping_address }}</p>
+                                    </template>
+
                                     <p><strong>Payment Method:</strong> {{ order.payment_method === 'gcash' ? 'GCash' :
-                                        'Cash on Delivery' }}
+                                        'Cash on Pickup' }}
                                     </p>
                                 </div>
                             </td>
@@ -123,11 +128,7 @@ export default {
                 'Pending',
                 'Approved',
                 'Cancelled',
-                'Processing',
-                'Shipped',
-                'Delivered',
                 'Refunded',
-                'On Hold',
             ],
         };
     },
@@ -201,10 +202,12 @@ export default {
 
         async updateOrderStatus(order) {
             try {
+                const token = localStorage.getItem('authToken');
                 await fetch(`http://localhost:8001/api/customer-orders/${order.id}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
                     },
                     body: JSON.stringify({ status: order.status }),
                 });
