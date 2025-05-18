@@ -6,7 +6,7 @@
     </div>
     <div class="navbar-right">
       <img src="/profile.jpg" alt="User Profile" class="icon-image-profile" @click="toggleDropdown">
-      <span class="user-name">admin</span>
+      <span class="user-name">{{ username }}</span>
       <button class="icon-button" @click="toggleDropdown">
         <img src="/drop.png" alt="Dropdown" class="icon-image">
       </button>
@@ -47,21 +47,17 @@
             </router-link>
           </li>
           <li>
-            <router-link to="/customers" active-class="router-link-active" exact-active-class="router-link-active"
-              :class="{ 'router-link-active': $route.path.startsWith('/customers') }">
-              <img src="/customer1.png" alt="Inventory" class="sidebar-icon" />
-              CUSTOMERS
+            <router-link to="/customers" active-class="router-link-active">
+              <img src="/customer1.png" alt="Customers" class="sidebar-icon"> CUSTOMERS
             </router-link>
           </li>
           <li>
-            <router-link to="/employees" active-class="router-link-active" exact-active-class="router-link-active"
-              :class="{ 'router-link-active': $route.path.startsWith('/employees') }">
-              <img src="/employees.png" alt="Inventory" class="sidebar-icon" />
-              EMPLOYEES
+            <router-link to="/employees" active-class="router-link-active">
+              <img src="/employees.png" alt="Employees" class="sidebar-icon"> EMPLOYEES
             </router-link>
           </li>
           <li>
-            <router-link to="/admin/orders" active-class="router-link-active">
+            <router-link to="/orders" active-class="router-link-active">
               <img src="/order.png" alt="Orders" class="sidebar-icon"> ORDERS
             </router-link>
           </li>
@@ -82,39 +78,52 @@
         <div class="card-header">
           <h4>
             Employees
-            <RouterLink to="/employees/create" class="btn btn-primary float-end">Add</RouterLink>
+
           </h4>
         </div>
         <div class="card-body">
-          <table class="table table-bordered">
+          <table class="table table-bordered compact-table">
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Last Name</th>
-                <th>First Name</th>
+                <th>Name</th>
+                <th>Phone Number</th>
+                <th>Email</th>
                 <th>Role</th>
+                <th>Verification Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody v-if="employees.length > 0">
-              <tr v-for="(employee, index) in employees" :key="index">
-                <td>{{ employee.id }}</td>
-                <td>{{ employee.last_name }}</td>
-                <td>{{ employee.first_name }}</td>
-                <td>{{ employee.role }}</td>
+            <tbody v-if="customers.length > 0">
+              <tr v-for="(customer, index) in customers" :key="index">
+                <td>{{ customer.id }}</td>
+                <td>{{ customer.name }}</td>
+                <td>{{ customer.phone_number }}</td>
+                <td>{{ customer.email }}</td>
+                <td>{{ customer.role }}</td>
                 <td>
-                  <RouterLink :to="{ path: '/employees/' + employee.id + '/edit' }" class="btn btn-success">Edit
+                  <span :class="customer.email_verified_at ? 'text-success' : 'text-danger'">
+                    {{ customer.email_verified_at ? 'Verified' : 'Not Verified' }}
+                  </span>
+                </td>
+                <td>
+                  <RouterLink :to="{ path: '/employees/' + customer.id + '/edit' }"
+                    class="btn btn-success btn-sm compact-btn" v-if="isAdmin">
+                    Edit
                   </RouterLink>
-                  <button type="button" @click="deleteEmployee(employee.id)" class="btn btn-danger">Delete</button>
+                  <button v-if="isAdmin" type="button" @click="deleteCustomer(customer.id)"
+                    class="btn btn-danger btn-sm compact-btn">Delete</button>
                 </td>
               </tr>
             </tbody>
             <tbody v-else>
               <tr>
-                <td colspan="5">↺</td>
+                <td colspan="7">Loading employees...</td>
               </tr>
             </tbody>
           </table>
+
+
         </div>
       </div>
     </div>
@@ -129,6 +138,9 @@ const router = useRouter();
 const route = useRoute();
 const dropdownVisible = ref(false);
 const username = ref("");
+const customers = ref([]);
+const isAdmin = ref(false);
+const isEmployee = ref(false);
 
 const toggleDropdown = () => {
   dropdownVisible.value = !dropdownVisible.value;
@@ -170,16 +182,66 @@ const fetchUserData = async () => {
 
     const data = await response.json();
     console.log("User data:", data);
-
+    isAdmin.value = data.role && data.role.toLowerCase() === 'admin';
+    isEmployee.value = data.role && data.role.toLowerCase() === 'employee';
     username.value = data.name || "Admin";
+
+
   } catch (error) {
     console.error('Error fetching user data:', error);
     username.value = "Admin";
+    isAdmin.value = false;
+    isEmployee.value = false;
   }
+};
+
+const fetchCustomers = async () => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const response = await fetch('http://localhost:8001/api/employees', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) throw new Error('Failed to fetch users');
+
+    const data = await response.json();
+    customers.value = data;
+  } catch (error) {
+    console.error('Error loading customers:', error);
+  }
+};
+
+const deleteCustomer = async (id) => {
+  try {
+    const confirmed = confirm('Are you sure you want to delete this user?');
+    if (!confirmed) return;
+
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`http://localhost:8001/api/users/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) throw new Error('Failed to delete user');
+
+    fetchCustomers();
+  } catch (error) {
+    console.error('Error deleting user:', error);
+
+  }
+
 };
 
 onMounted(() => {
   fetchUserData();
+  fetchCustomers();
+
 });
 </script>
 
@@ -187,34 +249,34 @@ onMounted(() => {
 import axios from 'axios';
 
 export default {
-  name: 'EmployeesList',
+  name: 'CustomersList',
   data() {
     return {
-      employees: [],
+      customers: [],
     };
   },
   mounted() {
-    this.getEmployees();
+    this.getCustomers();
   },
   methods: {
-    getEmployees() {
-      axios.get('http://localhost:8001/api/employees')
+    getCustomers() {
+      axios.get('http://localhost:8001/api/customers')
         .then(res => {
-          this.employees = res.data.employees;
+          this.customers.value = res.data.customers;
         })
         .catch(error => {
-          console.error('Error fetching employees:', error);
+          console.error('Error fetching customers:', error);
         });
     },
-    deleteEmployee(id) {
+    deleteCustomer(id) {
       if (confirm('Confirm action: DELETE')) {
-        axios.delete(`http://localhost:8001/api/employees/${id}`)
+        axios.delete(`http://localhost:8001/api/customers/${id}`)
           .then(res => {
             alert(res.data.message);
-            this.getEmployees();
+            this.getCustomers();
           })
           .catch(error => {
-            console.error('Error deleting employee:', error);
+            console.error('Error deleting customer:', error);
           });
       }
     },
@@ -256,6 +318,31 @@ export default {
 
 .table {
   width: 100%;
+  font-size: 12px;
+}
+
+.compact-table {
+  font-size: 12px;
+}
+
+.compact-table th,
+.compact-table td {
+  padding: 4px 6px !important;
+  vertical-align: middle;
+}
+
+.compact-btn {
+  font-size: 12px !important;
+  padding: 2px 6px !important;
+
+  height: auto !important;
+
+  line-height: 1 !important;
+
+  min-width: 0 !important;
+
+  white-space: nowrap;
+  margin-right: 10px;
 }
 
 .navbar {

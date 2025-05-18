@@ -6,7 +6,7 @@
     </div>
     <div class="navbar-right">
       <img src="/profile.jpg" alt="User Profile" class="icon-image-profile" @click="toggleDropdown">
-      <span class="user-name">admin</span>
+      <span class="user-name">{{ username }}</span>
       <button class="icon-button" @click="toggleDropdown">
         <img src="/drop.png" alt="Dropdown" class="icon-image">
       </button>

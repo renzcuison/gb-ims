@@ -12,7 +12,7 @@
         <a href="https://www.facebook.com/profile.php?id=100075567471861" target="_blank">ABOUT US</a>
       </div>
       <div class="navbar-right">
-        <a v-if="isAdmin" href="/stocks" class="icon-button">
+        <a v-if="isAdmin || isEmployee" href="/stocks" class="icon-button">
           <img src="/star.png" alt="Star" class="icon-image-star">
         </a>
         <button class="icon-button">
@@ -34,7 +34,7 @@
       <div class="card-header">
         <h4 class="mb-0 d-flex align-items-center">
           Order Details
-          <div class="ms-3 order-status-wrapper" v-if="isAdmin">
+          <div class="ms-3 order-status-wrapper" v-if="isAdmin || isEmployee">
             <select v-model="order.status" @change="updateOrderStatus(order)" class="form-select status-select">
               <option v-for="status in statusOptions" :key="status" :value="status">{{ status }}</option>
             </select>
@@ -101,7 +101,7 @@
         </div>
 
 
-        <div class="mt-4 text-end" v-if="!isAdmin">
+        <div class="mt-4 text-end" v-if="!isAdmin || !isEmployee">
           <button class="btn btn-danger" @click="cancelOrder(order.id)">Cancel Order</button>
         </div>
       </div>

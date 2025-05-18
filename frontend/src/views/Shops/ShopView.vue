@@ -13,17 +13,33 @@
       </div>
       <div class="navbar-right">
         <a href="stocks">
-          <button v-if="isAdmin" class="icon-button">
-            <img src="/star.png" alt="Bag" class="icon-image-star">
+          <button v-if="isAdmin || isEmployee" class="icon-button">
+            <img src="/star.png" alt="Bag" class="icon-image-star" />
           </button>
         </a>
         <button class="icon-button">
-          <img src="/search.png" alt="Search" class="icon-image">
+          <img src="/search.png" alt="Search" class="icon-image" />
         </button>
         <button class="icon-button" onclick="window.location.href='/order'">
-          <img src="/bag.png" alt="Bag" class="icon-image">
+          <img src="/bag.png" alt="Bag" class="icon-image" />
         </button>
+        <div class="profile-container">
+          <span class="user-name">{{ username }}</span>
+          <button class="icon-button" @click="toggleDropdown">
+            <img src="/drop.png" alt="Dropdown" class="icon-image" />
+          </button>
+
+          <div v-if="dropdownVisible" class="dropdown-menu">
+            <ul>
+              <li>
+                <button class="dropdown-item">Profile</button>
+                <button @click="handleLogout" class="dropdown-item">Logout</button>
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
+
     </header>
 
     <div class="hero">
@@ -154,10 +170,23 @@ const isLoginPage = ref(route.name === 'login');
 const isRegisterPage = ref(route.name === 'create-login');
 const username = ref("");
 const isAdmin = ref(false);
+const isEmployee = ref(false);
+const dropdownVisible = ref(false);
 
 const showSearch = ref(false);
 const searchInput = ref(null);
 const searchQuery = ref("");
+
+const toggleDropdown = () => {
+  dropdownVisible.value = !dropdownVisible.value;
+};
+
+const handleLogout = () => {
+  localStorage.removeItem('authToken');
+  router.push('/login');
+  closeHamburgerDropdown();
+  dropdownVisible.value = false;
+};
 
 const toggleSearch = () => {
   showSearch.value = !showSearch.value;
@@ -188,6 +217,8 @@ watch(() => route.name, (newRoute) => {
   isLoginPage.value = newRoute === 'login';
   isRegisterPage.value = newRoute === 'create-login';
 });
+
+
 
 const fetchUserData = async () => {
   try {
@@ -221,24 +252,21 @@ const fetchUserData = async () => {
     console.log("User data:", data);
 
     isAdmin.value = data.role && data.role.toLowerCase() === 'admin';
+    isEmployee.value = data.role && data.role.toLowerCase() === 'employee';
     username.value = data.name || "Admin";
   } catch (error) {
     console.error('Error fetching user data:', error);
     isAdmin.value = false;
+    isEmployee.value = false;
   }
 };
 
 onMounted(async () => {
   await fetchUserData();
   console.log('isAdmin:', isAdmin.value);
+  console.log('isEmployee:', isEmployee.value);
 });
 
-
-const handleLogout = () => {
-  localStorage.removeItem('authToken');
-  router.push('/login');
-  closeHamburgerDropdown();
-};
 </script>
 
 <script>
@@ -319,7 +347,7 @@ export default {
         }
         const data = await response.json();
 
-        // Assuming each stock has item_name, on_hand, and price_per_unit
+
         this.items = data.stocks.map(stock => ({
           ...stock
         }));
@@ -355,6 +383,46 @@ html {
 * {
   font-family: 'Kantumruy Pro', sans-serif;
 }
+
+.profile-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid #ccc;
+  padding: 0.5rem 1rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  min-width: 120px;
+  border-radius: 4px;
+}
+
+.dropdown-menu ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dropdown-item {
+  background: none;
+  border: none;
+  width: 100%;
+  padding: 0.5rem 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dropdown-item:hover {
+  background-color: #eee;
+}
+
 
 .items {
   display: flex;
@@ -412,7 +480,18 @@ html {
 .navbar-right {
   display: flex;
   align-items: center;
-  margin-right: 10%;
+  justify-content: space-between;
+  background-color: rgb(255, 255, 255);
+  color: #fff;
+  position: relative;
+  height: 50px;
+  padding: 0 20px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  margin-bottom: 0px;
+  margin-right: 100px;
+  gap: 10px;
 }
 
 .icon-button {
@@ -450,7 +529,7 @@ html {
 .navbar-brand {
   display: flex;
   align-items: center;
-  margin-left: 10%;
+  margin-left: 0%;
 }
 
 .brand-text {
@@ -653,6 +732,26 @@ html {
   font-weight: bold;
   text-align: center;
   transition: transform 0.2s ease-in-out;
+}
+
+.dropdown-item {
+  font-family: 'Kantumruy Pro', sans-serif;
+  font-size: 12px;
+  color: black;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  margin-top: 0px;
+  font-weight: 400;
+}
+
+.user-name {
+  font-family: 'Kantumruy Pro', sans-serif;
+  font-size: 12px;
+  color: black;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  margin-top: 3px;
+  font-weight: 400;
 }
 
 .brand-item:hover img {

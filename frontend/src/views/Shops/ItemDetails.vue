@@ -13,7 +13,7 @@
       </div>
       <div class="navbar-right">
         <a href="stocks">
-          <button class="icon-button">
+          <button v-if="isAdmin || isEmployee" class="icon-button">
             <img src="/star.png" alt="Bag" class="icon-image-star">
           </button>
         </a>
@@ -43,7 +43,7 @@
             <p>{{ item.description }}</p>
           </div>
 
-          <!-- ✅ Fixed stock status logic -->
+
           <p v-if="stockItem && stockItem.on_hand > 0">In Stock</p>
           <p v-else-if="stockItem && stockItem.on_hand === 0">Out of Stock</p>
           <p v-else>Loading stock info...</p>
@@ -104,7 +104,7 @@ export default {
           description: stock.description || "No description available",
         };
 
-        // ✅ Assign correct stock data including on_hand
+
         this.stockItem = {
           on_hand: Number(stock.on_hand),
         };

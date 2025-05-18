@@ -65,151 +65,180 @@ const router = createRouter({
       path: '/shop',
       name: 'Shop',
       component: ShopView,
+      meta: { requiresAuth: true},
     },
     {
       path: '/checkout',
       name: 'Checkout',
       component: Checkout,
+      meta: { requiresAuth: true},
     },
     {
       path: '/order',
       name: 'OrderPage',
       component: OrderPage,
+      meta: { requiresAuth: true},
     },
     {
       path: '/item/:id',
       name: 'ItemDetails',
       component: ItemDetails,
       props: true,
+      meta: { requiresAuth: true},
     },
     {
       path: '/admin/orders',
       name: 'adminOrders',
       component: AdminOrder,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
     {
       path: '/categories',
       name: 'categories',
       component: CategoriesView,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
     {
       path: '/categories/create',
       name: 'categoriesCreate',
       component: CategoriesCreate,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
     {
       path: '/categories/:id/edit',
       name: 'categoriesEdit',
       component: CategoriesEdit,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
 
     {
       path: '/suppliers',
       name: 'suppliers',
       component: SuppliersView,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
     {
       path: '/suppliers/create',
       name: 'suppliersCreate',
       component: SuppliersCreate,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
     {
       path: '/suppliers/:id/edit',
       name: 'suppliersEdit',
       component: SuppliersEdit,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
 
     {
       path: '/transactions',
       name: 'transactions',
       component: TransactionsView,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
     {
       path: '/transactions/create',
       name: 'transactionsCreate',
       component: TransactionsCreate,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
     {
       path: '/transactions/:id/edit',
       name: 'transactionsEdit',
       component: TransactionsEdit,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
     {
       path: '/employees',
       name: 'employees',
       component: EmployeesView,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
     {
       path: '/employees/create',
       name: 'employeesCreate',
       component: EmployeesCreate,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
     {
       path: '/employees/:id/edit',
       name: 'employeesEdit',
       component: EmployeesEdit,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
 
     {
       path: '/customers',
       name: 'customers',
       component: CustomersView,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
     {
       path: '/customers/create',
       name: 'customersCreate',
       component: CustomersCreate,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
     {
       path: '/customers/:id/edit',
       name: 'customersEdit',
       component: CustomersEdit,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
 
     {
       path: '/stocks',
       name: 'stocks',
       component: StocksView,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
     {
       path: '/stocks/lowstock/:stockId?',
       name: 'stocksLowStock',
       component: StocksLowStock,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
     {
       path: '/stocks/release/:stockId?',
       name: 'stocksRelease',
       component: StocksRelease,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
         {
       path: '/stocks/adjust/:stockId?',
       name: 'stocksAdjustment',
       component: StocksAdjust,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
     {
       path: '/stocks/in',
       name: 'stocksIn',
       component: StocksIn,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
     {
       path: '/stocks/create',
       name: 'stocksCreate',
       component: StocksCreate,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
     {
       path: '/orders',
       name: 'orders',
       component: OrderView,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
     {
       path: '/orders/create',
       name: 'orderCreate',
       component: OrderCreate,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
     {
       path: '/orders/:id/edit',
       name: 'orderEdit',
       component: OrderEdit,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
 
     {
@@ -230,67 +259,50 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const authToken = localStorage.getItem('authToken');
 
-
-  if (to.path === '/login' && authToken) {
-    try {
-      const res = await fetch('http://localhost:8001/api/user', {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      });
-
-      const user = await res.json();
-
-      if (user.email_verified_at) {
-        return next('/shop');
-      } else {
-        return next('/email-waiting');
-      }
-    } catch (err) {
-      localStorage.removeItem('authToken');
-      return next();
-    }
+  if (authToken && to.path === '/login') {
+    return next('/shop'); 
   }
 
-  
-  if (to.matched.some((record) => record.meta.requiresAuth)) {
-    if (!authToken) {
-      return next('/login');
-    }
-
-    try {
-      const response = await fetch('http://localhost:8001/api/user', {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      });
-
-      if (response.status === 401) {
-        localStorage.removeItem('authToken');
-        return next('/login');
-      }
-
-      const user = await response.json();
-
-      
-      if (!user.email_verified_at && to.path !== '/email-waiting') {
-        return next('/email-waiting');
-      }
-
-    
-      return next();
-    } catch (err) {
-      console.error('Route guard error:', err);
-      localStorage.removeItem('authToken');
-      return next('/login');
-    }
+  if (!to.meta.requiresAuth) {
+    return next();
   }
 
 
-  return next();
+  if (!authToken) {
+    return next('/login');
+  }
+
+  try {
+    const response = await fetch('http://localhost:8001/api/user', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+
+    if (response.status === 401) {
+      localStorage.removeItem('authToken');
+      return next('/login');
+    }
+
+    const user = await response.json();
+
+    if (!user.email_verified_at && to.path !== '/email-waiting') {
+      return next('/email-waiting');
+    }
+
+    if (to.meta.rolesAllowed && !to.meta.rolesAllowed.includes(user.role)) {
+      return next('/shop');  
+    }
+
+    return next();
+  } catch (err) {
+    console.error('Route guard error:', err);
+    localStorage.removeItem('authToken');
+    return next('/login');
+  }
 });
+
 
 
 export default router
