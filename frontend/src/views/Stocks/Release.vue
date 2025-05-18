@@ -394,13 +394,8 @@ function saveStock(username) {
           price_per_unit: stock.price_per_unit,
           buying_price: stock.buying_price || 0,
           description: stock.description || '',
-<<<<<<< HEAD
           date_released: dateReleased.value,
           receiver: receiverName.value
-=======
-          date_released: this.dateReleased,
-          receiver: this.receiverName,
->>>>>>> 3dba2cdf39cbfc8e1fb59e8ee1ed214c311fcae7
         };
 
         return axios.put(`http://localhost:8001/api/stocks/${stock.stock_id}`, stockPayload);
@@ -449,7 +444,6 @@ onMounted(() => {
   });
 });
 
-
 </script>
 
 <style scoped>
@@ -471,10 +465,8 @@ onMounted(() => {
 
 .item-table-hint {
   display: block;
-  /* Less top margin */
   margin-bottom: 15px;
   margin-left: 13px
-    /* More bottom margin */
 }
 
 .item-table-scrollable {
