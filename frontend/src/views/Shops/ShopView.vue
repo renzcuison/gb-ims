@@ -7,7 +7,7 @@
       </div>
       <div class="navbar-center">
         <a href="shop">SHOP</a>
-        <a href="#brands-section">BRANDS</a>
+        <a href="/order">ORDERS</a>
         <a href="login">MY ACCOUNT</a>
         <a href="https://www.facebook.com/profile.php?id=100075567471861" target="_blank">ABOUT US</a>
       </div>
@@ -20,7 +20,7 @@
         <button class="icon-button">
           <img src="/search.png" alt="Search" class="icon-image">
         </button>
-        <button class="icon-button" onclick="window.location.href='/order'">
+        <button class="icon-button" onclick="window.location.href='/orders'">
           <img src="/bag.png" alt="Bag" class="icon-image">
         </button>
       </div>

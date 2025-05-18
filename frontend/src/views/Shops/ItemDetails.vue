@@ -182,57 +182,89 @@ export default {
         },
       });
     },
-    createOrder() {
+    async createOrder() {
       if (!this.item.id) {
-        console.error("Stock ID is missing.");
         alert("Error: Stock ID is missing.");
         return;
       }
 
       const customerOrderId = localStorage.getItem("customer_order_id");
-      console.log("customer_order_id:", customerOrderId);
-      if (!customerOrderId) {
-        alert("Missing customer_order_id. Please create an order first.");
-        return;
-      }
-
       const token = localStorage.getItem("authToken");
-      console.log("Token:", token);
-      if (!token) {
-        alert("Authentication token not found. Please login again.");
+
+      if (!customerOrderId || !token) {
+        alert("Missing order ID or auth token. Please log in again.");
         return;
       }
 
-      fetch("http://localhost:8001/api/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          customer_order_id: customerOrderId,
-          stock_id: this.item.id,
-          quantity: this.quantity,
-        }),
-        credentials: "include",
-      })
-        .then(async (response) => {
-          if (!response.ok) {
-            const error = await response.json();
+      try {
+        // 1️⃣ Fetch current cart items from backend
+        const existingRes = await fetch(`http://localhost:8001/api/orders?customer_order_id=${customerOrderId}`, {
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const existingOrders = await existingRes.json();
+
+        // 2️⃣ Check if item already exists in cart
+        const matchingOrder = existingOrders.find(order => order.stock_id === this.item.id);
+
+        if (matchingOrder) {
+          // 3️⃣ Item exists → update quantity
+          const updatedQuantity = matchingOrder.quantity + this.quantity;
+
+          const updateRes = await fetch(`http://localhost:8001/api/orders/${matchingOrder.id}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              customer_order_id: customerOrderId,
+              stock_id: this.item.id,
+              quantity: updatedQuantity,
+              price_per_unit: this.item.price,
+            }),
+          });
+
+          if (!updateRes.ok) {
+            const err = await updateRes.json();
+            throw new Error(err.message || "Failed to update cart item.");
+          }
+
+          alert("Cart updated with additional quantity!");
+
+        } else {
+          // 4️⃣ Item doesn't exist → create new order
+          const createRes = await fetch("http://localhost:8001/api/orders", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              customer_order_id: customerOrderId,
+              stock_id: this.item.id,
+              quantity: this.quantity,
+            }),
+          });
+
+          if (!createRes.ok) {
+            const error = await createRes.json();
             throw new Error(error.message || "Failed to add to cart.");
           }
-          return response.json();
-        })
-        .then((data) => {
-          alert("Item added to cart!");
-        })
-        .catch((error) => {
-          console.error("Add to cart failed:", error.message);
-          alert("Error adding to cart. See console for details.");
-        });
-    },
 
+          alert("Item added to cart!");
+        }
+
+      } catch (error) {
+        console.error("❌ Cart operation failed:", error.message);
+        alert("Error updating cart. Please try again.");
+      }
+    },
   },
 };
 </script>
