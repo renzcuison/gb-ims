@@ -444,7 +444,6 @@ onMounted(() => {
   });
 });
 
-
 </script>
 
 <style scoped>
@@ -466,10 +465,8 @@ onMounted(() => {
 
 .item-table-hint {
   display: block;
-  /* Less top margin */
   margin-bottom: 15px;
   margin-left: 13px
-    /* More bottom margin */
 }
 
 .item-table-scrollable {
