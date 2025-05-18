@@ -122,7 +122,6 @@
                                     <template v-if="order.payment_method === 'gcash'">
                                         <p><strong>Reference Number:</strong> {{ order.shipping_address }}</p>
                                     </template>
-
                                     <p><strong>Payment Method:</strong> {{ order.payment_method === 'gcash' ? 'GCash' :
                                         'Cash on Pickup' }}</p>
                                     <template v-if="order.orders && order.orders.length > 1">
