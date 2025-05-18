@@ -7,7 +7,7 @@
       </div>
       <div class="navbar-center">
         <a href="shop">SHOP</a>
-        <a href="#brands-section">BRANDS</a>
+        <a href="/order">ORDERS</a>
         <a href="login">MY ACCOUNT</a>
         <a href="https://www.facebook.com/profile.php?id=100075567471861" target="_blank">ABOUT US</a>
       </div>
@@ -128,7 +128,8 @@
           style="cursor: pointer;">
           <div class="placeholder-image"></div>
           <p>{{ item.item_name }}</p>
-          <p :class="{ 'out-of-stock': Number(item.on_hand) === 0 }" v-if="Number(item.on_hand) === 0">Out of Stock</p>
+          <p :class="{ 'out-of-stock': Number(item.on_hand) === 0 }" v-if="Number(item.on_hand) === 0">❌ Out of Stock
+          </p>
           <p class="out-of-stock-price">₱{{ item.price_per_unit }}</p>
         </div>
       </section>
@@ -445,7 +446,7 @@ html {
 }
 
 .item p.out-of-stock {
-  color: rgb(184, 184, 184);
+  /* color: rgb(184, 184, 184); */
   font-weight: 100;
 }
 

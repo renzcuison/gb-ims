@@ -58,6 +58,11 @@
             </router-link>
           </li>
           <li>
+            <router-link to="/stocks/logs" active-class="router-link-active">
+              <img src="/pepper.png" alt="Logs" class="sidebar-icon"> LOGS
+            </router-link>
+          </li>
+          <li>
             <router-link to="/shop" active-class="router-link-active">
               <img src="/shop.png" alt="Shop" class="sidebar-icon"> SHOP
             </router-link>
@@ -199,11 +204,60 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { watch } from 'vue';
+import axios from 'axios';
 
 const router = useRouter();
-const route = useRoute();
+// const route = useRoute();
 const dropdownVisible = ref(false);
 const username = ref("");
+const showModal = ref(false);
+const selectedModalItem = ref(null);
+const stockSearchQuery = ref('');
+const filteredItems = ref([]);
+const selectedItems = ref([]);
+const descriptionText = ref('');
+const selectedReason = ref('stock-in');
+const selectedSupplier = ref(null);
+const selectedProductIndex = ref(null);
+const items = ref([]);
+const suppliers = ref([]);
+const units = ['Pc', 'Box', 'Kg', 'G', 'Liter', 'Ml', 'Meter', 'Cm', 'Bundle'];
+const dateInput = ref('');
+
+const reasonLabels = {
+  'stock-in': 'Add',
+  'return': 'Return',
+  'other': 'Other'
+};
+
+watch(selectedSupplier, (newSupplierId) => {
+  console.log("Selected Supplier ID:", newSupplierId);
+
+  const selectedSupplierObj = suppliers.value.find(supplier => supplier.id === newSupplierId);
+  console.log("Selected Supplier:", selectedSupplierObj);
+
+  items.value.forEach(item => {
+    item.supplier_name = selectedSupplierObj ? selectedSupplierObj.supplier_name : 'Unknown';
+  });
+
+  selectedItems.value.forEach(item => {
+    item.supplier_name = selectedSupplierObj ? selectedSupplierObj.supplier_name : 'Unknown';
+  });
+
+  console.log("Updated items and selectedItems with supplier name:", items.value, selectedItems.value);
+});
+watch(items, (newItems) => {
+  newItems.forEach((item, index) => {
+    if (item.quantity > 1 && !item.sku) {
+      item.sku = true;
+      updateSkusForQuantity(index);
+    } else if (item.quantity <= 1 && item.sku) {
+      item.sku = false;
+      item.skus = [];
+    }
+  });
+}, { deep: true });
 
 const toggleDropdown = () => {
   dropdownVisible.value = !dropdownVisible.value;
@@ -212,7 +266,6 @@ const toggleDropdown = () => {
 const handleLogout = () => {
   localStorage.removeItem('authToken');
   router.push('/login');
-  closeHamburgerDropdown();
   dropdownVisible.value = false;
 };
 
@@ -253,587 +306,552 @@ const fetchUserData = async () => {
   }
 };
 
-onMounted(() => {
-  fetchUserData();
-});
-</script>
+function updateSkuWithSerial(index, serialIndex) {
+  const item = items.value[index];
+  const serial = item.serial_numbers[serialIndex] || '';
+  const supplier = (item.supplier_name || 'Unknown').substring(0, 3).toUpperCase();
+  const itemName = (item.item_name || 'Unknown').substring(0, 3).toUpperCase();
+  const unitOfMeasure = (item.unit_of_measure || 'Pc').toUpperCase();
+  const sku = `${supplier}-${itemName}-${serial}-${unitOfMeasure}`;
+  item.skus[serialIndex] = sku;
+}
 
-<script>
-import axios from 'axios';
-
-export default {
-  name: 'StocksIn',
-  data() {
-    return {
-      showModal: false,
-      selectedModalItem: null,
-      stockSearchQuery: '',
-      filteredItems: [],
-      selectedItems: [],
-      descriptionText: '',
-      selectedReason: 'stock-in',
-      selectedSupplier: null,
-      selectedProductIndex: null,
-      items: [],
-      suppliers: [],
-      units: ['Pc', 'Box', 'Kg', 'G', 'Liter', 'Ml', 'Meter', 'Cm', 'Bundle'],
-      dateInput: '',
-    };
-  },
-
-  created() {
-    this.fetchItems().then(() => {
-      this.addRow();
+function getStocks() {
+  axios.get('http://localhost:8001/api/stocks')
+    .then(res => {
+      items.value = res.data.stocks.map(stock => ({
+        ...stock,
+        showTransactions: false,
+        transactions: [],
+        unit_of_measure: stock.unit_of_measure || 'Pc',
+      }));
+      console.log("Fetched stocks:", items.value);
+    })
+    .catch(error => {
+      console.error('Error fetching stocks:', error);
     });
-    this.fetchSuppliers();
-  },
-
-  watch: {
-    selectedSupplier(newSupplierId) {
-      console.log("Selected Supplier ID:", newSupplierId);
-
-      const selectedSupplier = this.suppliers.find(supplier => supplier.id === newSupplierId);
-      console.log("Selected Supplier:", selectedSupplier);
-
-      this.items.forEach(item => {
-        item.supplier_name = selectedSupplier ? selectedSupplier.supplier_name : 'Unknown';
-      });
-
-      this.selectedItems.forEach(item => {
-        item.supplier_name = selectedSupplier ? selectedSupplier.supplier_name : 'Unknown';
-      });
-
-      console.log("Updated items and selectedItems with supplier name:", this.items, this.selectedItems);
-    },
-  },
-
-  watch: {
-    items: {
-      deep: true,
-      handler(newItems) {
-        newItems.forEach((item, index) => {
-          if (item.quantity > 1 && !item.sku) {
-            item.sku = true;
-            this.updateSkusForQuantity(index);
-          } else if (item.quantity <= 1 && item.sku) {
-            item.sku = false;
-            item.skus = [];
-          }
-        });
-      },
-    },
-  },
-
-  methods: {
-    updateSkuWithSerial(index, serialIndex) {
-      const item = this.items[index];
-      const serial = item.serial_numbers[serialIndex] || '';
-      const supplier = (item.supplier_name || 'Unknown').substring(0, 3).toUpperCase();
-      const itemName = (item.item_name || 'Unknown').substring(0, 3).toUpperCase();
-      const unitOfMeasure = (item.unit_of_measure || 'Pc').toUpperCase();
-      const sku = `${supplier}-${itemName}-${serial}-${unitOfMeasure}`;
-      item.skus[serialIndex] = sku;
-    },
-
-    getStocks() {
-      axios.get('http://localhost:8001/api/stocks')
-        .then(res => {
-          this.items = res.data.stocks.map(stock => ({
-            ...stock,
-            showTransactions: false,
-            transactions: [],
-            unit_of_measure: stock.unit_of_measure || 'Pc',
-          }));
-          console.log("Fetched stocks:", this.items);
-        })
-        .catch(error => {
-          console.error('Error fetching stocks:', error);
-        });
-    },
-
-    handleSerializedChange(index) {
-      const item = this.items[index];
-
-      if (item.sku) {
-        if (item.quantity <= 0) {
-          item.quantity = 1;
-        }
-        this.updateSkusForQuantity(index);
-        console.log(`SKUs generated for item ${item.item_name} because the checkbox is checked.`);
-      } else {
-        item.skus = [];
-        console.log(`SKUs cleared for item ${item.item_name} because the checkbox is unchecked.`);
-      }
-    },
-
-    updateQuantities(index) {
-      const item = this.items[index];
-      const quantity = parseInt(item.quantity, 10);
-
-      if (isNaN(quantity) || quantity <= 0) {
-        item.quantity = 1; // could be the possible error
-        return;
-      }
-
-      item.physical_count += quantity;
-      item.on_hand += quantity;
-
-      console.log(`Updated quantities for item ${item.item_name}:`, {
-        physical_count: item.physical_count,
-        on_hand: item.on_hand,
-      });
-    },
-
-    handleBuyingPriceInput(event, index) {
-      let input = event.target.value;
-      input = String(input).replace(/[^0-9.]/g, "");
-
-      if ((input.match(/\./g) || []).length > 1) {
-        input = input.slice(0, input.lastIndexOf("."));
-      }
-
-      this.items[index].buying_price = input;
-    },
-
-    formatBuyingPrice(item, index) {
-      let value = String(item.buying_price);
-      value = value.replace(/[^0-9.]/g, "");
-
-      let formattedValue = parseFloat(value);
-      if (isNaN(formattedValue)) {
-        formattedValue = 0;
-      }
-
-      this.items[index].buying_price = "₱ " + formattedValue.toLocaleString("en-PH", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
-    },
-
-    openProductModal(index) {
-      if (this.items.length === 0) {
-        console.error("Items array is empty. Add rows before opening the modal.");
-        return;
-      }
-
-      this.selectedProductIndex = index;
-      this.showModal = true;
-    },
-
-    closeModal() {
-      this.showModal = false;
-      this.selectedProductIndex = null;
-    },
-
-    addRow() {
-      const supplier = this.suppliers.find(s => s.id === this.selectedSupplier);
-
-      this.items.push({
-        id: '',
-        item_name: '',
-        quantity: 1,
-        physical_count: 0,
-        on_hand: 0,
-        buying_price: '',
-        price_per_unit: '0',
-        skus: [],
-        serial_numbers: [],
-        unit_of_measure: 'Pc',
-        supplier_name: supplier?.supplier_name || 'Unknown',
-      });
-
-      console.log("Added new row with supplier name:", supplier?.supplier_name || 'Unknown');
-    },
-
-    updateSelectedItem(item, index) {
-      console.log("Dropdown value changed for item:", item);
-
-      const selectedProduct = this.filteredItems.find(product => product.id === item.id);
-      const selectedSupplier = this.suppliers.find(s => s.id === this.selectedSupplier);
-
-      if (selectedProduct) {
-        console.log("Selected Product from dropdown:", selectedProduct);
-
-        this.items[index].item_name = selectedProduct.item_name;
-        this.items[index].price_per_unit = selectedProduct.price_per_unit || '0';
-        this.items[index].category_id = selectedProduct.category_id || null;
-        this.items[index].unit_of_measure = selectedProduct.unit_of_measure || 'Pc';
-        this.items[index].description = selectedProduct.description || '';
-        this.items[index].stock_id = selectedProduct.id;
-        this.items[index].physical_count = selectedProduct.physical_count || 0;
-        this.items[index].on_hand = selectedProduct.on_hand || 0;
-        this.items[index].transaction_type = "in";
-        this.items[index].supplier_name = selectedSupplier?.supplier_name || 'Unknown';
-
-        if (!this.items[index].quantity || this.items[index].quantity <= 0) {
-          this.items[index].quantity = 1;
-        }
-
-        if (this.items[index].sku) {
-          this.updateSkusForQuantity(index);
-        }
-
-        const existingItem = this.selectedItems.find(selected => selected.stock_id === selectedProduct.id);
-        if (!existingItem) {
-          const newItem = {
-            stock_id: selectedProduct.id,
-            item_name: selectedProduct.item_name,
-            unit_of_measure: selectedProduct.unit_of_measure,
-            supplier_id: this.selectedSupplier,
-            supplier_name: this.suppliers.find(s => s.id === this.selectedSupplier)?.supplier_name || 'Unknown',
-            category_id: selectedProduct.category_id,
-            skus: [...this.items[index].skus],
-            physical_count: this.items[index].physical_count || 0,
-            on_hand: this.items[index].on_hand || 0,
-            sold: 0,
-            price_per_unit: selectedProduct.price_per_unit,
-            buying_price: this.items[index].buying_price || '',
-            description: selectedProduct.description || '',
-            quantity: this.items[index].quantity || 1,
-            transaction_type: "in",
-          };
-
-          this.selectedItems.push(newItem);
-          console.log("Updated selectedItems:", this.selectedItems);
-        }
-      } else {
-        console.error("No product found for the selected ID:", item.id);
-      }
-    },
-
-    selectProduct(product) {
-      const selectedProductIndex = this.selectedProductIndex;
-      if (selectedProductIndex === null || selectedProductIndex === undefined) {
-        console.error("Selected Product Index is not set.");
-        return;
-      }
-
-      const selectedRow = this.items[selectedProductIndex];
-      if (!selectedRow) {
-        console.error("Selected row is undefined. Ensure items array is populated.");
-        return;
-      }
-
-      selectedRow.id = product.id;
-      selectedRow.stock_id = product.id;
-      selectedRow.item_name = product.item_name;
-      selectedRow.price_per_unit = product.price_per_unit || '0';
-      selectedRow.category_id = product.category_id || null;
-      selectedRow.physical_count = product.physical_count || 0;
-      selectedRow.on_hand = product.on_hand || 0;
-      selectedRow.transaction_type = "in";
-
-      console.log("Selected Product:", selectedRow);
-      this.selectedItems.push(selectedRow);
-      console.log("Updated selectedItems:", this.selectedItems);
-      this.closeModal();
-    },
-
-    fetchItems() {
-      return axios
-        .get('http://localhost:8001/api/stocks')
-        .then((res) => {
-          this.filteredItems = res.data.stocks.map(stock => ({
-            ...stock,
-            showTransactions: false,
-            transactions: [],
-            unit_of_measure: stock.unit_of_measure || 'Pc',
-          })).sort((a, b) => a.id.localeCompare(b.id));
-
-          this.items = [];
-          console.log("Fetched Items for dropdown/modal:", this.filteredItems);
-        })
-        .catch((error) => {
-          console.error('Error fetching stocks:', error);
-        });
-    },
-
-    fetchSuppliers() {
-      axios
-        .get('http://localhost:8001/api/suppliers')
-        .then((res) => {
-          console.log("Fetched Suppliers:", res.data.suppliers);
-          this.suppliers = res.data.suppliers;
-        })
-        .catch((error) => console.error('Error fetching suppliers:', error));
-    },
-
-    filterItemList() {
-      console.log("Search Query:", this.stockSearchQuery);
-      console.log("Items before filtering:", this.items);
-
-      const query = this.stockSearchQuery.toLowerCase().trim();
-      this.filteredItems = query
-        ? this.items.filter((stock) => {
-          const itemName = stock.item_name?.toLowerCase() || '';
-          const stockId = stock.id?.toString() || '';
-          return itemName.includes(query) || stockId.includes(query);
-        })
-        : [...this.items];
-
-      console.log("Filtered Items after filtering:", this.filteredItems);
-    },
-
-    selectItem(stock) {
-      if (!this.selectedItems.some((selected) => selected.stock_id === stock.id)) {
-        const supplier = this.suppliers.find(s => s.id === this.selectedSupplier);
-
-        console.log("Selected Supplier in selectItem:", supplier);
-
-        const newItem = {
-          stock_id: stock.id,
-          item_name: stock.item_name,
-          unit_of_measure: stock.unit_of_measure,
-          supplier_id: supplier?.id || null,
-          supplier_name: supplier?.supplier_name || 'Unknown',
-          category_id: stock.category_id,
-          skus: [],
-          physical_count: stock.physical_count,
-          on_hand: stock.on_hand,
-          sold: stock.sold,
-          price_per_unit: stock.price_per_unit,
-          buying_price: stock.buying_price,
-          description: stock.description || '',
-        };
-
-        console.log("New Item with Supplier Name:", newItem);
-
-        this.selectedItems.push(newItem);
-        console.log("Updated selectedItems:", this.selectedItems);
-        this.addSku(this.selectedItems.length - 1);
-      }
-    },
-
-    removeSelectedItem(index) {
-      this.selectedItems.splice(index, 1);
-    },
-
-    clearAllSelectedItems() {
-      this.selectedItems = [];
-    },
-
-    removeItem(index) {
-      if (index >= 0 && index < this.items.length) {
-        this.items.splice(index, 1);
-        console.log(`Removed item at index ${index}. Updated items:`, this.items);
-      } else {
-        console.error(`Invalid index ${index}. Unable to remove item.`);
-      }
-    },
-
-    updateSkusForQuantity(index) {
-      const item = this.items[index];
-      if (!item) return;
-
-      let quantity = parseInt(item.quantity, 10);
-      if (isNaN(quantity) || quantity <= 0) {
-        quantity = 1;
-        item.quantity = 1;
-      }
-
-      if (!Array.isArray(item.serial_numbers)) item.serial_numbers = [];
-      if (!Array.isArray(item.skus)) item.skus = [];
-
-      while (item.serial_numbers.length < quantity) item.serial_numbers.push('');
-      while (item.skus.length < quantity) item.skus.push('');
-      if (item.serial_numbers.length > quantity) item.serial_numbers.length = quantity;
-      if (item.skus.length > quantity) item.skus.length = quantity;
-    },
-
-    generateAdditionalSkus(index, additionalCount) {
-      const item = this.items[index];
-      if (!item) {
-        console.error(`Item not found at index ${index}`);
-        return;
-      }
-
-      if (!item.supplier_name || item.supplier_name === 'Unknown') {
-        const supplier = this.suppliers.find(s => s.id === this.selectedSupplier);
-        item.supplier_name = supplier?.supplier_name || 'Unknown';
-      }
-
-      console.log("Supplier Name in generateAdditionalSkus:", item.supplier_name);
-
-      for (let i = 0; i < additionalCount; i++) {
-        const supplier = (item.supplier_name || 'Unknown').substring(0, 3).toUpperCase();
-        const itemName = (item.item_name || 'Unknown').substring(0, 3).toUpperCase();
-        const randomNumber = Math.floor(100 + Math.random() * 900);
-        const unitOfMeasure = (item.unit_of_measure || 'Pc').toUpperCase();
-        const sku = `${supplier}-${itemName}-${randomNumber}-${unitOfMeasure}`;
-
-        item.skus.push(sku);
-      }
-
-      console.log(`Generated SKUs for item ${item.item_name}:`, item.skus);
-    },
-
-    addSku(index) {
-      const stock = this.selectedItems[index];
-      const quantity = stock.on_hand;
-
-      if (quantity <= 0) return;
-
-      this.generateAdditionalSkus(index, quantity);
-    },
-
-    saveStock() {
-      console.log("Selected Items before saving:", this.selectedItems);
-
-      if (this.selectedItems.length === 0) {
-        console.error("No items selected to save.");
-        alert("Please add items before saving.");
-        return;
-      }
-
-      if (!this.selectedSupplier) {
-        alert("Please select a supplier.");
-        return;
-      }
-
-      this.selectedItems.forEach(selected => {
-        const match = this.items.find(item => item.stock_id === selected.stock_id);
-        if (match) {
-          selected.quantity = match.quantity;
-          selected.skus = [...match.skus];
-        }
-      });
-
-      this.selectedItems.forEach((stock) => {
-        const payload = {
+}
+
+function handleSerializedChange(index) {
+  const item = items.value[index];
+
+  if (item.sku) {
+    if (item.quantity <= 0) {
+      item.quantity = 1;
+    }
+    updateSkusForQuantity(index);
+    console.log(`SKUs generated for item ${item.item_name} because the checkbox is checked.`);
+  } else {
+    item.skus = [];
+    console.log(`SKUs cleared for item ${item.item_name} because the checkbox is unchecked.`);
+  }
+}
+
+function updateQuantities(index) {
+  const item = items.value[index];
+  const quantity = parseInt(item.quantity, 10);
+
+  if (isNaN(quantity) || quantity <= 0) {
+    item.quantity = 1;
+  }
+
+  item.physical_count += quantity;
+  item.on_hand += quantity;
+
+  console.log(`Updated quantities for item ${item.item_name}:`, {
+    physical_count: item.physical_count,
+    on_hand: item.on_hand,
+  });
+}
+
+function handleBuyingPriceInput(event, index) {
+  let input = event.target.value;
+  input = String(input).replace(/[^0-9.]/g, "");
+
+  if ((input.match(/\./g) || []).length > 1) {
+    input = input.slice(0, input.lastIndexOf("."));
+  }
+
+  items.value[index].buying_price = input;
+}
+
+function formatBuyingPrice(item, index) {
+  let value = String(item.buying_price);
+  value = value.replace(/[^0-9.]/g, "");
+
+  let formattedValue = parseFloat(value);
+  if (isNaN(formattedValue)) {
+    formattedValue = 0;
+  }
+
+  items.value[index].buying_price = "₱ " + formattedValue.toLocaleString("en-PH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function openProductModal(index) {
+  if (items.value.length === 0) {
+    console.error("Items array is empty. Add rows before opening the modal.");
+    return;
+  }
+
+  selectedProductIndex.value = index;
+  showModal.value = true;
+}
+
+function closeModal() {
+  showModal.value = false;
+  selectedProductIndex.value = null;
+}
+
+function addRow() {
+  const supplier = suppliers.value.find(s => s.id === selectedSupplier.value);
+
+  items.value.push({
+    id: '',
+    item_name: '',
+    quantity: '',
+    physical_count: 0,
+    on_hand: 0,
+    buying_price: '',
+    price_per_unit: '0',
+    skus: [],
+    serial_numbers: [],
+    unit_of_measure: '',
+    supplier_name: supplier?.supplier_name || 'Unknown',
+  });
+
+  console.log("Added new row with supplier name:", supplier?.supplier_name || 'Unknown');
+}
+
+function updateSelectedItem(item, index) {
+  console.log("Dropdown value changed for item:", item);
+
+  const selectedProduct = filteredItems.value.find(product => product.id === item.id);
+  const selectedSupplierObj = suppliers.value.find(s => s.id === selectedSupplier.value);
+
+  if (selectedProduct) {
+    console.log("Selected Product from dropdown:", selectedProduct);
+
+    items.value[index].item_name = selectedProduct.item_name;
+    items.value[index].price_per_unit = selectedProduct.price_per_unit || '0';
+    items.value[index].category_id = selectedProduct.category_id || null;
+    items.value[index].unit_of_measure = selectedProduct.unit_of_measure || 'Pc';
+    items.value[index].description = selectedProduct.description || '';
+    items.value[index].stock_id = selectedProduct.id;
+    items.value[index].physical_count = selectedProduct.physical_count || 0;
+    items.value[index].on_hand = selectedProduct.on_hand || 0;
+    items.value[index].transaction_type = "in";
+    items.value[index].supplier_name = selectedSupplierObj?.supplier_name || 'Unknown';
+
+    if (!items.value[index].quantity || items.value[index].quantity <= 0) {
+      items.value[index].quantity = 1;
+    }
+
+    if (items.value[index].sku) {
+      updateSkusForQuantity(index);
+    }
+
+    const existingItem = selectedItems.value.find(selected => selected.stock_id === selectedProduct.id);
+    if (!existingItem) {
+      const newItem = {
+        stock_id: selectedProduct.id,
+        item_name: selectedProduct.item_name,
+        unit_of_measure: selectedProduct.unit_of_measure,
+        supplier_id: selectedSupplier.value,
+        supplier_name: selectedSupplierObj?.supplier_name || 'Unknown',
+        category_id: selectedProduct.category_id,
+        skus: [...items.value[index].skus],
+        physical_count: items.value[index].physical_count || 0,
+        on_hand: items.value[index].on_hand || 0,
+        sold: 0,
+        price_per_unit: selectedProduct.price_per_unit,
+        buying_price: items.value[index].buying_price || '',
+        description: selectedProduct.description || '',
+        quantity: items.value[index].quantity || 1,
+        transaction_type: "in",
+      };
+
+      selectedItems.value.push(newItem);
+      console.log("Updated selectedItems:", selectedItems.value);
+    }
+  } else {
+    console.error("No product found for the selected ID:", item.id);
+  }
+}
+
+function selectProduct(product) {
+  const selectedProductIndexVal = selectedProductIndex.value;
+  if (selectedProductIndexVal === null || selectedProductIndexVal === undefined) {
+    console.error("Selected Product Index is not set.");
+    return;
+  }
+
+  const selectedRow = items.value[selectedProductIndexVal];
+  if (!selectedRow) {
+    console.error("Selected row is undefined. Ensure items array is populated.");
+    return;
+  }
+
+  selectedRow.id = product.id;
+  selectedRow.stock_id = product.id;
+  selectedRow.item_name = product.item_name;
+  selectedRow.price_per_unit = product.price_per_unit || '0';
+  selectedRow.category_id = product.category_id || null;
+  selectedRow.physical_count = product.physical_count || 0;
+  selectedRow.on_hand = product.on_hand || 0;
+  selectedRow.transaction_type = "in";
+
+  console.log("Selected Product:", selectedRow);
+  selectedItems.value.push(selectedRow);
+  console.log("Updated selectedItems:", selectedItems.value);
+  closeModal();
+}
+
+function fetchItems() {
+  return axios
+    .get('http://localhost:8001/api/stocks')
+    .then((res) => {
+      filteredItems.value = res.data.stocks.map(stock => ({
+        ...stock,
+        showTransactions: false,
+        transactions: [],
+        unit_of_measure: stock.unit_of_measure || 'Pc',
+      })).sort((a, b) => a.id.localeCompare(b.id));
+
+      items.value = [];
+      console.log("Fetched Items for dropdown/modal:", filteredItems.value);
+    })
+    .catch((error) => {
+      console.error('Error fetching stocks:', error);
+    });
+}
+
+function fetchSuppliers() {
+  axios
+    .get('http://localhost:8001/api/suppliers')
+    .then((res) => {
+      console.log("Fetched Suppliers:", res.data.suppliers);
+      suppliers.value = res.data.suppliers;
+    })
+    .catch((error) => console.error('Error fetching suppliers:', error));
+}
+
+function filterItemList() {
+  console.log("Search Query:", stockSearchQuery.value);
+  console.log("Items before filtering:", items.value);
+
+  const query = stockSearchQuery.value.toLowerCase().trim();
+  filteredItems.value = query
+    ? items.value.filter((stock) => {
+      const itemName = stock.item_name?.toLowerCase() || '';
+      const stockId = stock.id?.toString() || '';
+      return itemName.includes(query) || stockId.includes(query);
+    })
+    : [...items.value];
+
+  console.log("Filtered Items after filtering:", filteredItems.value);
+}
+
+function selectItem(stock) {
+  if (!selectedItems.value.some((selected) => selected.stock_id === stock.id)) {
+    const supplier = suppliers.value.find(s => s.id === selectedSupplier.value);
+
+    console.log("Selected Supplier in selectItem:", supplier);
+
+    const newItem = {
+      stock_id: stock.id,
+      item_name: stock.item_name,
+      unit_of_measure: stock.unit_of_measure,
+      supplier_id: supplier?.id || null,
+      supplier_name: supplier?.supplier_name || 'Unknown',
+      category_id: stock.category_id,
+      skus: [],
+      physical_count: stock.physical_count,
+      on_hand: stock.on_hand,
+      sold: stock.sold,
+      price_per_unit: stock.price_per_unit,
+      buying_price: stock.buying_price,
+      description: stock.description || '',
+    };
+
+    console.log("New Item with Supplier Name:", newItem);
+
+    selectedItems.value.push(newItem);
+    console.log("Updated selectedItems:", selectedItems.value);
+    addSku(selectedItems.value.length - 1);
+  }
+}
+
+function removeSelectedItem(index) {
+  selectedItems.value.splice(index, 1);
+}
+
+function clearAllSelectedItems() {
+  selectedItems.value = [];
+}
+
+function removeItem(index) {
+  if (index >= 0 && index < items.value.length) {
+    items.value.splice(index, 1);
+    console.log(`Removed item at index ${index}. Updated items:`, items.value);
+  } else {
+    console.error(`Invalid index ${index}. Unable to remove item.`);
+  }
+}
+
+function updateSkusForQuantity(index) {
+  const item = items.value[index];
+  if (!item) return;
+
+  let quantity = parseInt(item.quantity, 10);
+  if (isNaN(quantity) || quantity <= 0) {
+    quantity = 1;
+    item.quantity = 1;
+  }
+
+  if (!Array.isArray(item.serial_numbers)) item.serial_numbers = [];
+  if (!Array.isArray(item.skus)) item.skus = [];
+
+  while (item.serial_numbers.length < quantity) item.serial_numbers.push('');
+  while (item.skus.length < quantity) item.skus.push('');
+  if (item.serial_numbers.length > quantity) item.serial_numbers.length = quantity;
+  if (item.skus.length > quantity) item.skus.length = quantity;
+}
+
+function generateAdditionalSkus(index, additionalCount) {
+  const item = items.value[index];
+  if (!item) {
+    console.error(`Item not found at index ${index}`);
+    return;
+  }
+
+  if (!item.supplier_name || item.supplier_name === 'Unknown') {
+    const supplier = suppliers.value.find(s => s.id === selectedSupplier.value);
+    item.supplier_name = supplier?.supplier_name || 'Unknown';
+  }
+
+  console.log("Supplier Name in generateAdditionalSkus:", item.supplier_name);
+
+  for (let i = 0; i < additionalCount; i++) {
+    const supplier = (item.supplier_name || 'Unknown').substring(0, 3).toUpperCase();
+    const itemName = (item.item_name || 'Unknown').substring(0, 3).toUpperCase();
+    const randomNumber = Math.floor(100 + Math.random() * 900);
+    const unitOfMeasure = (item.unit_of_measure || 'Pc').toUpperCase();
+    const sku = `${supplier}-${itemName}-${randomNumber}-${unitOfMeasure}`;
+
+    item.skus.push(sku);
+  }
+
+  console.log(`Generated SKUs for item ${item.item_name}:`, item.skus);
+}
+function addSku(index) {
+  const stock = selectedItems.value[index];
+  const quantity = stock.on_hand;
+
+  if (quantity <= 0) return;
+
+  generateAdditionalSkus(index, quantity);
+}
+
+function saveStock() {
+  console.log("Selected Items before saving:", selectedItems.value);
+
+  if (selectedItems.value.length === 0) {
+    alert("Please add items before saving.");
+    return;
+  }
+
+  if (!selectedSupplier.value) {
+    alert("Please select a supplier.");
+    return;
+  }
+
+  const supplierObj = suppliers.value.find(s => s.id === selectedSupplier.value);
+  const supplierName = supplierObj ? supplierObj.supplier_name : 'Unknown';
+
+  selectedItems.value.forEach(selected => {
+    const match = items.value.find(item => item.stock_id === selected.stock_id);
+    if (match) {
+      selected.quantity = match.quantity;
+      selected.skus = [...match.skus];
+    }
+  });
+
+  selectedItems.value.forEach((stock) => {
+    const payload = {
+      quantity: stock.quantity,
+      stock_id: stock.stock_id,
+      item_name: stock.item_name,
+      buying_price: parseFloat((stock.buying_price || '').toString().replace(/[^\d.-]/g, '')) || 0,
+      price_per_unit: parseFloat((stock.price_per_unit || '').toString().replace(/[^\d.-]/g, '')) || 0,
+      skus: Array.from(stock.skus),
+      suppliers: [selectedSupplier.value],
+      transaction_type: stock.transaction_type || 'in',
+      unit_of_measure: stock.unit_of_measure || 'Pc',
+      reason: selectedReason.value || (stock.transaction_type === 'in' ? 'stock-in' : 'stock-out'),
+      date: dateInput.value || new Date().toISOString().split('T')[0],
+      description: descriptionText.value || stock.description || '',
+      category_id: stock.category_id,
+      physical_count: parseInt(stock.physical_count || 0, 10) + parseInt(stock.quantity || 0, 10),
+      on_hand: parseInt(stock.on_hand || 0, 10) + parseInt(stock.quantity || 0, 10),
+      sold: parseInt(stock.sold || 0, 10),
+      date_released: dateInput.value || new Date().toISOString().split('T')[0],
+      receiver: 'N/A',
+    };
+
+    console.log("Payload before validation:", payload);
+
+    try {
+      validatePayload(payload);
+    } catch (err) {
+      alert(err.message);
+      console.log("Validation failed:", err.message);
+      return;
+    }
+    console.log("Passed validation, about to update stock");
+
+    axios.put(`http://localhost:8001/api/stocks/${stock.stock_id}`, payload)
+      .then((response) => {
+        console.log(`Stock updated successfully for stock ID ${stock.stock_id}`, response.data);
+
+        const stockLogPayload = {
+          action: 'stock-in',
+          user_name: username.value || 'Admin',
           stock_id: stock.stock_id,
-          item_name: stock.item_name,
-          buying_price: parseFloat(stock.buying_price.replace(/[^\d.-]/g, '')) || 0,
-          price_per_unit: parseFloat(stock.price_per_unit.replace(/[^\d.-]/g, '')) || 0,
-          skus: Array.from(stock.skus),
-          suppliers: [this.selectedSupplier],
-          transaction_type: stock.transaction_type || 'in',
-          unit_of_measure: stock.unit_of_measure || 'Pc',
-          reason: stock.reason || (stock.transaction_type === 'in' ? 'stock-in' : 'stock-out'),
-          date: stock.date || new Date().toISOString().split('T')[0],
-          description: stock.description || '',
-          category_id: stock.category_id,
-          physical_count: parseInt(stock.physical_count || 0, 10) + parseInt(stock.quantity || 0, 10),
-          on_hand: parseInt(stock.on_hand || 0, 10) + parseInt(stock.quantity || 0, 10),
-          sold: parseInt(stock.sold || 0, 10),
-          date_released: new Date().toISOString().split('T')[0],
-          receiver: 'N/A',
+          sku: Array.isArray(stock.skus) && stock.skus.length > 0 ? stock.skus.join(', ') : '-',
+          qty: stock.quantity,
+          reason: reasonLabels[selectedReason.value],
+          description: descriptionText.value || '',
+          date_released: dateInput.value || '-',
+          receiver: '-',
         };
 
-        console.log(`Payload for stock ID ${stock.stock_id}:`, payload);
+        console.log("Stock-in log payload:", stockLogPayload);
 
-        axios.put(`http://localhost:8001/api/stocks/${stock.stock_id}`, payload)
-          .then((response) => {
-            console.log(`Stock updated successfully for stock ID ${stock.stock_id}`, response.data);
-            this.$router.push('/stocks');
+        return axios.post('http://localhost:8001/api/stock-log', stockLogPayload)
+          .then(() => {
+            console.log('Stock-in log recorded:', stockLogPayload);
+            router.push('/stocks');
           })
           .catch((error) => {
-            if (error.response && error.response.data && error.response.data.errors) {
-              console.error("Validation errors:", error.response.data.errors);
-
-              const messages = Object.values(error.response.data.errors)
-                .map(arr => arr.join('\n'))
-                .join('\n');
-              alert("Validation Error(s):\n" + messages);
+            if (error.response) {
+              console.error("Error logging stock-in:", error.response.data);
+              if (error.response.data && error.response.data.errors) {
+                Object.entries(error.response.data.errors).forEach(([field, messages]) => {
+                  console.error(`Validation error for "${field}": ${messages.join(', ')}`);
+                });
+              }
             } else {
-              // Log any other error
-              console.error("Error saving stock:", error);
-              alert("An unknown error occurred.");
+              console.error("Error logging stock-in:", error.message);
             }
           });
+      })
+      .catch((error) => {
+        if (error.response && error.response.data && error.response.data.errors) {
+          console.log("Stock update validation errors:", error.response.data.errors);
+          const messages = Object.values(error.response.data.errors)
+            .map(arr => arr.join('\n'))
+            .join('\n');
+          alert("Validation Error(s):\n" + messages);
+        } else {
+          alert("An unknown error occurred.");
+        }
       });
+  });
 
-      this.selectedItems.forEach((item) => {
-        item.quantity = 1;
+  selectedItems.value.forEach((item) => {
+    item.quantity = 1;
+  });
+}
+
+function validatePayload(payload) {
+  if (!payload.stock_id) {
+    throw new Error("Stock ID is required.");
+  }
+  if (!payload.item_name) {
+    throw new Error("Item name is required.");
+  }
+  if (isNaN(payload.quantity) || payload.quantity < 0) {
+    throw new Error("Quantity must be a non-negative number.");
+  }
+  if (isNaN(payload.buying_price) || payload.buying_price < 0) {
+    throw new Error("Buying price must be a non-negative number.");
+  }
+  if (isNaN(payload.price_per_unit) || payload.price_per_unit < 0) {
+    throw new Error("Price per unit must be a non-negative number.");
+  }
+  if (!payload.transaction_type) {
+    throw new Error("Transaction type is required.");
+  }
+  if (!payload.unit_of_measure) {
+    throw new Error("Unit of measure is required.");
+  }
+  if (!payload.reason) {
+    throw new Error("Reason is required.");
+  }
+  if (!payload.date) {
+    throw new Error("Date is required.");
+  }
+  return true;
+}
+
+function toggleTransactionDetails(stock) {
+  if (!stock.showTransactions) {
+    fetchTransactions(stock.id);
+  }
+  stock.showTransactions = !stock.showTransactions;
+}
+
+function fetchTransactions(stockId) {
+  const stock = items.value.find(s => s.id === stockId);
+  if (stock && !stock.transactions.length) {
+    axios
+      .get(`/api/transactions?stock_id=${stockId}`)
+      .then((response) => {
+        stock.transactions = response.data.transactions || [];
+      })
+      .catch((error) => {
+        console.error(`Failed to fetch transactions for stock ID ${stockId}:`, error);
       });
-    },
+  }
+}
 
-    validatePayload(payload) {
-      if (!payload.stock_id) {
-        throw new Error("Stock ID is required.");
-      }
-      if (!payload.item_name) {
-        throw new Error("Item name is required.");
-      }
-      if (isNaN(payload.quantity) || payload.quantity < 0) {
-        throw new Error("Quantity must be a non-negative number.");
-      }
-      if (isNaN(payload.buying_price) || payload.buying_price < 0) {
-        throw new Error("Buying price must be a non-negative number.");
-      }
-      if (isNaN(payload.price_per_unit) || payload.price_per_unit < 0) {
-        throw new Error("Price per unit must be a non-negative number.");
-      }
-      if (!payload.transaction_type) {
-        throw new Error("Transaction type is required.");
-      }
-      if (!payload.unit_of_measure) {
-        throw new Error("Unit of measure is required.");
-      }
-      if (!payload.reason) {
-        throw new Error("Reason is required.");
-      }
-      if (!payload.date) {
-        throw new Error("Date is required.");
-      }
-      return true;
-    },
+function handleQuantityInput(event, index) {
+  let input = event.target.value;
+  input = input.replace(/[^0-9]/g, "");
+  let value = parseInt(input, 10);
+  if (isNaN(value) || value < 1) {
+    value = 1;
+  }
+  items.value[index].quantity = value;
+  console.log(`Updated quantity for item ${items.value[index].item_name}:`, items.value[index].quantity);
+  updateSkusForQuantity(index);
+}
 
-    toggleTransactionDetails(stock) {
-      if (!stock.showTransactions) {
-        this.fetchTransactions(stock.id);
-      }
-      stock.showTransactions = !stock.showTransactions;
-    },
+function validateQuantity(index) {
+  const item = items.value[index];
+  if (!item.quantity || parseInt(item.quantity, 10) <= 0) {
+    item.quantity = 1;
+  }
+  console.log(`Validated quantity for item ${item.item_name}:`, item.quantity);
+}
 
-    fetchTransactions(stockId) {
-      const stock = this.items.find(s => s.id === stockId);
-      if (stock && !stock.transactions.length) {
-        axios
-          .get(`/api/transactions?stock_id=${stockId}`)
-          .then((response) => {
-            stock.transactions = response.data.transactions || [];
-          })
-          .catch((error) => {
-            console.error(`Failed to fetch transactions for stock ID ${stockId}:`, error);
-          });
-      }
-    },
+function allowOnlyNumbers(event) {
+  const charCode = event.which ? event.which : event.keyCode;
+  if (charCode < 48 || charCode > 57) {
+    event.preventDefault();
+  }
+}
 
-    handleQuantityInput(event, index) {
-      let input = event.target.value;
-
-      input = input.replace(/[^0-9]/g, "");
-
-      let value = parseInt(input, 10);
-      if (isNaN(value) || value < 1) {
-        value = 1;
-      }
-
-      this.items[index].quantity = value;
-
-      console.log(`Updated quantity for item ${this.items[index].item_name}:`, this.items[index].quantity);
-
-      this.updateSkusForQuantity(index);
-    },
-
-    validateQuantity(index) {
-      const item = this.items[index];
-
-      if (!item.quantity || parseInt(item.quantity, 10) <= 0) {
-        item.quantity = 1;
-      }
-
-      console.log(`Validated quantity for item ${item.item_name}:`, item.quantity);
-    },
-
-    allowOnlyNumbers(event) {
-      const charCode = event.which ? event.which : event.keyCode;
-      if (charCode < 48 || charCode > 57) {
-        event.preventDefault();
-      }
-    },
-  },
-};
+onMounted(() => {
+  fetchUserData();
+  fetchItems().then(() => {
+    addRow();
+  });
+  fetchSuppliers();
+});
 </script>
 
 <style scoped>

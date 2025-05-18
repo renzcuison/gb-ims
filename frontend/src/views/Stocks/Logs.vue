@@ -26,8 +26,7 @@
       <nav>
         <ul>
           <li>
-            <router-link to="/stocks" active-class="router-link-active" exact-active-class="router-link-active"
-              :class="{ 'router-link-active': $route.path.startsWith('/stocks') }">
+            <router-link to="/stocks" active-class="router-link-active" exact>
               <img src="/inventory.png" alt="Inventory" class="sidebar-icon" />
               INVENTORY
             </router-link>
@@ -59,7 +58,7 @@
           </li>
           <li>
             <router-link to="/stocks/logs" active-class="router-link-active">
-              <img src="/pepper.png" alt="Logs" class="sidebar-icon"> LOGS
+              <img src="/pepper.png" alt="Shop" class="sidebar-icon"> LOGS
             </router-link>
           </li>
           <li>
@@ -77,66 +76,87 @@
     <div class="container mt-4">
       <div class="card mb-5">
         <div class="card-header">
-          <h4>Add Item</h4>
+          <h4 class="stocks">
+            Inventory Logs
+          </h4>
         </div>
+
         <div class="card-body">
-          <ul class="alert alert-warning" v-if="Object.keys(errorList).length > 0">
-            <li class="mb-0 ms-3" v-for="(error, index) in errorList" :key="index">
-              {{ error[0] }}
-            </li>
-          </ul>
-
-          <div v-for="(stock, index) in model.stocks" :key="index" class="mb-4">
-            <div class="mb-3">
-              <label for="item_name">
-                <strong>STOCK #{{ index + 1 }}</strong>
-              </label>
-              <input type="text" v-model="stock.item_name" class="form-control"
-                :class="{ 'is-invalid': isDuplicate(stock.item_name, index) }" placeholder="Item Name" />
-              <div v-if="isDuplicate(stock.item_name, index)" class="text-danger">
-                Duplicate item name.
-              </div>
+          <div class="d-flex">
+            <div class="flex-grow-1 me-3">
+              <input type="text" v-model="searchQuery" class="form-control" placeholder="Enter Search Query" />
             </div>
 
-            <div class="mb-3">
-              <label for="category_id">Category</label>
-              <select v-model="stock.category_id" class="form-select">
-                <option value="" disabled selected></option>
-                <option v-for="category in categories" :key="category.id" :value="category.id">
-                  {{ category.category_name }}
-                </option>
+            <div class="d-flex align-items-center">
+              <label class="form-check-label me-1 mb-0 d-inline">Sort</label>
+              <label class="form-check-label me-2 mb-0 d-inline">by:</label>
+              <select v-model="sortOption" class="form-select">
+                <option value="date-desc">Date: Recent to Old</option>
+                <option value="date-asc">Date: Old to Recent</option>
+                <option value="all">View All</option>
               </select>
             </div>
-
-            <div class="mb-3">
-              <label for="unit_of_measure">Unit of Measure</label>
-              <select v-model="stock.unit_of_measure"
-                @blur="checkDuplicate(stock.item_name, stock.unit_of_measure, index)" class="form-select">
-                <option value="" disabled selected></option>
-                <option v-for="unit in units" :key="unit" :value="unit">{{ unit }}</option>
-              </select>
-            </div>
-
-            <div class="mb-3">
-              <label for="price_per_unit">Retail Price</label>
-              <input type="text" v-model="stock.price_per_unit" @input="handlePriceInput($event, index)"
-                @blur="formatPrice(stock, index)" class="form-control" placeholder="Enter Price" />
-            </div>
-
-            <button v-if="index === model.stocks.length - 1" type="button" @click="addStock"
-              class="btn btn-secondary me-3">
-              Add Another Stock
-            </button>
-
-            <button v-if="index > 0" type="button" @click="removeStock(index)" class="btn btn-danger">
-              Remove Stock
-            </button>
           </div>
 
-          <RouterLink to="/stocks" class="btn btn-primary float">Back</RouterLink>
-          <button type="button" @click="saveStocks" class="btn btn-primary float-end">
-            Confirm
-          </button>
+          <div class="mb-3">
+            <div>
+              <label class="form-check-label search-by-label">Search By:</label>
+              <label class="form-check-label search-by-label">
+                <input type="radio" v-model="searchBy" value="id" class="form-check-input" />
+                ID
+              </label>
+              <label class="form-check-label search-by-label">
+                <input type="radio" v-model="searchBy" value="name" class="form-check-input" />
+                Item Name
+              </label>
+            </div>
+          </div>
+
+          <table class="table table-bordered table-sm transaction-table">
+            <tbody>
+              <template v-for="(logs, dateKey) in groupedLogs" :key="dateKey">
+                <tr @click="toggleGroup(dateKey)" style="cursor:pointer; background:#f1f3f5;">
+                  <td colspan="10">
+                    <span>{{ dateKey }}</span>
+                    <span style="margin-left: 8px; font-size: 8px;">
+                      <span v-if="groupExpanded[dateKey]">▼</span>
+                      <span v-else>►</span>
+                    </span>
+                  </td>
+                </tr>
+                <template v-if="groupExpanded[dateKey]">
+                  <tr>
+                    <th>Date Acted</th>
+                    <th>Action</th>
+                    <th>Acted By</th>
+                    <th>Item</th>
+                    <th>Serial #</th>
+                    <th>Quantity</th>
+                    <th>Reason</th>
+                    <th>Description</th>
+                    <th>Pickup Date</th>
+                    <th>Receiver</th>
+                  </tr>
+                  <tr v-for="log in logs" :key="log.id">
+                    <td>{{ formatTime(log.created_at) }}</td>
+                    <td>{{ log.action || '-' }}</td>
+                    <td>{{ log.user_name || '-' }}</td>
+                    <td>{{ log.stock_id }} - {{ getStockName(log.stock_id) }}</td>
+                    <td>{{ log.sku || '-' }}</td>
+                    <td>{{ log.qty }}</td>
+                    <td>{{ log.reason }}</td>
+                    <td>{{ log.description || '-' }}</td>
+                    <td>{{ log.date_released || '-' }}</td>
+                    <td>{{ log.receiver || '-' }}</td>
+                  </tr>
+                </template>
+              </template>
+              <tr v-if="allLogs.length === 0">
+                <td colspan="10" class="text-center">-</td>
+              </tr>
+            </tbody>
+          </table>
+
         </div>
       </div>
     </div>
@@ -144,13 +164,55 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import axios from 'axios';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 
 const router = useRouter();
 const route = useRoute();
 const dropdownVisible = ref(false);
 const username = ref("");
+const groupExpanded = ref({});
+const allLogs = ref([]);
+const searchQuery = ref('');
+const sortOption = ref('all');
+const searchBy = ref('id');
+const stocks = ref([]);
+
+const filteredLogs = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase();
+  let logs = allLogs.value;
+
+  if (query) {
+    logs = logs.filter(log => {
+      if (searchBy.value === 'id') {
+        return log.stock_id && log.stock_id.toString().toLowerCase().includes(query);
+      } else if (searchBy.value === 'name') {
+        const name = getStockName(log.stock_id).toLowerCase();
+        return name.includes(query);
+      }
+      return true;
+    });
+  }
+
+  if (sortOption.value === 'date-desc') {
+    logs = [...logs].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  } else if (sortOption.value === 'date-asc') {
+    logs = [...logs].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  }
+
+  return logs;
+});
+
+const groupedLogs = computed(() => {
+  const groups = {};
+  filteredLogs.value.forEach(log => {
+    const dateKey = log.created_at ? log.created_at.slice(0, 10) : 'Unknown';
+    if (!groups[dateKey]) groups[dateKey] = [];
+    groups[dateKey].push(log);
+  });
+  return groups;
+});
 
 const toggleDropdown = () => {
   dropdownVisible.value = !dropdownVisible.value;
@@ -159,9 +221,43 @@ const toggleDropdown = () => {
 const handleLogout = () => {
   localStorage.removeItem('authToken');
   router.push('/login');
-  closeHamburgerDropdown();
   dropdownVisible.value = false;
 };
+function fetchAllStocks() {
+  axios.get('http://localhost:8001/api/stocks')
+    .then(response => {
+      stocks.value = response.data.stocks || [];
+    })
+    .catch(error => {
+      console.error('Failed to fetch stocks:', error);
+    });
+}
+function formatTime(date) {
+  if (!date) return '-';
+  const d = new Date(date);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function getStockName(stockId) {
+  const stock = stocks.value.find(s => s.id == stockId);
+  return stock ? stock.item_name : '-';
+}
+
+function toggleGroup(dateKey) {
+  groupExpanded.value[dateKey] = !groupExpanded.value[dateKey];
+}
+
+
+
+function fetchAllLogs() {
+  axios.get('http://localhost:8001/api/stock-log')
+    .then(response => {
+      allLogs.value = response.data.stock_logs || [];
+    })
+    .catch(error => {
+      console.error('Failed to fetch logs:', error);
+    });
+}
 
 const fetchUserData = async () => {
   try {
@@ -198,213 +294,14 @@ const fetchUserData = async () => {
     console.error('Error fetching user data:', error);
     username.value = "Admin";
   }
-};
 
+};
 onMounted(() => {
   fetchUserData();
+  fetchAllLogs();
+  fetchAllStocks();
 });
-</script>
 
-<script>
-import axios from "axios";
-
-export default {
-  name: "StockCreate",
-  data() {
-    return {
-      isProfiling: true,
-      errorList: {},
-      model: {
-        stocks: [
-          {
-            item_name: "",
-            description: "",
-            category_id: "",
-            suppliers: ['Unknown'],
-            unit_of_measure: "",
-            price_per_unit: "",
-            buying_price: 0,
-            physical_count: 0,
-            on_hand: 0,
-            sold: 0,
-          },
-        ],
-      },
-      categories: [],
-      suppliers: [],
-      units: ['Pc', 'Box', 'Kg', 'G', 'Liter', 'Ml', 'Meter', 'Cm', 'Bundle'],
-      checkTimeout: null,
-      duplicateItems: [],
-    };
-  },
-
-  mounted() {
-    this.fetchCategories();
-  },
-
-  watch: {
-    'model.stocks': {
-      handler(newStocks) {
-        if (this.isProfiling) {
-          newStocks.forEach((stock, idx) => {
-            if (stock.item_name && stock.item_name !== stock.item_name.toUpperCase()) {
-              this.model.stocks[idx].item_name = stock.item_name.toUpperCase();
-            }
-          });
-        }
-      },
-      deep: true,
-    },
-  },
-
-  methods: {
-    isDuplicate(name, currentIndex) {
-      const normalizedName = name.trim().toLowerCase();
-      if (!normalizedName) return false;
-      return this.model.stocks.some(
-        (stock, index) =>
-          index !== currentIndex &&
-          stock.item_name.trim().toLowerCase() === normalizedName
-      );
-    },
-
-    hasDuplicate() {
-      return this.model.stocks.some((stock, index) => this.isDuplicate(stock.item_name, stock.unit_of_measure, index));
-    },
-
-    checkDuplicate(itemName, unitOfMeasure, index) {
-      if (!itemName.trim() || !unitOfMeasure.trim()) {
-        delete this.errorList[`${itemName}-${unitOfMeasure}`];
-        return false;
-      }
-
-      clearTimeout(this.checkTimeout);
-      this.checkTimeout = setTimeout(() => {
-        axios
-          .get(`http://localhost:8001/api/stocks/check-duplicate`, {
-            params: { item_name: itemName, unit_of_measure: unitOfMeasure },
-          })
-          .then((response) => {
-            if (response.data.exists) {
-              this.errorList[`${itemName}-${unitOfMeasure}`] = "This stock already exists.";
-            } else {
-              delete this.errorList[`${itemName}-${unitOfMeasure}`];
-            }
-          })
-          .catch((error) => {
-            console.error("Error checking duplicate:", error);
-          });
-      }, 300);
-      return false;
-    },
-
-    addStock() {
-      this.model.stocks.push({
-        item_name: "",
-        description: "",
-        category_id: "",
-        supplier_id: "",
-        date_released: null,
-        receiver: null,
-        unit_of_measure: "",
-        price_per_unit: "",
-        buying_price: "",
-        physical_count: 0,
-        on_hand: 0,
-        sold: 0,
-      });
-    },
-
-    removeStock(index) {
-      this.model.stocks.splice(index, 1);
-    },
-
-    saveStocks() {
-      const savePromises = this.model.stocks.map((stock) => {
-        const payload = {
-          ...stock,
-          suppliers: this.isProfiling ? [] : stock.suppliers.filter((supplier) => supplier !== "Unknown"),
-          price_per_unit: parseFloat(stock.price_per_unit.replace(/[^0-9.]/g, "")),
-          date_released: null,
-          receiver: null,
-          date: new Date().toISOString().slice(0, 10),
-        };
-
-        console.log("isProfiling:", this.isProfiling);
-        console.log("Payload for saving stock:", payload);
-
-        return axios.post("http://localhost:8001/api/stocks", payload, {
-          params: { is_profiling: this.isProfiling },
-        })
-          .then((response) => {
-            console.log("Stock saved successfully:", response.data);
-          })
-          .catch((error) => {
-            if (error.response && error.response.data && error.response.data.errors) {
-              this.errorList = error.response.data.errors;
-            } else {
-              this.errorList = { general: ["An unknown error occurred."] };
-            }
-            console.error("Error saving stock:", error);
-            throw error;
-          });
-      });
-
-      Promise.allSettled(savePromises)
-        .then((results) => {
-          const failed = results.filter((result) => result.status === "rejected");
-
-          if (failed.length > 0) {
-            console.error("Some stocks could not be saved due to errors:");
-            failed.forEach((failedResult) => {
-              console.error(failedResult.reason);
-            });
-            alert("Some stocks could not be saved due to errors. Check the console for details.");
-          } else {
-            alert("All stocks saved successfully.");
-            this.$router.push("/stocks");
-          }
-        });
-    },
-
-    fetchCategories() {
-      axios
-        .get("http://localhost:8001/api/categories")
-        .then((response) => {
-          this.categories = response.data.categories;
-        })
-        .catch((error) => {
-          console.error("Error fetching categories:", error);
-        });
-    },
-
-    handlePriceInput(event, index) {
-      let input = event.target.value;
-      input = String(input).replace(/[^0-9.]/g, "");
-
-      if ((input.match(/\./g) || []).length > 1) {
-        input = input.slice(0, input.lastIndexOf('.'));
-      }
-
-      this.model.stocks[index].price_per_unit = input;
-    },
-
-    formatPrice(stock, index) {
-      let value = String(stock.price_per_unit);
-      value = value.replace(/[^0-9.]/g, '');
-
-      let formattedValue = parseFloat(value);
-      if (isNaN(formattedValue)) {
-        formattedValue = 0;
-      }
-
-      stock.price_per_unit = '₱ ' + formattedValue.toLocaleString('en-PH', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
-    },
-  },
-};
 </script>
 
 <style scoped>
@@ -589,7 +486,6 @@ export default {
 
 .router-link-active {
   background: transparent;
-
 }
 
 .router-link-active::before {
@@ -868,11 +764,5 @@ td {
 .fade-slide-leave-to {
   opacity: 0;
   transform: translateY(-10px);
-}
-</style>
-
-<style>
-.is-invalid {
-  border-color: red !important;
 }
 </style>

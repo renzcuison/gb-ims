@@ -28,11 +28,15 @@ class STOCKLOGController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
+            'action' => 'required|string',
+            'user_name' => 'required|string',
             'stock_id' => 'required|string|exists:stocks,id',
             'sku' => 'required|string',
             'description' => 'nullable|string',
             'qty' => 'required|integer',
             'reason' => 'required|string',
+            'date_released' => 'nullable|date',
+            'receiver' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -43,11 +47,15 @@ class STOCKLOGController extends Controller
         }
 
         $stockLog = StockLog::create([
+            'action' => $request->action,
+            'user_name' => $request->user_name,
             'stock_id' => $request->stock_id,
             'sku' => $request->sku,
             'description' => $request->description,
             'qty' => $request->qty,
-            'reason' => $request->reason
+            'reason' => $request->reason,
+            'date_released' => $request->date_released,
+            'receiver' => $request->receiver
         ]);
 
         return response()->json([
@@ -76,11 +84,15 @@ class STOCKLOGController extends Controller
     public function update(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
+            'action' => 'required|string',
+            'user_name' => 'required|string',
             'stock_id' => 'required|string|exists:stocks,id',
             'sku' => 'required|string',
             'description' => 'nullable|string',
             'qty' => 'required|integer',
             'reason' => 'required|string',
+            'date_released' => 'nullable|date',
+            'receiver' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {

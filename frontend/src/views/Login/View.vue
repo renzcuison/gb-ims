@@ -32,12 +32,18 @@
           <label for="rememberMe" class="remember-me-label">REMEMBER ME</label>
           <span class="forgot-password" @click="handleForgotPassword">FORGOT PASSWORD</span>
         </div>
-        <button type="submit">LOGIN</button>
+
+        <button type="submit" :disabled="isSubmitting">
+          <span class="login-btn-content">
+            <span v-if="isSubmitting" style="color: #0086E7; font-size: 12px; max-width: 80px;">{{ loadingDots }}</span>
+            <span v-else>LOGIN</span>
+          </span>
+        </button>
 
         <button @click="redirectToRegister" type="button" class="register-btn">
-          Don't have a google account? Register here
+          REGISTER
         </button>
-        <button class="google" type="button" @click="handleGoogleSignIn">
+        <button class="google mt-2" type="button" @click="handleGoogleSignIn">
           <img src="/google.png" alt="Google Icon" class="google-icon" />
           SIGN IN WITH GOOGLE
         </button>
@@ -56,21 +62,51 @@ export default {
       password: "",
       isPasswordVisible: false,
       rememberMe: false,
+      isSubmitting: false,
+      loadingDots: '',
+      loadingInterval: null,
+      loadingDirection: 1,
     };
   },
   methods: {
-    togglePasswordVisibility() {
-      this.isPasswordVisible = !this.isPasswordVisible;
+
+    startLoadingDots() {
+      this.loadingDots = '';
+      this.loadingDirection = 1;
+      let count = 0;
+      this.loadingInterval = setInterval(() => {
+        if (this.loadingDirection === 1) {
+          count++;
+          if (count > 3) {
+            count = 2;
+            this.loadingDirection = -1;
+          }
+        } else {
+          count--;
+          if (count < 1) {
+            count = 1;
+            this.loadingDirection = 1;
+          }
+        }
+        this.loadingDots = '.'.repeat(count);
+      }, 350);
     },
-    handleGoogleSignIn() {
-      window.location.href = "http://localhost:8001/api/auth/redirect/google";
+
+    stopLoadingDots() {
+      clearInterval(this.loadingInterval);
+      this.loadingInterval = null;
+      this.loadingDots = '';
     },
-    redirectToRegister() {
-      this.$router.push("/register");
-    },
+
     async handleLogin() {
+      if (this.isSubmitting) return;
+      this.isSubmitting = true;
+      this.startLoadingDots();
+
       if (!this.username || !this.password) {
         alert("Please enter valid credentials.");
+        this.isSubmitting = false;
+        this.stopLoadingDots();
         return;
       }
 
@@ -117,7 +153,21 @@ export default {
         alert("An error occurred while trying to log in. Please try again.");
         window.location.reload();
       }
+
+      this.isSubmitting = false;
+      this.stopLoadingDots();
     },
+
+    togglePasswordVisibility() {
+      this.isPasswordVisible = !this.isPasswordVisible;
+    },
+    handleGoogleSignIn() {
+      window.location.href = "http://localhost:8001/api/auth/redirect/google";
+    },
+    redirectToRegister() {
+      this.$router.push("/register");
+    },
+
   },
 };
 </script>
@@ -385,6 +435,7 @@ input[type="password"]::-ms-clear {
   border-radius: 5px;
   cursor: pointer;
   transition: background-color 0.3s;
+  font-weight: 350;
 }
 
 .register-btn:hover {

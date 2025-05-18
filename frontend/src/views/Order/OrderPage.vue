@@ -38,7 +38,6 @@
             <select v-model="order.status" @change="updateOrderStatus(order)" class="form-select status-select">
               <option v-for="status in statusOptions" :key="status" :value="status">{{ status }}</option>
             </select>
-          </div>
         </h4>
       </div>
 
@@ -97,7 +96,7 @@
 
         <div class="mt-4">
           <h5>Payment Method</h5>
-          <p>{{ order.payment_method === 'gcash' ? 'GCash' : 'Cash on Pick-up' }}</p>
+          <p>{{ order.payment_method === 'gcash' ? 'GCash' : 'Cash on Pickup' }}</p>
         </div>
 
 
@@ -378,5 +377,7 @@ h5 {
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 14px;
+  background-color: #e9ecef;
+  color: #333;
 }
 </style>

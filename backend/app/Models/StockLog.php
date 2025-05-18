@@ -12,11 +12,15 @@ class StockLog extends Model
     protected $table = 'stock_log'; 
 
     protected $fillable = [
+        'action',
+        'user_name',
         'stock_id',
         'sku',
         'description',
         'qty',
         'reason',
+        'date_released',
+        'receiver',
     ];
 
     public function stock()

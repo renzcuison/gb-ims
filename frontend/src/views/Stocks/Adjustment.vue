@@ -58,6 +58,11 @@
             </router-link>
           </li>
           <li>
+            <router-link to="/stocks/logs" active-class="router-link-active">
+              <img src="/pepper.png" alt="Logs" class="sidebar-icon"> LOGS
+            </router-link>
+          </li>
+          <li>
             <router-link to="/shop" active-class="router-link-active">
               <img src="/shop.png" alt="Shop" class="sidebar-icon"> SHOP
             </router-link>
@@ -72,7 +77,7 @@
     <div class="container mt-4">
       <div class="card mb-5">
         <div class="card-header">
-          <h4>Adjust Item/s</h4>
+          <h4>Incidence Report</h4>
         </div>
         <div class="card-body">
           <div class="mb-3">
@@ -386,7 +391,7 @@ export default {
           buying_price: stock.buying_price || 0,
           description: stock.description || '',
           date_released: new Date().toISOString().slice(0, 10),
-          receiver: 'N/A', //
+          receiver: 'N/A',
         };
 
         console.log(`Updating stock for stock ID ${stock.stock_id}:`, stockPayload);
