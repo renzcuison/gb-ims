@@ -75,7 +75,7 @@
                             <td>{{ order.item_name || 'N/A' }}</td>
                             <td @click.stop>
                                 <select v-model="order.status" @change="updateOrderStatus(order)"
-                                    class="form-select form-select-sm" :disabled="order.status === 'Approved'">
+                                    class="form-select form-select-sm" :disabled="!canManuallyChangeStatus(order)">
                                     <option v-for="status in statusOptions" :key="status" :value="status">{{ status }}
                                     </option>
                                 </select>
@@ -84,13 +84,21 @@
                             <td>{{ order.orderTime || 'N/A' }}</td>
                             <td @click.stop>
                                 <template v-if="order.payment_method === 'gcash'">
-                                    <button class="btn btn-sm text-white" :style="{
-                                        backgroundColor: order.status === 'Approved' ? 'green' : '#0086E7',
-                                        cursor: order.status === 'Approved' ? 'default' : 'pointer'
-                                    }" :disabled="order.status === 'Approved'" @click="verifyPayment(order)">
+                                    <button class="btn btn-sm text-white"
+                                        :style="{ backgroundColor: order.status === 'Approved' ? 'green' : '#0086E7' }"
+                                        :disabled="order.status === 'Approved'"
+                                        @click="order.status !== 'Approved' && verifyPayment(order)">
                                         {{ order.status === 'Approved' ? 'Verified' : 'Verify Payment' }}
                                     </button>
                                 </template>
+                                <!-- ✅ Show Unverify Button if Approved -->
+                                <div v-if="order.payment_method === 'gcash' && order.status === 'Approved'"
+                                    class="mt-3">
+                                    <button class="btn btn-outline-danger btn-sm"
+                                        @click.stop="togglePaymentStatus(order)">
+                                        Unverify Payment
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         <tr v-if="expandedOrders.includes(order.id)">
@@ -106,8 +114,15 @@
                                     </template>
 
                                     <p><strong>Payment Method:</strong> {{ order.payment_method === 'gcash' ? 'GCash' :
-                                        'Cash on Pickup' }}
-                                    </p>
+                                        'Cash on Pickup' }}</p>
+                                    <template v-if="order.orders && order.orders.length > 1">
+                                        <p><strong>Items Ordered:</strong></p>
+                                        <ul class="mb-2">
+                                            <li v-for="(item, index) in order.orders" :key="index">
+                                                {{ item.stock?.item_name }} - Qty: {{ item.quantity }}
+                                            </li>
+                                        </ul>
+                                    </template>
                                 </div>
                             </td>
                         </tr>
@@ -231,6 +246,37 @@ export default {
                 } catch (error) {
                     console.error('Error canceling order:', error);
                 }
+            }
+        },
+
+        canManuallyChangeStatus(order) {
+            return order.status !== 'Approved';
+        },
+
+        async togglePaymentStatus(order) {
+            const confirmed = confirm('Are you sure you want to unverify this payment?');
+            if (!confirmed) return;
+
+            const token = localStorage.getItem('authToken');
+            try {
+                const response = await fetch(`http://localhost:8001/api/customer-orders/${order.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ status: 'Pending' }),
+                });
+
+                if (!response.ok) throw new Error('Failed to revert payment status.');
+
+                order.status = 'Pending';
+                this.orders = [...this.orders];
+
+                alert('Order status reverted to Pending.');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Unverify failed.');
             }
         },
     },
