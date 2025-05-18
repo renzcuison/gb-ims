@@ -163,5 +163,8 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
+Route::middleware('auth:sanctum')->post('/customer-orders/init', [CustomerOrderController::class, 'initialize']);
+
 Route::post('/users/{id}/verify', [UserController::class, 'verify']);
+
 
