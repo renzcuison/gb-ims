@@ -97,7 +97,7 @@
 
         <div class="mt-4">
           <h5>Payment Method</h5>
-          <p>{{ order.payment_method === 'gcash' ? 'GCash' : 'Cash on Pick-up' }}</p>
+          <p>{{ order.payment_method === 'gcash' ? 'GCash' : 'Cash on Pickup' }}</p>
         </div>
 
 

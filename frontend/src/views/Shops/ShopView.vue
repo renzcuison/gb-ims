@@ -112,7 +112,8 @@
           style="cursor: pointer;">
           <div class="placeholder-image"></div>
           <p>{{ item.item_name }}</p>
-          <p :class="{ 'out-of-stock': Number(item.on_hand) === 0 }" v-if="Number(item.on_hand) === 0">Out of Stock</p>
+          <p :class="{ 'out-of-stock': Number(item.on_hand) === 0 }" v-if="Number(item.on_hand) === 0">❌ Out of Stock
+          </p>
           <p class="out-of-stock-price">₱{{ item.price_per_unit }}</p>
         </div>
       </section>
@@ -377,7 +378,7 @@ html {
 }
 
 .item p.out-of-stock {
-  color: rgb(184, 184, 184);
+  /* color: rgb(184, 184, 184); */
   font-weight: 100;
 }
 
