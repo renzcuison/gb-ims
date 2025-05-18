@@ -7,7 +7,7 @@ use App\Models\StockLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
-class STOCKLOGController extends Controller
+class STOCKLOGINController extends Controller
 {
     public function index()
     {

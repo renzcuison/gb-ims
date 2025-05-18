@@ -34,10 +34,15 @@
       <div class="card-header">
         <h4 class="mb-0 d-flex align-items-center">
           Order Details
-          <div class="ms-3 order-status-wrapper" v-if="isAdmin">
-            <select v-model="order.status" @change="updateOrderStatus(order)" class="form-select status-select">
-              <option v-for="status in statusOptions" :key="status" :value="status">{{ status }}</option>
-            </select>
+          <div class="ms-3 order-status-wrapper">
+            <template v-if="isAdmin">
+              <select v-model="order.status" @change="updateOrderStatus(order)" class="form-select status-select">
+                <option v-for="status in statusOptions" :key="status" :value="status">{{ status }}</option>
+              </select>
+            </template>
+            <template v-else>
+              <span class="status-label">{{ order.status }}</span>
+            </template>
           </div>
         </h4>
       </div>
@@ -370,5 +375,7 @@ h5 {
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 14px;
+  background-color: #e9ecef;
+  color: #333;
 }
 </style>

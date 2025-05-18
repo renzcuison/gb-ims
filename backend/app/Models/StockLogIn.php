@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class StockLog extends Model
+class StockLogIn extends Model
 {
     use HasFactory;
 
-    protected $table = 'stock_log'; 
+    protected $table = 'stock_log-in'; 
 
     protected $fillable = [
         'action',
@@ -19,8 +19,8 @@ class StockLog extends Model
         'description',
         'qty',
         'reason',
-        'date_released',
-        'receiver',
+        'supplier',
+        'cost_price',
     ];
 
     public function stock()

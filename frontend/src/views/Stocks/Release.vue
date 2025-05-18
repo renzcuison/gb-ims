@@ -6,7 +6,7 @@
     </div>
     <div class="navbar-right">
       <img src="/profile.jpg" alt="User Profile" class="icon-image-profile" @click="toggleDropdown">
-      <span class="user-name">admin</span>
+      <span class="user-name">{{ username || '...' }}</span>
       <button class="icon-button" @click="toggleDropdown">
         <img src="/drop.png" alt="Dropdown" class="icon-image">
       </button>
@@ -58,6 +58,11 @@
             </router-link>
           </li>
           <li>
+            <router-link to="/stocks/logs" active-class="router-link-active">
+              <img src="/pepper.png" alt="Logs" class="sidebar-icon"> LOGS
+            </router-link>
+          </li>
+          <li>
             <router-link to="/shop" active-class="router-link-active">
               <img src="/shop.png" alt="Shop" class="sidebar-icon"> SHOP
             </router-link>
@@ -72,7 +77,7 @@
     <div class="container mt-4">
       <div class="card mb-5">
         <div class="card-header">
-          <h4>Release Item</h4>
+          <h4>Confirm Item Pickup</h4>
         </div>
         <div class="card-body">
           <div class="mb-3">
@@ -153,7 +158,11 @@
           </div>
 
           <RouterLink to="/stocks" class="btn btn-primary">Back</RouterLink>
-          <button type="button" @click="saveStock" class="btn btn-primary float-end">Confirm</button>
+          <button type="button"
+            @click="() => { console.log('username.value at click:', username); saveStock(username); }"
+            class="btn btn-primary float-end" :disabled="!username">
+            Confirm
+          </button>
         </div>
       </div>
     </div>
@@ -161,11 +170,21 @@
 </template>
 
 <script setup>
+import axios from 'axios';
 import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 
 const router = useRouter();
 const route = useRoute();
+const stockSearchQuery = ref('');
+const filteredItems = ref([]);
+const selectedItems = ref([]);
+const descriptionText = ref('');
+const selectedReason = ref('Sold');
+const items = ref([]);
+const suppliers = ref([]);
+const dateReleased = ref('');
+const receiverName = ref('');
 const dropdownVisible = ref(false);
 const username = ref("");
 
@@ -176,7 +195,6 @@ const toggleDropdown = () => {
 const handleLogout = () => {
   localStorage.removeItem('authToken');
   router.push('/login');
-  closeHamburgerDropdown();
   dropdownVisible.value = false;
 };
 
@@ -188,207 +206,182 @@ const fetchUserData = async () => {
       handleLogout();
       return;
     }
-
     const response = await fetch('http://localhost:8001/api/user', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
-      }
+      headers: { 'Authorization': `Bearer ${token}` }
     });
-
     if (response.status === 401) {
-      console.error("Unauthorized: Token may be invalid.");
       handleLogout();
       return;
     }
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch user data. Status: ${response.status}`);
+    if (response.ok) {
+      const data = await response.json();
+      username.value = data.name || "Admin";
+      console.log("Username set to:", username.value);
+    } else {
+      username.value = "Admin";
+      console.log("Username set to default: Admin");
     }
-
-    const data = await response.json();
-    console.log("User data:", data);
-
-    username.value = data.name || "Admin";
-  } catch (error) {
-    console.error('Error fetching user data:', error);
+  } catch (e) {
     username.value = "Admin";
+    console.log("Username set to default (error): Admin");
   }
 };
 
-onMounted(() => {
-  fetchUserData();
-});
-</script>
+function toggleSkuSelection(stock, sku) {
+  const skuIndex = stock.selectedSkus.indexOf(sku.sku);
 
-<script>
-import axios from 'axios';
+  if (skuIndex !== -1) {
+    stock.selectedSkus.splice(skuIndex, 1);
+    console.log("Payload for DELETE SKU:", { stockId: stock.stock_id, skuId: sku.sku });
+    removeSkuFromDatabase(stock.stock_id, sku.sku);
+  } else {
+    stock.selectedSkus.push(sku.sku);
+    console.log("Payload for ADD SKU:", { stockId: stock.stock_id, skuId: sku.sku });
+  }
+}
+function removeSkuFromDatabase(stockId, skuId) {
+  if (!skuId || !stockId) {
+    console.log("Missing SKU ID or Stock ID:", { skuId, stockId });
+    return;
+  }
 
-export default {
-  name: 'StocksOut',
-  data() {
-    return {
-      stockSearchQuery: '',
-      filteredItems: [],
-      selectedItems: [],
-      descriptionText: '',
-      selectedReason: 'Sold',
-      items: [],
-      suppliers: [],
-      dateReleased: '',
-      receiverName: '',
-    };
-  },
+  console.log(`Removing SKU ${skuId} from stock ID ${stockId}`);
 
-  created() {
-    this.fetchSuppliers().then(() => {
-      this.fetchItems();
+  axios.delete(`http://localhost:8001/api/stocks/${stockId}/skus/${skuId}`)
+    .then(response => {
+      console.log(`Successfully removed SKU ${skuId} from stock ID ${stockId}`, response);
+
+      const stock = selectedItems.value.find(item => item.stock_id === stockId);
+      if (stock) {
+        stock.skus = stock.skus.filter(sku => sku.sku !== skuId);
+      }
+    })
+    .catch(error => {
+      console.error(`Error removing SKU ${skuId} for stock ID ${stockId}:`, error);
     });
-  },
-
-  methods: {
-    toggleSkuSelection(stock, sku) {
-      const skuIndex = stock.selectedSkus.indexOf(sku.sku);
-
-      if (skuIndex !== -1) {
-        stock.selectedSkus.splice(skuIndex, 1);
-        console.log("Payload for DELETE SKU:", { stockId: stock.stock_id, skuId: sku.sku });
-        this.removeSkuFromDatabase(stock.stock_id, sku.sku);
-      } else {
-        stock.selectedSkus.push(sku.sku);
-        console.log("Payload for ADD SKU:", { stockId: stock.stock_id, skuId: sku.sku });
-      }
-    },
-
-    removeSkuFromDatabase(stockId, skuId) {
-      if (!skuId || !stockId) {
-        console.log("Missing SKU ID or Stock ID:", { skuId, stockId });
-        return;
-      }
-
-      console.log(`Removing SKU ${skuId} from stock ID ${stockId}`);
-
-      axios.delete(`http://localhost:8001/api/stocks/${stockId}/skus/${skuId}`)
-        .then(response => {
-          console.log(`Successfully removed SKU ${skuId} from stock ID ${stockId}`, response);
-
-          const stock = this.selectedItems.find(item => item.stock_id === stockId);
-          if (stock) {
-            stock.skus = stock.skus.filter(sku => sku.sku !== skuId);
-          }
-        })
-        .catch(error => {
-          console.error(`Error removing SKU ${skuId} for stock ID ${stockId}:`, error);
-        });
-    },
-
-    fetchItems() {
-      axios
-        .get('http://localhost:8001/api/stocks')
-        .then((res) => {
-          this.items = res.data.stocks.map(stock => {
-            // Find the supplier object using supplier_id
-            const supplier = this.suppliers
-              ? this.suppliers.find(s => s.id === stock.supplier_id)
-              : null;
-            return {
-              ...stock,
-              supplier: supplier || null,
-              showTransactions: false,
-              transactions: []
-            };
-          });
-          this.filteredItems = [...this.items];
-        })
-        .catch((error) => console.error('Error fetching stocks:', error));
-    },
-
-    fetchSuppliers() {
-      return axios.get('http://localhost:8001/api/suppliers')
-        .then((res) => {
-          this.suppliers = res.data.suppliers;
-        })
-        .catch((error) => console.error('Error fetching suppliers:', error));
-    },
-
-    filterItemList() {
-      const query = this.stockSearchQuery.toLowerCase().trim();
-      this.filteredItems = query
-        ? this.items.filter(
-          (stock) =>
-            stock.item_name.toLowerCase().includes(query) ||
-            stock.id.toString().includes(query)
-        )
-        : [...this.items];
-    },
-
-    selectItem(stock) {
-      if (!this.selectedItems.some((selected) => selected.stock_id === stock.id)) {
-        const selectedStock = this.items.find((s) => s.id === stock.id);
-
-
-        let supplier_ids = [];
-        if (Array.isArray(selectedStock.suppliers) && selectedStock.suppliers.length > 0) {
-          // If suppliers is an array of objects
-          supplier_ids = selectedStock.suppliers.map(s => s.id);
-        } else if (selectedStock.supplier_id) {
-          // Fallback if only a single supplier_id exists
-          supplier_ids = [selectedStock.supplier_id];
-        }
-
-        const newItem = {
-          stock_id: stock.id,
-          item_name: stock.item_name,
-          unit_of_measure: 'Pc',
-          supplier_ids,
-          quantity: 1,
-          skus: selectedStock.skus || [],
-          selectedSkus: [],
-          category_id: stock.category_id || null,
-          physical_count: stock.physical_count || 0,
-          on_hand: stock.on_hand || 0,
-          sold: stock.sold || 0,
-          price_per_unit: stock.price_per_unit || 0,
-          description: stock.description || '',
+}
+function fetchItems() {
+  axios
+    .get('http://localhost:8001/api/stocks')
+    .then((res) => {
+      items.value = res.data.stocks.map(stock => {
+        const supplier = suppliers.value
+          ? suppliers.value.find(s => s.id === stock.supplier_id)
+          : null;
+        return {
+          ...stock,
+          supplier: supplier || null,
+          showTransactions: false,
+          transactions: []
         };
+      });
+      filteredItems.value = [...items.value];
+    })
+    .catch((error) => console.error('Error fetching stocks:', error));
+}
+function fetchSuppliers() {
+  return axios.get('http://localhost:8001/api/suppliers')
+    .then((res) => {
+      suppliers.value = res.data.suppliers;
+    })
+    .catch((error) => console.error('Error fetching suppliers:', error));
+}
+function filterItemList() {
+  const query = stockSearchQuery.value.toLowerCase().trim();
+  filteredItems.value = query
+    ? items.value.filter(
+      (stock) =>
+        stock.item_name.toLowerCase().includes(query) ||
+        stock.id.toString().includes(query)
+    )
+    : [...items.value];
+}
+function selectItem(stock) {
+  if (!selectedItems.value.some((selected) => selected.stock_id === stock.id)) {
+    const selectedStock = items.value.find((s) => s.id === stock.id);
 
-        this.selectedItems.push(newItem);
-      }
-    },
 
-    removeSelectedItem(index) {
-      this.selectedItems.splice(index, 1);
-    },
+    let supplier_ids = [];
+    if (Array.isArray(selectedStock.suppliers) && selectedStock.suppliers.length > 0) {
+      supplier_ids = selectedStock.suppliers.map(s => s.id);
+    } else if (selectedStock.supplier_id) {
+      supplier_ids = [selectedStock.supplier_id];
+    }
 
-    clearAllSelectedItems() {
-      this.selectedItems = [];
-    },
+    const newItem = {
+      stock_id: stock.id,
+      item_name: stock.item_name,
+      unit_of_measure: 'Pc',
+      supplier_ids,
+      quantity: 1,
+      skus: selectedStock.skus || [],
+      selectedSkus: [],
+      category_id: stock.category_id || null,
+      physical_count: stock.physical_count || 0,
+      on_hand: stock.on_hand || 0,
+      sold: stock.sold || 0,
+      price_per_unit: stock.price_per_unit || 0,
+      description: stock.description || '',
+    };
 
-    saveStock() {
-      const requests = this.selectedItems.map((stock) => {
-        const skusToRemove = stock.selectedSkus;
-        const quantityToRemove = skusToRemove.length;
+    selectedItems.value.push(newItem);
+  }
+}
 
-        skusToRemove.forEach((sku) => {
-          this.removeSkuFromDatabase(stock.stock_id, sku);
+function removeSelectedItem(index) {
+  selectedItems.value.splice(index, 1);
+}
 
-          const stockLogPayload = {
-            stock_id: stock.stock_id,
-            sku: sku,
-            qty: 1,
-            reason: this.selectedReason,
-            description: this.descriptionText || '',
-            removed_at: new Date().toISOString(),
-          };
+function clearAllSelectedItems() {
+  selectedItems.value = [];
+}
+function saveStock(username) {
+  console.log("saveStock called with username:", username);
+  if (!username) {
+    alert("User information not loaded. Please try again.");
+    return;
+  }
+  const requests = selectedItems.value.map((stock) => {
+    const skusToRemove = stock.selectedSkus;
+    const quantityToRemove = skusToRemove.length;
 
-          console.log(`Logging stock out for stock ID ${stock.stock_id}, SKU ${sku}:`, stockLogPayload);
+    return Promise.all(skusToRemove.map((sku) => {
+      removeSkuFromDatabase(stock.stock_id, sku);
 
-          axios.post(`http://localhost:8001/api/stock-log`, stockLogPayload)
-            .then(() => console.log(`Stock log recorded for SKU ${sku}`))
-            .catch((error) => console.error(`Error logging stock out for SKU ${sku}:`, error));
+      const stockLogPayload = {
+        action: 'stock-out',
+        user_name: username,
+        stock_id: stock.stock_id,
+        sku: sku,
+        qty: 1,
+        reason: 'Sold',
+        description: descriptionText.value || '',
+        removed_at: new Date().toISOString(),
+        date_released: dateReleased.value,
+        receiver: receiverName.value,
+      };
+
+      console.log("Stock log payload:", stockLogPayload);
+
+      return axios.post(`http://localhost:8001/api/stock-log`, stockLogPayload)
+        .then(() => {
+          console.log(`Stock log recorded for SKU ${sku}`);
+        })
+        .catch((error) => {
+          if (error.response) {
+            console.error("Error logging stock out for SKU", sku, ":", error.response.data);
+            if (error.response.data && error.response.data.errors) {
+              Object.entries(error.response.data.errors).forEach(([field, messages]) => {
+                console.error(`Validation error for "${field}": ${messages.join(', ')}`);
+              });
+            }
+          } else {
+            console.error("Error logging stock out for SKU", sku, ":", error.message);
+          }
+          throw error;
         });
-
+    }))
+      .then(() => {
         const stockPayload = {
           stock_id: stock.stock_id,
           item_name: stock.item_name,
@@ -397,56 +390,61 @@ export default {
           unit_of_measure: stock.unit_of_measure,
           physical_count: Math.max(0, (stock.physical_count || 0) - quantityToRemove),
           on_hand: stock.on_hand,
-          sold: this.selectedReason === 'Sold' ? (stock.sold || 0) + quantityToRemove : stock.sold,
+          sold: selectedReason.value === 'Sold' ? (stock.sold || 0) + quantityToRemove : stock.sold,
           price_per_unit: stock.price_per_unit,
           buying_price: stock.buying_price || 0,
           description: stock.description || '',
-          date_released: this.dateReleased,
-          receiver: this.receiverName
+          date_released: dateReleased.value,
+          receiver: receiverName.value
         };
-
-        console.log(`Updating stock for stock ID ${stock.stock_id}:`, stockPayload);
 
         return axios.put(`http://localhost:8001/api/stocks/${stock.stock_id}`, stockPayload);
       });
+  });
 
-      Promise.all(requests)
-        .then(() => {
-          console.log("All stock updates and logs have been processed successfully.");
-          this.$router.push('/stocks');
-        })
-        .catch((error) => {
-          console.error("Error processing stock out:", error);
-        });
-    },
+  Promise.all(requests)
+    .then(() => {
+      console.log("All stock updates and logs have been processed successfully.");
+      router.push('/stocks');
+    })
+    .catch((error) => {
+      console.error("Error processing stock out:", error);
+    });
+}
 
-    formatDate(date) {
-      const options = { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' };
-      return new Date(date).toLocaleDateString(undefined, options);
-    }
-  },
+function formatDate(date) {
+  const options = { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' };
+  return new Date(date).toLocaleDateString(undefined, options);
+}
 
-  toggleTransactionDetails(stock) {
-    if (!stock.showTransactions) {
-      this.fetchTransactions(stock.id);
-    }
-    stock.showTransactions = !stock.showTransactions;
-  },
-
-  fetchTransactions(stockId) {
-    const stock = this.items.find(s => s.id === stockId);
-    if (stock && !stock.transactions.length) {
-      axios
-        .get(`/api/transactions?stock_id=${stockId}`)
-        .then((response) => {
-          stock.transactions = response.data.transactions || [];
-        })
-        .catch((error) => {
-          console.error(`Failed to fetch transactions for stock ID ${stockId}:`, error);
-        });
-    }
+function toggleTransactionDetails(stock) {
+  if (!stock.showTransactions) {
+    fetchTransactions(stock.id);
   }
-};
+  stock.showTransactions = !stock.showTransactions;
+}
+
+function fetchTransactions(stockId) {
+  const stock = items.value.find(s => s.id === stockId);
+  if (stock && !stock.transactions.length) {
+    axios
+      .get(`/api/transactions?stock_id=${stockId}`)
+      .then((response) => {
+        stock.transactions = response.data.transactions || [];
+      })
+      .catch((error) => {
+        console.error(`Failed to fetch transactions for stock ID ${stockId}:`, error);
+      });
+  }
+}
+onMounted(() => {
+  fetchUserData();
+  fetchSuppliers().then(() => {
+    fetchItems();
+  });
+});
+
+
 </script>
 
 <style scoped>

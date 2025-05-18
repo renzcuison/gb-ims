@@ -7,17 +7,17 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration{
     public function up()
     {
-        Schema::create('stock_log', function (Blueprint $table) {
+        Schema::create('stock_log-in', function (Blueprint $table) {
             $table->id();
             $table->string('action');
             $table->string('user_name');
             $table->string('stock_id');
             $table->string('sku');
+            $table->string('supplier');
+            $table->string('cost_price');
             $table->string('description')->nullable();
             $table->integer('qty');
             $table->string('reason');
-            $table->date('date_released');
-            $table->string('receiver');
 
             $table->timestamps();
 
@@ -27,7 +27,7 @@ return new class extends Migration{
 
     public function down()
     {
-        Schema::dropIfExists('stock_log');
+        Schema::dropIfExists('stock_log-in');
     }
 };
 

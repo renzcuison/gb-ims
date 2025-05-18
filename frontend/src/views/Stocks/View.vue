@@ -53,8 +53,13 @@
             </router-link>
           </li>
           <li>
-            <router-link to="/order" active-class="router-link-active">
+            <router-link to="/admin/orders" active-class="router-link-active">
               <img src="/order.png" alt="Orders" class="sidebar-icon"> ORDERS
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/stocks/logs" active-class="router-link-active">
+              <img src="/pepper.png" alt="Logs" class="sidebar-icon"> LOGS
             </router-link>
           </li>
           <li>
@@ -74,8 +79,8 @@
         <div class="card-header">
           <h4 class="stocks">
             Stocks
-            <RouterLink to="/stocks/adjust" class="btn btn-primary float-end">Adjust</RouterLink>
-            <RouterLink to="/stocks/release" class="btn btn-primary float-end me-2">Release</RouterLink>
+            <RouterLink to="/stocks/adjust" class="btn btn-primary float-end">Report</RouterLink>
+            <RouterLink to="/stocks/release" class="btn btn-primary float-end me-2">Confirm</RouterLink>
             <RouterLink to="/stocks/in" class="btn btn-primary float-end me-2" @refresh-stocks="getStocks">In
             </RouterLink>
             <RouterLink to="/stocks/create" class="btn btn-primary float-end me-2">Add Item</RouterLink>
@@ -217,28 +222,28 @@
                         class="table table-sm transaction-table">
                         <thead>
                           <tr>
+                            <th>Date Acted</th>
                             <th>Action</th>
-                            <th>Date Performed</th>
-                            <th>Item ID</th>
-                            <th>SKU</th>
+                            <th>Acted By</th>
+                            <th>Serial #</th>
                             <th>Quantity</th>
                             <th>Reason</th>
                             <th>Description</th>
-                            <th>Released</th>
-                            <th>Reciever</th>
+                            <th>Pickup Date</th>
+                            <th>Receiver</th>
                           </tr>
                         </thead>
                         <tbody>
                           <tr v-for="log in stockLogs[stock.id]" :key="log.id">
-                            <td>{{ log.description || '-' }}</td>
                             <td>{{ formatDate(log.created_at) }}</td>
-                            <td>{{ log.stock_id }}</td>
+                            <td>{{ log.action || '-' }}</td>
+                            <td>{{ log.user_name || '-' }}</td>
                             <td>{{ log.sku || '-' }}</td>
                             <td>{{ log.qty }}</td>
                             <td>{{ log.reason }}</td>
                             <td>{{ log.description || '-' }}</td>
-                            <td>{{ stock.date_released || '' }}</td>
-                            <td>{{ stock.receiver || '-' }}</td>
+                            <td>{{ log.date_released || '-' }}</td>
+                            <td>{{ log.receiver || '-' }}</td>
                           </tr>
                         </tbody>
                       </table>
@@ -375,7 +380,7 @@ export default {
       console.log("Refreshing stock data...");
       console.log("Suppliers before mapping stocks:", this.suppliers);
 
-      axios.get('http://localhost:8001/api/stocks')
+      return axios.get('http://localhost:8001/api/stocks')
         .then((res) => {
           this.stocks = res.data.stocks.map((stock) => {
             const supplierName =

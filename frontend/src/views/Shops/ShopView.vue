@@ -23,6 +23,7 @@
         <button class="icon-button" onclick="window.location.href='/order'">
           <img src="/bag.png" alt="Bag" class="icon-image">
         </button>
+        <button @click="handleLogout" class="dropdown-item">Logout</button>
       </div>
     </header>
 
