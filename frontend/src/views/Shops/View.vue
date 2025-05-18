@@ -24,14 +24,22 @@
           <tbody v-if="orders.length > 0">
             <tr v-for="order in orders" :key="order.id">
               <td>
-                <input type="checkbox" v-model="selectedItems" :value="order" class="checkbox" />
+                <input type="checkbox" :value="order.id" v-model="selectedItems" class="checkbox"
+                  :disabled="order.stock?.on_hand === 0" />
               </td>
-              <td>{{ order.stock ? order.stock.item_name : "Loading..." }}</td>
+              <td>
+                <div>{{ order.stock ? order.stock.item_name : "Loading..." }}</div>
+                <div v-if="order.stock?.on_hand === 0" class="text-danger small">
+                  Option not available, out of stock
+                </div>
+              </td>
               <td>
                 <div class="quantity-controls">
-                  <button @click="updateQuantity(order, -1)" class="btn decrement-btn">-</button>
+                  <button @click="updateQuantity(order, -1)" class="btn decrement-btn"
+                    :disabled="order.stock?.on_hand === 0">-</button>
                   <span class="quantity-display">{{ order.quantity }}</span>
-                  <button @click="updateQuantity(order, 1)" class="btn increment-btn">+</button>
+                  <button @click="updateQuantity(order, 1)" class="btn increment-btn"
+                    :disabled="order.stock?.on_hand === 0">+</button>
                 </div>
               </td>
               <td>₱{{ order.price_per_unit }}</td>
@@ -47,9 +55,14 @@
             </tr>
           </tbody>
         </table>
+        <div v-if="selectedItems.length" class="text-end mt-3">
+          <button @click="deleteSelectedItems" class="btn btn-danger">
+            🗑 Remove Selected ({{ selectedItems.length }})
+          </button>
+        </div>
       </div>
       <div class="checkout-footer">
-        <button class="btn checkout-btn" @click="proceedToCheckout">
+        <button class="btn checkout-btn" @click="proceedToCheckout" :disabled="!selectedItems.length">
           Proceed to Checkout
         </button>
       </div>
@@ -71,13 +84,35 @@ export default {
   methods: {
     async fetchOrders() {
       try {
-        const ordersResponse = await fetch("http://localhost:8001/api/orders");
-        const ordersData = await ordersResponse.json();
-        this.orders = ordersData;
+        const customerOrderId = localStorage.getItem("customer_order_id");
+
+        if (!customerOrderId) {
+          console.warn("No customer_order_id found in localStorage.");
+          return;
+        }
+
+        const token = localStorage.getItem("authToken");
+
+        const response = await fetch(`http://localhost:8001/api/orders?customer_order_id=${customerOrderId}`, {
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await response.json();
+
+        if (!Array.isArray(data)) {
+          console.error("Unexpected response:", data);
+          return;
+        }
+
+        this.orders = data;
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching customer orders:", error);
       }
     },
+
 
     async updateQuantity(order, delta) {
       const newQuantity = order.quantity + delta;
@@ -118,6 +153,40 @@ export default {
       return (order.quantity * order.price_per_unit).toFixed(2);
     },
 
+    async deleteSelectedItems() {
+      if (!confirm(`Are you sure you want to remove ${this.selectedItems.length} selected item(s)?`)) return;
+
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        alert("Missing auth token.");
+        return;
+      }
+
+      try {
+        const deletePromises = this.selectedItems.map(id =>
+          fetch(`http://localhost:8001/api/orders/${id}`, {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          })
+        );
+
+        await Promise.all(deletePromises);
+
+        // Filter out orders using just the ID
+        this.orders = this.orders.filter(order => !this.selectedItems.includes(order.id));
+        this.selectedItems = [];
+
+        alert("Selected items removed!");
+      } catch (error) {
+        console.error("Error removing selected items:", error);
+        alert("Something went wrong removing the items.");
+      }
+    },
+
     async deleteOrder(orderId) {
       if (confirm("Are you sure you want to remove this item?")) {
         try {
@@ -145,13 +214,27 @@ export default {
         return;
       }
 
-      console.log("📦 Selected Items to Checkout:", this.selectedItems);
+      // 🧠 Map selected IDs to order objects
+      const selectedOrders = this.orders.filter(order =>
+        this.selectedItems.includes(order.id)
+      );
 
-      // ✅ Remove checked-out items from cart
-      const checkedOutIds = this.selectedItems.map(item => item.id);
+      // 🛑 Block checkout if any selected item is out of stock
+      const outOfStockItems = selectedOrders.filter(
+        order => !order.stock || order.stock.on_hand === 0
+      );
+
+      if (outOfStockItems.length > 0) {
+        const names = outOfStockItems.map(i => i.stock?.item_name || "Unknown Item").join(", ");
+        alert(`❌ The following items are out of stock and cannot be checked out: ${names}`);
+        return;
+      }
+
+      // ✅ Continue with checkout
+      const itemsToCheckout = JSON.parse(JSON.stringify(selectedOrders));
+      const checkedOutIds = itemsToCheckout.map(item => item.id);
 
       try {
-        // ✅ Call API to remove items from backend cart
         await Promise.all(
           checkedOutIds.map(async (id) => {
             await fetch(`http://localhost:8001/api/orders/${id}`, {
@@ -161,19 +244,18 @@ export default {
           })
         );
 
-        // ✅ Remove from frontend state
         this.orders = this.orders.filter(order => !checkedOutIds.includes(order.id));
-
         console.log("✅ Checked out items removed from cart:", checkedOutIds);
+
+        this.$router.push({
+          name: "Checkout",
+          query: {
+            orders: encodeURIComponent(JSON.stringify(itemsToCheckout)),
+          },
+        });
       } catch (error) {
         console.error("❌ Error removing checked-out items from cart:", error);
       }
-
-      // ✅ Redirect to checkout page
-      this.$router.push({
-        name: "Checkout",
-        query: { orders: encodeURIComponent(JSON.stringify(this.selectedItems)) },
-      });
     },
   },
 };
@@ -356,6 +438,16 @@ export default {
   color: #6c757d;
   text-align: center;
 }
+
+.text-danger {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+.small {
+  font-size: 12px;
+}
+
 
 /* Responsive Design */
 @media (max-width: 768px) {

@@ -49,14 +49,26 @@
 
       <div class="card-body">
         <div>
-          <h5>Shipping Information</h5>
+          <!-- <h5>Order Information</h5> -->
           <ul>
             <li><strong>Order Code:</strong> {{ order.order_code }}</li>
-            <li><strong>Name:</strong> {{ order.customer_name }}</li>
-            <li><strong>Address:</strong> {{ order.shipping_address }}</li>
-            <li><strong>City:</strong> {{ order.city }}</li>
-            <li><strong>Postal Code:</strong> {{ order.postal_code }}</li>
+            <li><strong>{{ order.payment_method === 'gcash' ? 'GCash Name' : 'Name' }}:</strong> {{ order.customer_name
+            }}</li>
             <li><strong>Phone:</strong> {{ order.phone }}</li>
+
+            <li v-if="order.payment_method === 'gcash'">
+              <strong>Reference Number:</strong> {{ order.shipping_address }}
+            </li>
+
+            <li v-if="order.payment_method === 'cod' && order.shipping_address">
+              <strong>Address:</strong> {{ order.shipping_address }}
+            </li>
+            <li v-if="order.payment_method === 'cod' && order.city">
+              <strong>City:</strong> {{ order.city }}
+            </li>
+            <li v-if="order.payment_method === 'cod' && order.postal_code">
+              <strong>Postal Code:</strong> {{ order.postal_code }}
+            </li>
           </ul>
         </div>
 
@@ -90,13 +102,7 @@
 
         <div class="mt-4">
           <h5>Payment Method</h5>
-          <p>{{ order.payment_method === 'gcash' ? 'GCash' : 'Cash on Delivery' }}</p>
-          <div v-if="order.payment_method === 'gcash'" class="mt-2">
-            <h6>GCash Details:</h6>
-            <p>Janriz Christian U. Prado</p>
-            <p>Davao City</p>
-            <p>09167813365</p>
-          </div>
+          <p>{{ order.payment_method === 'gcash' ? 'GCash' : 'Cash on Pickup' }}</p>
         </div>
 
 
@@ -114,8 +120,10 @@ export default {
     return {
       orders: [],
       statusOptions: [
-        'Pending', 'Approved', 'Cancelled', 'Processing',
-        'Shipped', 'Delivered', 'Refunded', 'On Hold'
+        'Pending',
+        'Approved',
+        'Cancelled',
+        'Refunded',
       ]
     };
   },

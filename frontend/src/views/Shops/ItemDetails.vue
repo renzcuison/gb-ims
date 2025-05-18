@@ -43,19 +43,35 @@
             <p>{{ item.description }}</p>
           </div>
 
-          <!-- ✅ Fixed stock status logic -->
-          <p v-if="stockItem && stockItem.on_hand > 0">In Stock</p>
-          <p v-else-if="stockItem && stockItem.on_hand === 0">Out of Stock</p>
-          <p v-else>Loading stock info...</p>
+          <p v-if="stockItem && stockItem.on_hand > 0">✅ In Stock</p>
+          <p v-if="stockItem && stockItem.on_hand > 0">
+            Available pieces: {{ stockItem.on_hand }}
+          </p>
+          <p v-else-if="stockItem && stockItem.on_hand === 0">
+            ❌ Out of Stock
+          </p>
+          <p v-else>
+            Loading stock info...
+          </p>
 
           <div class="quantity-selector">
-            <button class="quantity-btn" @click="decreaseQuantity">-</button>
+            <button class="quantity-btn" @click="decreaseQuantity" :disabled="isOutOfStock">-</button>
             <span class="quantity-display">{{ quantity }}</span>
-            <button class="quantity-btn" @click="increaseQuantity">+</button>
+            <button class="quantity-btn" @click="increaseQuantity"
+              :disabled="isOutOfStock || quantity >= stockItem?.on_hand">
+              +
+            </button>
           </div>
           <div class="actions">
-            <button class="buy-now" @click="buyNow">Buy Now</button>
-            <button class="add-to-cart" @click="createOrder">Add to Cart</button>
+            <button class="buy-now" @click="buyNow" :disabled="isOutOfStock"
+              :class="{ 'disabled-button': isOutOfStock }">
+              Buy Now
+            </button>
+
+            <button class="add-to-cart" @click="createOrder" :disabled="isOutOfStock"
+              :class="{ 'disabled-button': isOutOfStock }">
+              Add to Cart
+            </button>
           </div>
         </div>
       </div>
@@ -78,9 +94,14 @@ export default {
     this.fetchItemAndStockDetails();
     this.loadCart();
   },
+  computed: {
+    isOutOfStock() {
+      return this.stockItem?.on_hand === 0;
+    }
+  },
   methods: {
     async fetchItemAndStockDetails() {
-      const itemId = this.$route.params.id;
+      const itemId = String(this.$route.params.id); // 🛠 Fix: Ensure ID is a string
       if (!itemId) {
         console.error("Item ID is missing");
         return;
@@ -104,7 +125,6 @@ export default {
           description: stock.description || "No description available",
         };
 
-        // ✅ Assign correct stock data including on_hand
         this.stockItem = {
           on_hand: Number(stock.on_hand),
         };
@@ -126,7 +146,9 @@ export default {
     },
 
     increaseQuantity() {
-      this.quantity++;
+      if (this.stockItem && this.quantity < this.stockItem.on_hand) {
+        this.quantity++;
+      }
     },
     decreaseQuantity() {
       if (this.quantity > 1) {
@@ -160,32 +182,93 @@ export default {
         },
       });
     },
-    createOrder() {
+    async createOrder() {
       if (!this.item.id) {
-        console.error("Stock ID is missing.");
         alert("Error: Stock ID is missing.");
         return;
       }
 
-      const existingItemIndex = this.cart.findIndex(cartItem => cartItem.stock_id === this.item.id);
-      if (existingItemIndex !== -1) {
-        this.cart[existingItemIndex] = {
-          ...this.cart[existingItemIndex],
-          quantity: this.cart[existingItemIndex].quantity + this.quantity
-        };
-      } else {
-        this.cart.push({
-          stock_id: String(this.item.id),
-          quantity: this.quantity,
-          price_per_unit: parseFloat(this.item.price),
-        });
+      const customerOrderId = localStorage.getItem("customer_order_id");
+      const token = localStorage.getItem("authToken");
+
+      if (!customerOrderId || !token) {
+        alert("Missing order ID or auth token. Please log in again.");
+        return;
       }
 
-      localStorage.setItem("cart", JSON.stringify(this.cart));
+      try {
+        // 1️⃣ Fetch current cart items from backend
+        const existingRes = await fetch(`http://localhost:8001/api/orders?customer_order_id=${customerOrderId}`, {
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const existingOrders = await existingRes.json();
+
+        // 2️⃣ Check if item already exists in cart
+        const matchingOrder = existingOrders.find(order => order.stock_id === this.item.id);
+
+        if (matchingOrder) {
+          // 3️⃣ Item exists → update quantity
+          const updatedQuantity = matchingOrder.quantity + this.quantity;
+
+          const updateRes = await fetch(`http://localhost:8001/api/orders/${matchingOrder.id}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              customer_order_id: customerOrderId,
+              stock_id: this.item.id,
+              quantity: updatedQuantity,
+              price_per_unit: this.item.price,
+            }),
+          });
+
+          if (!updateRes.ok) {
+            const err = await updateRes.json();
+            throw new Error(err.message || "Failed to update cart item.");
+          }
+
+          alert("Cart updated with additional quantity!");
+
+        } else {
+          // 4️⃣ Item doesn't exist → create new order
+          const createRes = await fetch("http://localhost:8001/api/orders", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              customer_order_id: customerOrderId,
+              stock_id: this.item.id,
+              quantity: this.quantity,
+            }),
+          });
+
+          if (!createRes.ok) {
+            const error = await createRes.json();
+            throw new Error(error.message || "Failed to add to cart.");
+          }
+
+          alert("Item added to cart!");
+        }
+
+      } catch (error) {
+        console.error("❌ Cart operation failed:", error.message);
+        alert("Error updating cart. Please try again.");
+      }
     },
   },
 };
 </script>
+
 
 <style scoped>
 @font-face {
@@ -469,5 +552,13 @@ export default {
 
 .add-to-cart:hover {
   background-color: #0086E7;
+}
+
+.disabled-button {
+  background-color: #ccc !important;
+  color: #666 !important;
+  cursor: not-allowed !important;
+  pointer-events: none;
+  border: none;
 }
 </style>

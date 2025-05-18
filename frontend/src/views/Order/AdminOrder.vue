@@ -39,7 +39,7 @@
                     <li><router-link to="/employees" active-class="router-link-active"><img src="/employees.png"
                                 class="sidebar-icon"> EMPLOYEES</router-link></li>
                     <li><router-link to="/admin/orders" active-class="router-link-active"><img src="/order.png"
-                                class="sidebar-icon"> ORDERS</router-link></li>
+                                class="sidebar-icon"> CUSTOMER ORDERS</router-link></li>
                     <li><router-link to="/shop" active-class="router-link-active"><img src="/shop.png"
                                 class="sidebar-icon"> SHOP</router-link></li>
                 </ul>
@@ -75,34 +75,54 @@
                             <td>{{ order.item_name || 'N/A' }}</td>
                             <td @click.stop>
                                 <select v-model="order.status" @change="updateOrderStatus(order)"
-                                    class="form-select form-select-sm" :disabled="order.status === 'Approved'">
+                                    class="form-select form-select-sm" :disabled="!canManuallyChangeStatus(order)">
                                     <option v-for="status in statusOptions" :key="status" :value="status">{{ status }}
                                     </option>
                                 </select>
                             </td>
-                            <td>{{ order.payment_method === 'gcash' ? 'GCash' : 'COD' }}</td>
+                            <td>{{ order.payment_method === 'gcash' ? 'GCash' : 'Cash on Pickup' }}</td>
                             <td>{{ order.orderTime || 'N/A' }}</td>
                             <td @click.stop>
                                 <template v-if="order.payment_method === 'gcash'">
-                                    <button class="btn btn-sm text-white" :style="{
-                                        backgroundColor: order.status === 'Approved' ? 'green' : '#0086E7',
-                                        cursor: order.status === 'Approved' ? 'default' : 'pointer'
-                                    }" :disabled="order.status === 'Approved'" @click="verifyPayment(order)">
+                                    <button class="btn btn-sm text-white"
+                                        :style="{ backgroundColor: order.status === 'Approved' ? 'green' : '#0086E7' }"
+                                        :disabled="order.status === 'Approved'"
+                                        @click="order.status !== 'Approved' && verifyPayment(order)">
                                         {{ order.status === 'Approved' ? 'Verified' : 'Verify Payment' }}
                                     </button>
                                 </template>
+                                <!-- ✅ Show Unverify Button if Approved -->
+                                <div v-if="order.payment_method === 'gcash' && order.status === 'Approved'"
+                                    class="mt-3">
+                                    <button class="btn btn-outline-danger btn-sm"
+                                        @click.stop="togglePaymentStatus(order)">
+                                        Unverify Payment
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         <tr v-if="expandedOrders.includes(order.id)">
                             <td colspan="9">
                                 <div class="p-3 text-start bg-light rounded">
-                                    <p><strong>Address:</strong> {{ order.shipping_address }}</p>
-                                    <p><strong>City:</strong> {{ order.city }}</p>
-                                    <p><strong>Postal Code:</strong> {{ order.postal_code }}</p>
+                                    <p><strong>{{ order.payment_method === 'gcash' ? 'GCash Name' : 'Customer Name'
+                                            }}:</strong> {{
+                                                order.customer_name }}</p>
                                     <p><strong>Phone:</strong> {{ order.phone }}</p>
+
+                                    <template v-if="order.payment_method === 'gcash'">
+                                        <p><strong>Reference Number:</strong> {{ order.shipping_address }}</p>
+                                    </template>
+
                                     <p><strong>Payment Method:</strong> {{ order.payment_method === 'gcash' ? 'GCash' :
-                                        'Cash on Delivery' }}
-                                    </p>
+                                        'Cash on Pickup' }}</p>
+                                    <template v-if="order.orders && order.orders.length > 1">
+                                        <p><strong>Items Ordered:</strong></p>
+                                        <ul class="mb-2">
+                                            <li v-for="(item, index) in order.orders" :key="index">
+                                                {{ item.stock?.item_name }} - Qty: {{ item.quantity }}
+                                            </li>
+                                        </ul>
+                                    </template>
                                 </div>
                             </td>
                         </tr>
@@ -123,11 +143,7 @@ export default {
                 'Pending',
                 'Approved',
                 'Cancelled',
-                'Processing',
-                'Shipped',
-                'Delivered',
                 'Refunded',
-                'On Hold',
             ],
         };
     },
@@ -201,10 +217,12 @@ export default {
 
         async updateOrderStatus(order) {
             try {
+                const token = localStorage.getItem('authToken');
                 await fetch(`http://localhost:8001/api/customer-orders/${order.id}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
                     },
                     body: JSON.stringify({ status: order.status }),
                 });
@@ -228,6 +246,37 @@ export default {
                 } catch (error) {
                     console.error('Error canceling order:', error);
                 }
+            }
+        },
+
+        canManuallyChangeStatus(order) {
+            return order.status !== 'Approved';
+        },
+
+        async togglePaymentStatus(order) {
+            const confirmed = confirm('Are you sure you want to unverify this payment?');
+            if (!confirmed) return;
+
+            const token = localStorage.getItem('authToken');
+            try {
+                const response = await fetch(`http://localhost:8001/api/customer-orders/${order.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ status: 'Pending' }),
+                });
+
+                if (!response.ok) throw new Error('Failed to revert payment status.');
+
+                order.status = 'Pending';
+                this.orders = [...this.orders];
+
+                alert('Order status reverted to Pending.');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Unverify failed.');
             }
         },
     },

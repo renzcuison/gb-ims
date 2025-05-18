@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Auth\Events\Registered; 
 use App\Notifications\VerifyEmailWithCustomUrl;
+
 class UserController extends Controller
 {
-
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -23,13 +23,11 @@ class UserController extends Controller
                 'regex:/^((\+63)|0)\d{10}$/',
                 'unique:users',
             ],
-            'role' => 'nullable|in:user,admin', 
+            'role' => 'nullable|in:user,admin',
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'errors' => $validator->errors(),
-            ], 422);
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
         $role = $request->role ?? 'user';
@@ -39,17 +37,16 @@ class UserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $role,
-            'phone_number' => $request->phone_number, 
+            'phone_number' => $request->phone_number,
         ]);
 
-        $user->notify(new VerifyEmailWithCustomUrl($user)); 
+        $user->notify(new VerifyEmailWithCustomUrl($user));
 
         return response()->json([
             'message' => 'User registered successfully. Please verify your email.',
             'user' => $user,
         ], 201);
     }
-
 
     public function login(Request $request)
     {
@@ -73,25 +70,21 @@ class UserController extends Controller
         ]);
     }
 
-
     public function index()
     {
-        $users = User::all();
-
+        $users = User::where('role', 'user')->get(['id', 'name', 'email', 'phone_number', 'role', 'email_verified_at']);
         return response()->json($users);
     }
 
     public function getUser(Request $request)
     {
         $user = Auth::user();
-
         return response()->json($user);
     }
 
     public function checkRole(Request $request)
     {
         $user = Auth::user();
-
         if ($user && $user->role === 'admin') {
             return response()->json(['message' => 'User is an admin']);
         } else {
@@ -99,33 +92,25 @@ class UserController extends Controller
         }
     }
 
-
     public function update(Request $request, $id)
     {
         try {
-
             $user = User::findOrFail($id);
-
 
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email,' . $id,
-                'phone_number' => 'nullable|string',
-                'role' => 'nullable|in:user,admin', 
+                'phone_number' => 'required|string|unique:users,phone_number,' . $id,
+                'role' => 'required|in:user,admin',
             ]);
 
-
-            $user->update($validated); 
+            $user->update($validated);
 
             return response()->json(['message' => 'User updated successfully!', 'user' => $user], 200);
         } catch (\Exception $e) {
-
-
-
             return response()->json(['error' => 'User not found or could not be updated.'], 500);
         }
     }
-
 
     public function destroy($id)
     {
@@ -135,9 +120,6 @@ class UserController extends Controller
 
             return response()->json(['message' => 'User deleted successfully!'], 200);
         } catch (\Exception $e) {
-
-
-
             return response()->json(['error' => 'User not found or could not be deleted.'], 500);
         }
     }

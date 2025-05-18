@@ -11,25 +11,19 @@ use Illuminate\Support\Facades\DB;
 class CustomerOrderController extends Controller
 {
     public function index(Request $request)
-{
-    $user = $request->user();
+    {
+        $user = $request->user();
 
-    if (!$user) {
-        return response()->json(['error' => 'Unauthenticated.'], 401);
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated.'], 401);
+        }
+
+        $orders = $user->role === 'admin'
+            ? CustomerOrder::with('orders.stock')->get()
+            : CustomerOrder::with('orders.stock')->where('user_id', $user->id)->get();
+
+        return response()->json($orders);
     }
-
-    if ($user->role === 'admin') {
-        
-        $orders = CustomerOrder::with('orders.stock')->get();
-    } else {
-        
-        $orders = CustomerOrder::with('orders.stock')
-            ->where('user_id', $user->id)
-            ->get();
-    }
-
-    return response()->json($orders);
-}
 
     public function show($id)
     {
@@ -44,32 +38,45 @@ class CustomerOrderController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $baseRules = [
             'customer_name' => 'required|string',
-            'shipping_address' => 'required|string',
-            'city' => 'required|string',
-            'postal_code' => 'required|string',
             'phone' => 'required|string',
-            'payment_method' => 'required|string',
+            'payment_method' => 'required|string|in:cod,gcash',
             'total_price' => 'required|numeric',
             'stocks' => 'required|array',
             'stocks.*.stock_id' => 'required|exists:stocks,id',
             'stocks.*.quantity' => 'required|integer|min:1',
             'stocks.*.price_per_unit' => 'required|numeric|min:0',
             'status' => 'nullable|string|in:Pending,Approved,Cancelled,Processing,Shipped,Delivered,Refunded,On Hold',
-        ]);
+        ];
+
+        // Conditionally required fields
+        if ($request->payment_method === 'gcash') {
+            $baseRules['shipping_address'] = 'required|string'; // used as reference number
+        } else {
+            $baseRules['shipping_address'] = 'nullable|string';
+        }
+
+        // City and postal code are no longer used but still exist in DB
+        $baseRules['city'] = 'nullable|string';
+        $baseRules['postal_code'] = 'nullable|string';
+
+        $validated = $request->validate($baseRules);
+
+        // Set empty values if not provided
+        $validated['shipping_address'] = $validated['shipping_address'] ?? '';
+        $validated['city'] = $validated['city'] ?? '';
+        $validated['postal_code'] = $validated['postal_code'] ?? '';
 
         DB::beginTransaction();
 
         try {
-            // Get authenticated user
             $user = auth()->user();
 
             if (!$user) {
                 return response()->json(['error' => 'Unauthenticated.'], 401);
             }
 
-            // Create the customer order with user_id included
             $order = CustomerOrder::create([
                 'order_code' => uniqid('ORD-'),
                 'customer_name' => $validated['customer_name'],
@@ -80,14 +87,14 @@ class CustomerOrderController extends Controller
                 'payment_method' => $validated['payment_method'],
                 'total_price' => $validated['total_price'],
                 'status' => $validated['status'] ?? 'Pending',
-                'user_id' => $user->id,  // **Important: assign user_id here**
+                'user_id' => $user->id,
             ]);
 
-            // Process each ordered stock
             foreach ($validated['stocks'] as $stockData) {
                 $stock = Stock::find($stockData['stock_id']);
 
                 if ($stock->on_hand < $stockData['quantity']) {
+                    DB::rollBack();
                     return response()->json([
                         'error' => "Not enough stock available for item: {$stock->item_name}"
                     ], 400);
@@ -165,4 +172,3 @@ class CustomerOrderController extends Controller
         }
     }
 }
-

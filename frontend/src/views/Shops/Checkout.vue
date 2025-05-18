@@ -34,13 +34,32 @@
       <div class="card-body">
         <div class="row">
           <div class="col-md-6">
-            <h5>Shipping Information</h5>
+            <h5>Customer Information</h5>
             <form>
-              <div v-for="(label, key) in shippingLabels" :key="key" class="mb-3">
-                <label :for="key" class="form-label">{{ label }}</label>
-                <input type="text" class="form-control" :id="key" v-model="shipping[key]"
-                  :class="{ 'is-invalid': errors[key] }" @blur="validateField(key)" />
-                <div v-if="errors[key]" class="invalid-feedback">{{ errors[key] }}</div>
+              <!-- GCash Name or Full Name -->
+              <div class="mb-3">
+                <label for="name" class="form-label">
+                  {{ paymentMethod === 'gcash' ? 'GCash Name' : 'Full Name' }}
+                </label>
+                <input type="text" class="form-control" id="name" v-model="shipping.name"
+                  :class="{ 'is-invalid': errors.name }" @blur="validateField('name')" />
+                <div v-if="errors.name" class="invalid-feedback">{{ errors.name }}</div>
+              </div>
+
+              <!-- Phone Number -->
+              <div class="mb-3">
+                <label for="phone" class="form-label">Phone Number</label>
+                <input type="text" class="form-control" id="phone" v-model="shipping.phone"
+                  :class="{ 'is-invalid': errors.phone }" @blur="validateField('phone')" />
+                <div v-if="errors.phone" class="invalid-feedback">{{ errors.phone }}</div>
+              </div>
+
+              <!-- Reference Number (Only for GCash) -->
+              <div v-if="paymentMethod === 'gcash'" class="mb-3">
+                <label for="address" class="form-label">Reference Number</label>
+                <input type="text" class="form-control" id="address" v-model="shipping.address"
+                  :class="{ 'is-invalid': errors.address }" @blur="validateField('address')" />
+                <div v-if="errors.address" class="invalid-feedback">{{ errors.address }}</div>
               </div>
             </form>
           </div>
@@ -56,7 +75,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="order in orders" :key="order.item.id">
+                <tr v-for="order in orders" :key="order.id">
                   <td>{{ order.item.name }}</td>
                   <td>{{ order.quantity }}</td>
                   <td>₱{{ calculateTotalPrice(order) }}</td>
@@ -71,7 +90,7 @@
 
             <div class="mt-4">
               <h5>Choose Payment Method</h5>
-              <label><input type="radio" v-model="paymentMethod" value="cod" /> Cash on Delivery</label>
+              <label><input type="radio" v-model="paymentMethod" value="cod" /> Cash on Pickup</label>
               <label><input type="radio" v-model="paymentMethod" value="gcash" /> GCash</label>
 
               <div v-if="paymentMethod === 'gcash'" class="mt-3">
@@ -79,7 +98,7 @@
                 <p>Janriz Christian U. Prado</p>
                 <p>Davao City</p>
                 <p>09167813365</p>
-                <p>Please send the deposit slip/tracking number to jcuprado@gmail.com</p>
+                <p>NOTE: Before placing the order, please put the reference number.</p>
               </div>
             </div>
 
@@ -103,41 +122,57 @@ export default {
       shipping: { name: '', address: '', city: '', postalCode: '', phone: '' },
       shippingLabels: {
         name: "Full Name",
-        address: "Address",
-        city: "City",
-        postalCode: "Postal Code",
         phone: "Phone Number",
+        address: "Reference Number",
       },
       errors: {},
       paymentMethod: '',
     };
   },
   created() {
-    console.log("Raw query parameters:", this.$route.query);
     const ordersQuery = this.$route.query.orders;
+
     if (ordersQuery) {
       try {
-        this.orders = JSON.parse(ordersQuery);
-        console.log("Parsed orders:", this.orders);
+        const decoded = decodeURIComponent(ordersQuery); // ✅ decode first
+        const parsedOrders = JSON.parse(decoded); // ✅ then parse
+
+        // Normalize to use a common `item` field
+        this.orders = parsedOrders.map(order => {
+          const item = order.item || order.stock || {};
+          return {
+            ...order,
+            item: {
+              id: item.id || order.id,
+              name: item.name || item.item_name || 'Unnamed Item',
+              price_per_unit: item.price_per_unit || order.price_per_unit || 0,
+            },
+          };
+        });
+
+        console.log("✅ Orders parsed and normalized:", this.orders);
+
       } catch (error) {
-        console.error("Error parsing selected orders:", error);
+        console.error("❌ Error parsing selected orders:", error);
       }
+    } else {
+      console.warn("⚠️ No 'orders' found in query params.");
     }
   },
   computed: {
     totalPrice() {
       return this.orders
-        .reduce(
-          (acc, order) =>
-            acc + Number(order.quantity) * Number(order.item.price_per_unit),
-          0
-        )
+        .reduce((acc, order) => {
+          const unitPrice = order.item?.price_per_unit || 0;
+          return acc + Number(order.quantity) * Number(unitPrice);
+        }, 0)
         .toFixed(2);
     },
   },
   methods: {
     calculateTotalPrice(order) {
-      return (Number(order.quantity) * Number(order.item.price_per_unit)).toFixed(2);
+      const unitPrice = order.item?.price_per_unit || 0;
+      return (Number(order.quantity) * Number(unitPrice)).toFixed(2);
     },
     validateField(field) {
       if (!this.shipping[field]) {
@@ -147,7 +182,20 @@ export default {
       }
     },
     validateForm() {
-      Object.keys(this.shipping).forEach(this.validateField);
+      this.errors = {}; // Clear previous errors
+
+      if (!this.shipping.name) {
+        this.errors.name = this.paymentMethod === 'gcash' ? 'GCash Name is required' : 'Full Name is required';
+      }
+
+      if (!this.shipping.phone) {
+        this.errors.phone = 'Phone Number is required';
+      }
+
+      if (this.paymentMethod === 'gcash' && !this.shipping.address) {
+        this.errors.address = 'Reference Number is required';
+      }
+
       return Object.keys(this.errors).length === 0;
     },
     async placeOrder() {
@@ -177,8 +225,7 @@ export default {
 
       console.log("Sending order request:", requestBody);
 
-      const token = localStorage.getItem('authToken'); // Ensure this is the correct key
-
+      const token = localStorage.getItem('authToken');
       if (!token) {
         alert('You are not authenticated. Please login.');
         this.$router.push('/login');
@@ -194,7 +241,7 @@ export default {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${token}`,
             },
-            withCredentials: true, // Optional but can help with some setups
+            withCredentials: true,
           }
         );
 
