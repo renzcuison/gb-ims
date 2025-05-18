@@ -75,7 +75,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="order in orders" :key="order.item.id">
+                <tr v-for="order in orders" :key="order.id">
                   <td>{{ order.item.name }}</td>
                   <td>{{ order.quantity }}</td>
                   <td>₱{{ calculateTotalPrice(order) }}</td>
@@ -130,31 +130,49 @@ export default {
     };
   },
   created() {
-    console.log("Raw query parameters:", this.$route.query);
     const ordersQuery = this.$route.query.orders;
+
     if (ordersQuery) {
       try {
-        this.orders = JSON.parse(ordersQuery);
-        console.log("Parsed orders:", this.orders);
+        const decoded = decodeURIComponent(ordersQuery); // ✅ decode first
+        const parsedOrders = JSON.parse(decoded); // ✅ then parse
+
+        // Normalize to use a common `item` field
+        this.orders = parsedOrders.map(order => {
+          const item = order.item || order.stock || {};
+          return {
+            ...order,
+            item: {
+              id: item.id || order.id,
+              name: item.name || item.item_name || 'Unnamed Item',
+              price_per_unit: item.price_per_unit || order.price_per_unit || 0,
+            },
+          };
+        });
+
+        console.log("✅ Orders parsed and normalized:", this.orders);
+
       } catch (error) {
-        console.error("Error parsing selected orders:", error);
+        console.error("❌ Error parsing selected orders:", error);
       }
+    } else {
+      console.warn("⚠️ No 'orders' found in query params.");
     }
   },
   computed: {
     totalPrice() {
       return this.orders
-        .reduce(
-          (acc, order) =>
-            acc + Number(order.quantity) * Number(order.item.price_per_unit),
-          0
-        )
+        .reduce((acc, order) => {
+          const unitPrice = order.price_per_unit || order.stock?.price_per_unit || 0;
+          return acc + Number(order.quantity) * Number(unitPrice);
+        }, 0)
         .toFixed(2);
     },
   },
   methods: {
     calculateTotalPrice(order) {
-      return (Number(order.quantity) * Number(order.item.price_per_unit)).toFixed(2);
+      const unitPrice = order.price_per_unit || order.stock?.price_per_unit || 0;
+      return (Number(order.quantity) * Number(unitPrice)).toFixed(2);
     },
     validateField(field) {
       if (!this.shipping[field]) {
