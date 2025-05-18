@@ -95,7 +95,7 @@ Route::get('email/verify/{id}/{hash}', [VerificationController::class, 'verify']
  });
 
 Route::post('/login', [UserController::class, 'login'])->name('login');
-
+Route::get('/users/{id}', [UserController::class, 'show']);
 Route::prefix('users')->group(function () {
     Route::post('/', [UserController::class, 'register']);
     Route::get('/', [UserController::class, 'index']);
@@ -141,6 +141,13 @@ Route::put('customers/{id}', [CUSTOMERSController::class, 'update']);
 Route::delete('customers/{id}', [CUSTOMERSController::class, 'destroy']);
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/customers', [UserController::class, 'getCustomers']);
+    Route::get('/employees', [UserController::class, 'getEmployees']);
+    Route::get('/user', [UserController::class, 'getUser']);
+    Route::get('/users', [UserController::class, 'index']); 
+});
+
+Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders', [OrderController::class, 'index']);
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders/{id}', [OrderController::class, 'show']);
@@ -156,4 +163,5 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
+Route::post('/users/{id}/verify', [UserController::class, 'verify']);
 

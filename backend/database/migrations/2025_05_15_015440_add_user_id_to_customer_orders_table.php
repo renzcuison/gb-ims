@@ -9,7 +9,7 @@ return new class extends Migration {
         Schema::table('customer_orders', function (Blueprint $table) {
             $table->unsignedBigInteger('user_id')->after('id');
 
-            // Assuming users table exists and has an `id` column
+ 
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }

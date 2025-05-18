@@ -21,6 +21,7 @@ class CustomerOrder extends Model
         'customer_name',
         'order_code',
         'customer_order_id',
+        'verified_by'
     ];
 
     public function user()
