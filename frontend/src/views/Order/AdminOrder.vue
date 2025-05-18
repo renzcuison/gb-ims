@@ -119,7 +119,6 @@
                                             }}:</strong> {{
                                                 order.customer_name }}</p>
                                     <p><strong>Phone:</strong> {{ order.phone }}</p>
-
                                     <template v-if="order.payment_method === 'gcash'">
                                         <p><strong>Reference Number:</strong> {{ order.shipping_address }}</p>
                                     </template>
