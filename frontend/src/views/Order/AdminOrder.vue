@@ -6,7 +6,7 @@
         </div>
         <div class="navbar-right">
             <img src="/profile.jpg" alt="User Profile" class="icon-image-profile" @click="toggleDropdown">
-            <span class="user-name">admin</span>
+            <span class="user-name">{{ username }}</span>
             <button class="icon-button" @click="toggleDropdown">
                 <img src="/drop.png" alt="Dropdown" class="icon-image">
             </button>
@@ -22,13 +22,9 @@
         <div class="sidebar">
             <nav>
                 <ul>
-                    <li>
-                        <router-link to="/stocks" active-class="router-link-active"
-                            exact-active-class="router-link-active"
-                            :class="{ 'router-link-active': $route.path.startsWith('/stocks') }">
-                            <img src="/inventory.png" alt="Inventory" class="sidebar-icon" />
-                            INVENTORY
-                        </router-link>
+                    <li><router-link to="/stocks"
+                            :class="{ 'router-link-active': $route.path.startsWith('/stocks') }"><img
+                                src="/inventory.png" alt="Inventory" class="sidebar-icon" /> INVENTORY</router-link>
                     </li>
                     <li><router-link to="/suppliers" active-class="router-link-active"><img src="/supplier.png"
                                 class="sidebar-icon"> SUPPLIERS</router-link></li>
@@ -84,12 +80,23 @@
                             <td>{{ order.orderTime || 'N/A' }}</td>
                             <td @click.stop>
                                 <template v-if="order.payment_method === 'gcash'">
-                                    <button class="btn btn-sm text-white"
-                                        :style="{ backgroundColor: order.status === 'Approved' ? 'green' : '#0086E7' }"
-                                        :disabled="order.status === 'Approved'"
-                                        @click="order.status !== 'Approved' && verifyPayment(order)">
-                                        {{ order.status === 'Approved' ? 'Verified' : 'Verify Payment' }}
-                                    </button>
+                                    <div>
+                                        <button class="btn btn-sm text-white mb-1" :style="{
+                                            backgroundColor: order.status === 'Approved' ? 'green' : '#0086E7',
+                                            cursor: order.status === 'Approved' ? 'default' : 'pointer'
+                                        }" :disabled="order.status === 'Approved'" @click="verifyPayment(order)">
+                                            {{ order.status === 'Approved' ? 'Verified' : 'Verify Payment' }}
+                                        </button>
+                                        <div class="text-sm mt-1">
+                                            Verified by:
+                                            <span v-if="order.verified_by">{{ order.verified_by }}</span>
+                                            <span v-else class="text-muted">Unverified</span>
+                                        </div>
+                                        <button v-if="order.status === 'Approved'"
+                                            class="btn btn-outline-danger btn-sm mt-1" @click="undoVerification(order)">
+                                            Undo Verification
+                                        </button>
+                                    </div>
                                 </template>
                                 <!-- ✅ Show Unverify Button if Approved -->
                                 <div v-if="order.payment_method === 'gcash' && order.status === 'Approved'"
@@ -108,11 +115,9 @@
                                             }}:</strong> {{
                                                 order.customer_name }}</p>
                                     <p><strong>Phone:</strong> {{ order.phone }}</p>
-
                                     <template v-if="order.payment_method === 'gcash'">
                                         <p><strong>Reference Number:</strong> {{ order.shipping_address }}</p>
                                     </template>
-
                                     <p><strong>Payment Method:</strong> {{ order.payment_method === 'gcash' ? 'GCash' :
                                         'Cash on Pickup' }}</p>
                                     <template v-if="order.orders && order.orders.length > 1">
@@ -139,18 +144,50 @@ export default {
         return {
             orders: [],
             expandedOrders: [],
-            statusOptions: [
-                'Pending',
-                'Approved',
-                'Cancelled',
-                'Refunded',
-            ],
+            statusOptions: ['Pending', 'Approved', 'Cancelled', 'Refunded'],
+            username: '', // Instead of pulling from localStorage
+            dropdownVisible: false
         };
     },
     async created() {
-        this.fetchOrders();
+        await this.fetchUserData();  // 👈 fetch username first
+        await this.fetchOrders();    // 👈 then fetch orders
     },
     methods: {
+        toggleDropdown() {
+            this.dropdownVisible = !this.dropdownVisible;
+        },
+
+        handleLogout() {
+            localStorage.removeItem('authToken');
+            this.$router.push('/login');
+        },
+
+        async fetchUserData() {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) throw new Error("No token");
+
+                const response = await fetch('http://localhost:8001/api/user', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (response.status === 401) {
+                    this.handleLogout();
+                    return;
+                }
+
+                const data = await response.json();
+                this.username = data.name || 'Admin';
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+                this.username = 'Admin';
+            }
+        },
+
         async fetchOrders() {
             try {
                 const token = localStorage.getItem('authToken');
@@ -205,7 +242,10 @@ export default {
         },
 
         async verifyPayment(order) {
+            const username = localStorage.getItem('username') || 'Admin';
             order.status = 'Approved';
+            order.verified_by = username;
+
             try {
                 await this.updateOrderStatus(order);
                 alert('Payment verified and order approved.');
@@ -214,6 +254,21 @@ export default {
                 alert('Failed to verify payment.');
             }
         },
+
+
+        async undoVerification(order) {
+            order.status = 'Pending';
+            order.verified_by = null;
+
+            try {
+                await this.updateOrderStatus(order);
+                alert('Verification undone.');
+            } catch (error) {
+                console.error('Error undoing verification:', error);
+                alert('Failed to undo verification.');
+            }
+        },
+
 
         async updateOrderStatus(order) {
             try {
@@ -224,13 +279,16 @@ export default {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`,
                     },
-                    body: JSON.stringify({ status: order.status }),
+                    body: JSON.stringify({
+                        status: order.status,
+                        verified_by: order.verified_by || null
+                    }),
                 });
             } catch (error) {
                 console.error("Error updating status:", error);
             }
         },
-
+        
         async cancelOrder(orderId) {
             if (confirm('Are you sure you want to cancel this order?')) {
                 try {

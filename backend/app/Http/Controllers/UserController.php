@@ -23,7 +23,7 @@ class UserController extends Controller
                 'regex:/^((\+63)|0)\d{10}$/',
                 'unique:users',
             ],
-            'role' => 'nullable|in:user,admin',
+            'role' => 'nullable|in:user,admin,employee',
         ]);
 
         if ($validator->fails()) {
@@ -70,9 +70,21 @@ class UserController extends Controller
         ]);
     }
 
-    public function index()
+   
+    public function getCustomers()
     {
-        $users = User::where('role', 'user')->get(['id', 'name', 'email', 'phone_number', 'role', 'email_verified_at']);
+        $users = User::where('role', 'user')->get([
+            'id', 'name', 'email', 'phone_number', 'role', 'email_verified_at'
+        ]);
+        return response()->json($users);
+    }
+
+
+    public function getEmployees()
+    {
+        $users = User::whereIn('role', ['admin', 'employee'])->get([
+            'id', 'name', 'email', 'phone_number', 'role', 'email_verified_at'
+        ]);
         return response()->json($users);
     }
 
@@ -92,16 +104,26 @@ class UserController extends Controller
         }
     }
 
+    public function verify($id)
+{
+    $user = User::findOrFail($id);
+    $user->email_verified_at = now();
+    $user->save();
+
+    return response()->json(['message' => 'User verified successfully']);
+}
+
     public function update(Request $request, $id)
     {
         try {
             $user = User::findOrFail($id);
-
+            $user->role = $request->input('role', $user->role);
+            $user->save();
             $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'email' => 'required|email|unique:users,email,' . $id,
-                'phone_number' => 'required|string|unique:users,phone_number,' . $id,
-                'role' => 'required|in:user,admin',
+                'name' => 'nullable|string|max:255',
+                'email' => 'nullable|email|unique:users,email,' . $id,
+                'phone_number' => 'nullable|string|unique:users,phone_number,' . $id,
+                'role' => 'nullable|in:user,admin,employee',
             ]);
 
             $user->update($validated);
@@ -123,4 +145,23 @@ class UserController extends Controller
             return response()->json(['error' => 'User not found or could not be deleted.'], 500);
         }
     }
+    public function show($id)
+    {
+        try {
+            $user = User::findOrFail($id);
+    
+            return response()->json([
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone_number' => $user->phone_number,
+                'role' => $user->role,
+                'email_verified_at' => $user->email_verified_at, 
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'User not found.'], 404);
+        }
+    }
+    
+
 }

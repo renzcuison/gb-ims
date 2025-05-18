@@ -54,10 +54,8 @@
             </router-link>
           </li>
           <li>
-            <router-link to="/employees" active-class="router-link-active" exact-active-class="router-link-active"
-              :class="{ 'router-link-active': $route.path.startsWith('/employees') }">
-              <img src="/employees.png" alt="Inventory" class="sidebar-icon" />
-              EMPLOYEES
+            <router-link to="/employees" active-class="router-link-active">
+              <img src="/employees.png" alt="Employees" class="sidebar-icon"> EMPLOYEES
             </router-link>
           </li>
           <li>
@@ -80,7 +78,7 @@
     <div class="container mt-4">
       <div class="card mb-5">
         <div class="card-header">
-          <h4>Edit Employee</h4>
+          <h4>Edit Customer</h4>
         </div>
         <div class="card-body">
           <ul class="alert alert-warning" v-if="Object.keys(errorList).length > 0">
@@ -88,20 +86,48 @@
               {{ error[0] }}
             </li>
           </ul>
+
           <div class="mb-3">
-            <label for="">Last Name</label>
-            <input type="text" v-model="model.employee.last_name" class="form-control">
+            <label>Name</label>
+            <input type="text" v-model="model.user.name" class="form-control" />
           </div>
+
           <div class="mb-3">
-            <label for="">First Name</label>
-            <input type="text" v-model="model.employee.first_name" class="form-control">
+            <label>Phone</label>
+            <input type="text" v-model="model.user.phone_number" class="form-control" />
           </div>
+
           <div class="mb-3">
-            <label for="">Role</label>
-            <input type="text" v-model="model.employee.role" class="form-control">
+            <label>Email</label>
+            <input type="email" v-model="model.user.email" class="form-control" disabled />
           </div>
-          <RouterLink to="/employees" class="btn btn-primary float-end">Back</RouterLink>
-          <button type="button" @click="updateEmployee" class="btn btn-primary">Save</button>
+
+          <div class="mb-3">
+            <label>Role</label>
+            <select v-model="model.user.role" class="form-control">
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+              <option value="employee">Employee</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label>Verification Status</label>
+            <div>
+              <span :class="{
+                'text-success': model.user.email_verified_at,
+                'text-danger': !model.user.email_verified_at
+              }">
+                {{ model.user.email_verified_at ? 'Verified' : 'Unverified' }}
+              </span>
+              <button v-if="!model.user.email_verified_at" @click="verifyUser" class="btn btn-sm btn-success ms-3">
+                Verify
+              </button>
+            </div>
+          </div>
+
+          <RouterLink to="/employees" class="btn btn-primary float-end ms-2">Back</RouterLink>
+          <button type="button" @click="updateUser" class="btn btn-primary">Save</button>
         </div>
       </div>
     </div>
@@ -124,7 +150,6 @@ const toggleDropdown = () => {
 const handleLogout = () => {
   localStorage.removeItem('authToken');
   router.push('/login');
-  closeHamburgerDropdown();
   dropdownVisible.value = false;
 };
 
@@ -132,12 +157,11 @@ const fetchUserData = async () => {
   try {
     const token = localStorage.getItem('authToken');
     if (!token) {
-      console.error("No auth token found.");
       handleLogout();
       return;
     }
 
-    const response = await fetch('http://localhost:8001/api/user', {
+    const response = await fetch('http://localhost:8001/api/employees', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -145,23 +169,15 @@ const fetchUserData = async () => {
       }
     });
 
-    if (response.status === 401) {
-      console.error("Unauthorized: Token may be invalid.");
-      handleLogout();
-      return;
-    }
-
     if (!response.ok) {
-      throw new Error(`Failed to fetch user data. Status: ${response.status}`);
+      if (response.status === 401) handleLogout();
+      throw new Error(`Fetch failed: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log("User data:", data);
-
     username.value = data.name || "Admin";
-  } catch (error) {
-    console.error('Error fetching user data:', error);
-    username.value = "Admin";
+  } catch (err) {
+    console.error(err);
   }
 };
 
@@ -171,58 +187,70 @@ onMounted(() => {
 </script>
 
 <script>
-import axios from 'axios'
+import axios from 'axios';
 
 export default {
-  name: 'EmployeeEdit',
+  name: 'CustomerEdit',
   data() {
     return {
-      employeeId: '',
-      errorList: '',
+      userId: '',
+      errorList: {},
       model: {
-        employee: {
-          last_name: '',
-          first_name: '',
-          role: '',
+        user: {
+          name: '',
+          phone_number: '',
+          email: '',
+          role: 'user',
         }
       }
-    }
+    };
   },
   mounted() {
-    this.employeeId = this.$route.params.id;
-    this.getEmployeeData(this.employeeId);
+    this.userId = this.$route.params.id;
+    this.getUserData(this.userId);
   },
   methods: {
-    getEmployeeData(employeeId) {
-      axios.get(`http://localhost:8001/api/employees/${employeeId}`)
+    getUserData(userId) {
+      axios.get(`http://localhost:8001/api/users/${userId}`)
         .then(res => {
-          this.model.employee = res.data.employee;
+          this.model.user = res.data;
         })
-        .catch(error => {
-          if (error.response && error.response.status === 404) {
-            alert(error.response.data.message);
+        .catch(err => {
+          if (err.response?.status === 404) {
+            alert(err.response.data.message);
+            this.$router.push('/customers');
           }
         });
     },
-    updateEmployee() {
-      axios.put(`http://localhost:8001/api/employees/${this.employeeId}`, this.model.employee)
+
+    verifyUser() {
+      axios.post(`http://localhost:8001/api/users/${this.userId}/verify`)
         .then(res => {
-          alert(res.data.message);
-          this.errorList = '';
+          alert(res.data.message || "User verified successfully");
+          this.model.user.email_verified_at = new Date().toISOString();
+        })
+        .catch(err => {
+          alert("Verification failed.");
+          console.error(err);
+        });
+    },
+    updateUser() {
+      axios.put(`http://localhost:8001/api/users/${this.userId}`, this.model.user)
+        .then(res => {
+          alert(res.data.message || "User updated successfully");
+          this.errorList = {};
           this.$router.push('/employees');
         })
-        .catch(error => {
-          if (error.response) {
-            if (error.response.status === 422) {
-              this.errorList = error.response.data.errors;
-            } else if (error.response.status === 404) {
-              alert(error.response.data.message);
-            }
+        .catch(err => {
+          if (err.response?.status === 422) {
+            this.errorList = err.response.data.errors;
+          } else if (err.response?.status === 404) {
+            alert(err.response.data.message);
           }
         });
     }
   }
-}
+};
 </script>
 
 <style scoped>

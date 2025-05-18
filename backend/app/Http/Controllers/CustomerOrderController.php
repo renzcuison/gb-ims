@@ -164,6 +164,7 @@ class CustomerOrderController extends Controller
         ]);
 
         $order->status = $validated['status'];
+        $order->verified_by = $request->input('verified_by');
         $order->save();
 
         return response()->json($order, 200);

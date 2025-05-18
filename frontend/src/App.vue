@@ -14,10 +14,12 @@ axios.defaults.headers.common["Authorization"] = `Bearer ${localStorage.getItem(
 
 const route = useRoute();
 const router = useRouter();
+
 const isLoginPage = ref(route.name === 'login');
 const isRegisterPage = ref(route.name === 'create-login');
 const username = ref("");
 const isAdmin = ref(false);
+const isEmployee = ref(false); // <-- Added here
 
 watch(() => route.name, (newRoute) => {
   isLoginPage.value = newRoute === 'login';
@@ -62,11 +64,15 @@ const fetchUserData = async () => {
     const data = await response.json();
     console.log("User data:", data);
 
-    isAdmin.value = data.role && data.role.toLowerCase() === 'admin';
+    const role = data.role ? data.role.toLowerCase() : "";
+
+    isAdmin.value = role === 'admin';
+    isEmployee.value = role === 'employee';
     username.value = data.name || "Admin";
   } catch (error) {
     console.error('Error fetching user data:', error);
     isAdmin.value = false;
+    isEmployee.value = false;
   }
 };
 
@@ -97,8 +103,9 @@ onMounted(async () => {
 
       window.history.replaceState({}, document.title, '/shop');
 
-
       if (role === 'admin') {
+        router.replace('/stocks');
+      } else if (role === 'employee') {
         router.replace('/stocks');
       } else {
         router.replace('/shop');
@@ -112,5 +119,6 @@ onMounted(async () => {
   }
 
   console.log('isAdmin:', isAdmin.value);
+  console.log('isEmployee:', isEmployee.value);
 });
 </script>
