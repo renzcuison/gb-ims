@@ -163,7 +163,7 @@ export default {
     totalPrice() {
       return this.orders
         .reduce((acc, order) => {
-          const unitPrice = order.price_per_unit || order.stock?.price_per_unit || 0;
+          const unitPrice = order.item?.price_per_unit || 0;
           return acc + Number(order.quantity) * Number(unitPrice);
         }, 0)
         .toFixed(2);
@@ -171,7 +171,7 @@ export default {
   },
   methods: {
     calculateTotalPrice(order) {
-      const unitPrice = order.price_per_unit || order.stock?.price_per_unit || 0;
+      const unitPrice = order.item?.price_per_unit || 0;
       return (Number(order.quantity) * Number(unitPrice)).toFixed(2);
     },
     validateField(field) {
