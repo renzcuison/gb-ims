@@ -124,6 +124,33 @@ class CustomerOrderController extends Controller
         }
     }
 
+    public function initialize(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated.'], 401);
+        }
+
+        $customerOrder = CustomerOrder::where('user_id', $user->id)
+            ->where('status', 'Pending') 
+            ->first();
+
+        if (!$customerOrder) {
+            $customerOrder = CustomerOrder::create([
+                'user_id' => $user->id,
+                'order_code' => uniqid('CART-'), 
+                'customer_name' => $user->name, 
+                'phone' => $user->phone_number ?? '',
+                'payment_method' => 'N/A', 
+                'total_price' => 0,
+                'status' => 'Pending',
+            ]);
+        }
+
+        return response()->json(['customer_order_id' => $customerOrder->id], 201);
+    }
+
     public function update(Request $request, $id)
     {
         $order = CustomerOrder::find($id);

@@ -182,23 +182,51 @@ export default {
         },
       });
     },
+
     async createOrder() {
       if (!this.item.id) {
         alert("Error: Stock ID is missing.");
         return;
       }
 
-      const customerOrderId = localStorage.getItem("customer_order_id");
       const token = localStorage.getItem("authToken");
-
-      if (!customerOrderId || !token) {
-        alert("Missing order ID or auth token. Please log in again.");
+      if (!token) {
+        alert("Please log in to add items to your cart.");
         return;
       }
 
+      let customerOrderId = localStorage.getItem("customer_order_id");
+
+      if (!customerOrderId) {
+        try {
+          const initOrderResponse = await fetch("http://localhost:8001/api/customer-orders/init", { // New backend route
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (initOrderResponse.ok) {
+            const initOrderData = await initOrderResponse.json();
+            customerOrderId = initOrderData.customer_order_id;
+            localStorage.setItem("customer_order_id", customerOrderId);
+            console.log("Initialized customer_order_id:", customerOrderId);
+          } else {
+            const errorData = await initOrderResponse.json();
+            console.error("Failed to initialize order:", errorData);
+            alert("Failed to initialize your cart. Please try again.");
+            return;
+          }
+        } catch (error) {
+          console.error("Error initializing order:", error);
+          alert("An error occurred while initializing your cart.");
+          return;
+        }
+      }
+
       try {
-        // 1️⃣ Fetch current cart items from backend
-        const existingRes = await fetch(`http://localhost:8001/api/orders?customer_order_id=${customerOrderId}`, {
+        const existingRes = await fetch(`http://localhost:8001/api/orders?customer_order_id=${customerOrderId}&stock_id=${this.item.id}`, {
           headers: {
             Accept: "application/json",
             Authorization: `Bearer ${token}`,
@@ -206,14 +234,11 @@ export default {
         });
 
         const existingOrders = await existingRes.json();
-
-        // 2️⃣ Check if item already exists in cart
         const matchingOrder = existingOrders.find(order => order.stock_id === this.item.id);
 
         if (matchingOrder) {
           // 3️⃣ Item exists → update quantity
           const updatedQuantity = matchingOrder.quantity + this.quantity;
-
           const updateRes = await fetch(`http://localhost:8001/api/orders/${matchingOrder.id}`, {
             method: "PUT",
             headers: {
@@ -233,7 +258,6 @@ export default {
             const err = await updateRes.json();
             throw new Error(err.message || "Failed to update cart item.");
           }
-
           alert("Cart updated with additional quantity!");
 
         } else {
@@ -256,7 +280,6 @@ export default {
             const error = await createRes.json();
             throw new Error(error.message || "Failed to add to cart.");
           }
-
           alert("Item added to cart!");
         }
 
