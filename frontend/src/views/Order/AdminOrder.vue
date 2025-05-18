@@ -84,12 +84,23 @@
                             <td>{{ order.orderTime || 'N/A' }}</td>
                             <td @click.stop>
                                 <template v-if="order.payment_method === 'gcash'">
-                                    <button class="btn btn-sm text-white"
-                                        :style="{ backgroundColor: order.status === 'Approved' ? 'green' : '#0086E7' }"
-                                        :disabled="order.status === 'Approved'"
-                                        @click="order.status !== 'Approved' && verifyPayment(order)">
-                                        {{ order.status === 'Approved' ? 'Verified' : 'Verify Payment' }}
-                                    </button>
+                                    <div>
+                                        <button class="btn btn-sm text-white mb-1" :style="{
+                                            backgroundColor: order.status === 'Approved' ? 'green' : '#0086E7',
+                                            cursor: order.status === 'Approved' ? 'default' : 'pointer'
+                                        }" :disabled="order.status === 'Approved'" @click="verifyPayment(order)">
+                                            {{ order.status === 'Approved' ? 'Verified' : 'Verify Payment' }}
+                                        </button>
+                                        <div class="text-sm mt-1">
+                                            Verified by:
+                                            <span v-if="order.verified_by">{{ order.verified_by }}</span>
+                                            <span v-else class="text-muted">Unverified</span>
+                                        </div>
+                                        <button v-if="order.status === 'Approved'"
+                                            class="btn btn-outline-danger btn-sm mt-1" @click="undoVerification(order)">
+                                            Undo Verification
+                                        </button>
+                                    </div>
                                 </template>
                                 <!-- ✅ Show Unverify Button if Approved -->
                                 <div v-if="order.payment_method === 'gcash' && order.status === 'Approved'"
