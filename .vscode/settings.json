@@ -16,5 +16,6 @@
   "[vue]": {
     "editor.defaultFormatter": "Vue.volar"
   },
-  "codium.codeCompletion.enable": false
+  "codium.codeCompletion.enable": false,
+  "CodeGPT.apiKey": "CodeGPT Plus Beta"
 }
