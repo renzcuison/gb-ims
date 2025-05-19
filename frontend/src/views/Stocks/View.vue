@@ -80,7 +80,6 @@
           <h4 class="stocks">
             Stocks
             <RouterLink to="/stocks/adjust" class="btn btn-primary float-end">Report</RouterLink>
-            <RouterLink to="/stocks/release" class="btn btn-primary float-end me-2">Confirm</RouterLink>
             <RouterLink to="/stocks/in" class="btn btn-primary float-end me-2" @refresh-stocks="getStocks">In
             </RouterLink>
             <RouterLink to="/stocks/create" class="btn btn-primary float-end me-2">Add Item</RouterLink>
