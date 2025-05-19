@@ -52,13 +52,18 @@
             </router-link>
           </li>
           <li>
+            <router-link to="/sales-report" active-class="router-link-active">
+              <img src="/dollar.png" alt="SalesReport" class="sidebar-icon">SALES
+            </router-link>
+          </li>
+          <li>
             <router-link to="/admin/orders" active-class="router-link-active">
-              <img src="/order.png" alt="Orders" class="sidebar-icon"> ORDERS
+              <img src="/order.png" alt="Orders" class="sidebar-icon"> CUSTOMER ORDERS
             </router-link>
           </li>
           <li>
             <router-link to="/stocks/logs" active-class="router-link-active">
-              <img src="/pepper.png" alt="Shop" class="sidebar-icon"> LOGS
+              <img src="/file.png" alt="Logs" class="sidebar-icon"> LOGS
             </router-link>
           </li>
           <li>
