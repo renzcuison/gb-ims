@@ -79,33 +79,38 @@
                             <td>{{ order.payment_method === 'gcash' ? 'GCash' : 'Cash on Pickup' }}</td>
                             <td>{{ order.orderTime || 'N/A' }}</td>
                             <td @click.stop>
-                                <template v-if="order.payment_method === 'gcash'">
-                                    <div>
-                                        <button class="btn btn-sm text-white mb-1" :style="{
-                                            backgroundColor: order.status === 'Approved' ? 'green' : '#0086E7',
-                                            cursor: order.status === 'Approved' ? 'default' : 'pointer'
-                                        }" :disabled="order.status === 'Approved'" @click="verifyPayment(order)">
-                                            {{ order.status === 'Approved' ? 'Verified' : 'Verify Payment' }}
-                                        </button>
-                                        <div class="text-sm mt-1">
-                                            Verified by:
-                                            <span v-if="order.verified_by">{{ order.verified_by }}</span>
-                                            <span v-else class="text-muted">Unverified</span>
-                                        </div>
-                                        <button v-if="order.status === 'Approved'"
-                                            class="btn btn-outline-danger btn-sm mt-1" @click="undoVerification(order)">
-                                            Undo Verification
-                                        </button>
-                                    </div>
+                                <template v-if="order.status === 'Completed'">
+                                    Confirmed by: {{ order.confirmed_by }}
+                                    <span v-if="order.confirmed_by">{{ order.confirmed_by }}</span>
+                                    <span class="badge bg-success">Order Completed</span>
                                 </template>
-                                <!-- ✅ Show Unverify Button if Approved -->
-                                <div v-if="order.payment_method === 'gcash' && order.status === 'Approved'"
-                                    class="mt-3">
-                                    <button class="btn btn-outline-danger btn-sm"
-                                        @click.stop="togglePaymentStatus(order)">
-                                        Unverify Payment
-                                    </button>
-                                </div>
+
+                                <template v-else>
+                                    <template v-if="order.payment_method === 'gcash'">
+                                        <div>
+                                            <button class="btn btn-sm text-white mb-1" :style="{
+                                                backgroundColor: order.status === 'Approved' ? 'green' : '#0086E7',
+                                                cursor: order.status === 'Approved' ? 'default' : 'pointer'
+                                            }" :disabled="order.status === 'Approved'" @click="verifyPayment(order)">
+                                                {{ order.status === 'Approved' ? 'Verified' : 'Verify Payment' }}
+                                            </button>
+                                            <div class="text-sm mt-1">
+                                                Verified by:
+                                                <span v-if="order.verified_by">{{ order.verified_by }}</span>
+                                                <span v-else class="text-muted">Unverified</span>
+                                            </div>
+                                            <button v-if="order.status === 'Approved'"
+                                                class="btn btn-outline-danger btn-sm mt-1"
+                                                @click="undoVerification(order)">
+                                                Undo Verification
+                                            </button>
+                                        </div>
+                                    </template>
+                                    <RouterLink :to="{ path: '/stocks/release', query: { orderId: order.id } }"
+                                        class="btn btn-primary btn-sm mt-1">
+                                        Confirm
+                                    </RouterLink>
+                                </template>
                             </td>
                         </tr>
                         <tr v-if="expandedOrders.includes(order.id)">
@@ -144,14 +149,14 @@ export default {
         return {
             orders: [],
             expandedOrders: [],
-            statusOptions: ['Pending', 'Approved', 'Cancelled', 'Refunded'],
-            username: '', // Instead of pulling from localStorage
+            statusOptions: ['Pending', 'Approved', 'Cancelled', 'Completed', 'Refunded'],
+            username: '',
             dropdownVisible: false
         };
     },
     async created() {
-        await this.fetchUserData();  // 👈 fetch username first
-        await this.fetchOrders();    // 👈 then fetch orders
+        await this.fetchUserData();
+        await this.fetchOrders();
     },
     methods: {
         toggleDropdown() {
@@ -255,6 +260,19 @@ export default {
             }
         },
 
+        async confirmOrder(order) {
+            const username = localStorage.getItem('username') || 'Admin';
+            order.status = 'Completed';
+            order.verified_by = username;
+
+            try {
+                await this.updateOrderStatus(order);
+                alert('Order Completed');
+            } catch (error) {
+                console.error('Error Completing Order: ', error);
+                alert('Failed to Complete Order.');
+            }
+        },
 
         async undoVerification(order) {
             order.status = 'Pending';
@@ -288,7 +306,7 @@ export default {
                 console.error("Error updating status:", error);
             }
         },
-        
+
         async cancelOrder(orderId) {
             if (confirm('Are you sure you want to cancel this order?')) {
                 try {
@@ -308,7 +326,7 @@ export default {
         },
 
         canManuallyChangeStatus(order) {
-            return order.status !== 'Approved';
+            return order.status !== 'Approved' && order.status !== 'Completed';
         },
 
         async togglePaymentStatus(order) {

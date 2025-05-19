@@ -38,6 +38,7 @@
             <select v-model="order.status" @change="updateOrderStatus(order)" class="form-select status-select">
               <option v-for="status in statusOptions" :key="status" :value="status">{{ status }}</option>
             </select>
+          </div>
         </h4>
       </div>
 

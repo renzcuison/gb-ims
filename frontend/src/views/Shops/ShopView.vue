@@ -20,7 +20,7 @@
         <button class="icon-button">
           <img src="/search.png" alt="Search" class="icon-image" />
         </button>
-        <button class="icon-button" onclick="window.location.href='/order'">
+        <button class="icon-button" onclick="window.location.href='/orders'">
           <img src="/bag.png" alt="Bag" class="icon-image" />
         </button>
         <div class="profile-container">
