@@ -34,8 +34,18 @@
                                 class="sidebar-icon"> CUSTOMERS</router-link></li>
                     <li><router-link to="/employees" active-class="router-link-active"><img src="/employees.png"
                                 class="sidebar-icon"> EMPLOYEES</router-link></li>
+                    <li>
+                        <router-link to="/sales-report" active-class="router-link-active">
+                            <img src="/dollar.png" alt="SalesReport" class="sidebar-icon">SALES
+                        </router-link>
+                    </li>
                     <li><router-link to="/admin/orders" active-class="router-link-active"><img src="/order.png"
                                 class="sidebar-icon"> CUSTOMER ORDERS</router-link></li>
+                    <li>
+                        <router-link to="/stocks/logs" active-class="router-link-active">
+                            <img src="/file.png" alt="Logs" class="sidebar-icon"> LOGS
+                        </router-link>
+                    </li>
                     <li><router-link to="/shop" active-class="router-link-active"><img src="/shop.png"
                                 class="sidebar-icon"> SHOP</router-link></li>
                 </ul>
@@ -117,7 +127,7 @@
                             <td colspan="9">
                                 <div class="p-3 text-start bg-light rounded">
                                     <p><strong>{{ order.payment_method === 'gcash' ? 'GCash Name' : 'Customer Name'
-                                            }}:</strong> {{
+                                    }}:</strong> {{
                                                 order.customer_name }}</p>
                                     <p><strong>Phone:</strong> {{ order.phone }}</p>
                                     <template v-if="order.payment_method === 'gcash'">
