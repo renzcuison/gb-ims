@@ -654,7 +654,6 @@ function addSku(index) {
 
   generateAdditionalSkus(index, quantity);
 }
-
 function saveStock() {
   console.log("Selected Items before saving:", selectedItems.value);
 
@@ -698,7 +697,7 @@ function saveStock() {
       on_hand: parseInt(stock.on_hand || 0, 10) + parseInt(stock.quantity || 0, 10),
       sold: parseInt(stock.sold || 0, 10),
       date_released: dateInput.value || new Date().toISOString().split('T')[0],
-      receiver: 'N/A',
+      receiver: '-',
     };
 
     console.log("Payload before validation:", payload);
@@ -716,6 +715,10 @@ function saveStock() {
       .then((response) => {
         console.log(`Stock updated successfully for stock ID ${stock.stock_id}`, response.data);
 
+        const correspondingItem = items.value.find(item => item.stock_id === stock.stock_id);
+        const itemBuyingPrice = correspondingItem ?
+          parseFloat((correspondingItem.buying_price || '').toString().replace(/[^\d.-]/g, '')) || 0 : 0;
+
         const stockLogPayload = {
           action: 'stock-in',
           user_name: username.value || 'Admin',
@@ -726,6 +729,8 @@ function saveStock() {
           description: descriptionText.value || '',
           date_released: dateInput.value || '-',
           receiver: '-',
+          buying_price: itemBuyingPrice,
+          supplier: supplierName,
         };
 
         console.log("Stock-in log payload:", stockLogPayload);
@@ -733,6 +738,7 @@ function saveStock() {
         return axios.post('http://localhost:8001/api/stock-log', stockLogPayload)
           .then(() => {
             console.log('Stock-in log recorded:', stockLogPayload);
+            stock.quantity = 1;
             router.push('/stocks');
           })
           .catch((error) => {
@@ -761,9 +767,9 @@ function saveStock() {
       });
   });
 
-  selectedItems.value.forEach((item) => {
-    item.quantity = 1;
-  });
+  // selectedItems.value.forEach((item) => {
+  //   item.quantity = 1;
+  // });
 }
 
 function validatePayload(payload) {

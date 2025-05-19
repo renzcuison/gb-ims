@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Illuminate\Validation\Rule;
 use App\Models\Supplier;
 
 class STOCKSController extends Controller
@@ -30,7 +31,14 @@ class STOCKSController extends Controller
     
     
             $validator = Validator::make($request->all(), [
-                'item_name' => 'required|string|max:255',
+                'item_name' => [
+                        'required',
+                        'string',
+                        'max:255',
+                    Rule::unique('stocks')->where(function ($query) use ($request) {
+                    return $query->where('unit_of_measure', $request->unit_of_measure);
+                }),
+                ],
                 'description' => 'nullable|string',
                 'category_id' => 'required|exists:categories,id',
                 'suppliers' => $isProfiling ? 'nullable|array' : 'required|array|min:1',

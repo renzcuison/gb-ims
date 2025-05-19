@@ -6,7 +6,7 @@
     </div>
     <div class="navbar-right">
       <img src="/profile.jpg" alt="User Profile" class="icon-image-profile" @click="toggleDropdown">
-      <span class="user-name">{{ username }}</span>
+      <span class="user-name">admin</span>
       <button class="icon-button" @click="toggleDropdown">
         <img src="/drop.png" alt="Dropdown" class="icon-image">
       </button>
@@ -26,8 +26,7 @@
       <nav>
         <ul>
           <li>
-            <router-link to="/stocks" active-class="router-link-active" exact-active-class="router-link-active"
-              :class="{ 'router-link-active': $route.path.startsWith('/stocks') }">
+            <router-link to="/stocks" active-class="router-link-active" exact>
               <img src="/inventory.png" alt="Inventory" class="sidebar-icon" />
               INVENTORY
             </router-link>
@@ -82,13 +81,7 @@
     <div class="container mt-4">
       <div class="card mb-5">
         <div class="card-header">
-          <h4 class="stocks">
-            Items
-            <RouterLink to="/stocks/adjust" class="btn btn-primary float-end">Report</RouterLink>
-            <RouterLink to="/stocks/in" class="btn btn-primary float-end me-2" @refresh-stocks="getStocks">In
-            </RouterLink>
-            <RouterLink to="/stocks/create" class="btn btn-primary float-end me-2">Add Item</RouterLink>
-          </h4>
+          <h4 class="stocks">Inventory Overview</h4>
         </div>
 
         <div class="card-body">
@@ -108,9 +101,6 @@
                 <option value="date-asc">Date: Old to Recent</option>
                 <option value="quantity-asc">Quantity: Low to High</option>
                 <option value="quantity-desc">Quantity: High to Low</option>
-                <option value="price-asc">Price: Low to High</option>
-                <option value="price-desc">Price: High to Low</option>
-                <option value="low-stock">Low on Stock</option>
                 <option value="all">View All</option>
               </select>
             </div>
@@ -123,175 +113,97 @@
                 <input type="radio" v-model="searchBy" value="id" class="form-check-input" @change="filterStocks" />
                 ID
               </label>
-              <label class="form-check-label search-by-label">
+              <label class="form-check-label search-by-label me-3">
                 <input type="radio" v-model="searchBy" value="name" class="form-check-input" @change="filterStocks" />
                 Item Name
+              </label>
+
+              <label class="form-check-label search-by-label">Show:</label>
+              <label class="form-check-label search-by-label">
+                <input type="radio" v-model="tableView" value="both" class="form-check-input" />
+                All
+              </label>
+              <label class="form-check-label search-by-label">
+                <input type="radio" v-model="tableView" value="onHand" class="form-check-input" />
+                On Hand
+              </label>
+              <label class="form-check-label search-by-label" style="margin-left: 15px;">
+                <input type="radio" v-model="tableView" value="physical" class="form-check-input" />
+                Physical
               </label>
             </div>
           </div>
 
-          <table class="table table-bordered">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Item</th>
-                <th>Unit</th>
-                <th>Quantity</th>
-                <th>Description</th>
-                <th>Price /unit</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody v-if="filteredStocks.length > 0">
-              <template v-for="(stock, index) in filteredStocks" :key="index">
-                <tr @click="selectRow(stock.id, $event)" :class="{ 'selected-row': stock.id === selectedStockId }">
-                  <td class="text-muted">{{ stock.id }}</td>
-                  <td>
-                    <div class="d-flex align-items-center">
-                      <strong>{{ stock.item_name }}</strong>
-                      <button class="btn btn-link btn-sm ms-2" @click.stop="toggleSkuVisibility(stock)">
-                        {{ stock.showSkus ? "▲" : "▼" }}
-                      </button>
-                    </div>
-                  <td>
-                    <div class="text-muted small">
-                      {{ getSupplierName(stock.suppliers) }}
-                    </div>
-                  </td>
-                  <div class="text-muted small">
-                    {{ stock.category ? stock.category.category_name : "N/A" }}
-                  </div>
-                  <div v-if="stock.showSkus" class="mt-2">
-                    <div v-if="stock.skus.length === 0" class="text-muted small">
-                      No stock.
-                    </div>
-                    <div v-else>
-                      <div class="text-muted small">
-                        <strong>Stock(s): {{ stock.skus.length }}</strong>
-                      </div>
-                      <ul class="list-unstyled small">
-                        <li v-for="(sku, skuIndex) in stock.skus" :key="sku.id" class="d-flex justify-content-between">
-                          <span class="sku-text">{{ skuIndex + 1 }}. {{ sku.sku }}</span>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                  <div class="text-muted small text-end mt-2">
-                    <span class="logs-text" @click.stop="fetchStockLogs(stock.id)">→ log</span>
-                  </div>
-                  </td>
-                  <td>{{ stock.unit_of_measure }}</td>
-                  <td>
-                    <div>
-                      <div>
-                        On-hand:
-                        <span>
-                          {{ stock.on_hand }}
-                          <RouterLink v-if="stock.on_hand < 5"
-                            :to="{ name: 'stocksLowStock', params: { stockId: stock.id } }" class="low-stock-link ms-2">
-                            ⚠
-                            {{ stock.on_hand === 0 ? "out of stock" : "low stock" }}
-                          </RouterLink>
-                        </span>
-                      </div>
-                      <div class="qty-container">
-                        <div class="qty-text">Physical Count: {{ stock.physical_count }}</div>
-                        <div class="qty-text">Sold: {{ stock.sold }}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <textarea v-model="stock.description" class="form-control" @change="saveDescription(stock)"
-                      placeholder="" rows="3"></textarea>
-                  </td>
-                  <td>{{ formatPrice(stock.price_per_unit) }}</td>
-                  <td>
-                    <button v-if="stock.id === selectedStockId" type="button" @click="deleteStock(stock.id)"
-                      class="btn btn-danger">
-                      Delete
-                    </button>
-                  </td>
-                </tr>
+          <div class="d-flex justify-content-between table-pair">
 
-                <tr v-if="expandedStockIds.includes(stock.id)">
-                  <td colspan="7">
-                    <div class="transaction-log-container">
-                      <p class="transaction-log-title">Activity Log:</p>
+            <div class="table-container" v-if="tableView === 'both' || tableView === 'onHand'">
+              <div class="table-container scrollable-table">
+                <h5>Items On-hand</h5>
+                <table class="table table-bordered">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Item</th>
+                      <th>Supplier</th>
+                      <th>Unit</th>
+                      <th>Category</th>
+                      <th>Qty.</th>
+                    </tr>
+                  </thead>
+                  <tbody v-if="filteredStocks.length > 0">
+                    <tr v-for="(stock, index) in filteredStocks" :key="index">
+                      <td>{{ stock.id }}</td>
+                      <td>{{ stock.item_name }}</td>
+                      <td>{{ getSupplierName(stock.suppliers) }}</td>
+                      <td>{{ stock.unit_of_measure }}</td>
+                      <td>{{ stock.category?.category_name || 'N/A' }}</td>
+                      <td>{{ stock.on_hand }}</td>
+                    </tr>
+                  </tbody>
+                  <tbody v-else>
+                    <tr>
+                      <td colspan="6">-</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-                      <p v-if="!stockLogs[stock.id] || stockLogs[stock.id].length === 0" class="no-logs">
-                        -
-                      </p>
+            <div class="table-container" v-if="tableView === 'both' || tableView === 'physical'">
+              <div class="table-container scrollable-table">
+                <h5>Physical Items</h5>
+                <table class="table table-bordered">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Item</th>
+                      <th>Supplier</th>
+                      <th>Unit</th>
+                      <th>Category</th>
+                      <th>Qty.</th>
+                    </tr>
+                  </thead>
+                  <tbody v-if="filteredStocks.length > 0">
+                    <tr v-for="(stock, index) in filteredStocks" :key="index">
+                      <td>{{ stock.id }}</td>
+                      <td>{{ stock.item_name }}</td>
+                      <td>{{ getSupplierName(stock.suppliers) }}</td>
+                      <td>{{ stock.unit_of_measure }}</td>
+                      <td>{{ stock.category?.category_name || 'N/A' }}</td>
+                      <td>{{ stock.physical_count }}</td>
+                    </tr>
+                  </tbody>
+                  <tbody v-else>
+                    <tr>
+                      <td colspan="6">-</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-                      <table v-if="stockLogs[stock.id] && stockLogs[stock.id].length > 0"
-                        class="table table-sm transaction-table">
-                        <thead>
-                          <tr>
-                            <th>Date</th>
-                            <th>Action</th>
-                            <th>By</th>
-                            <th>Item</th>
-                            <th>SKU</th>
-                            <th>Supplier</th>
-                            <th>Cost</th>
-                            <th>Qty</th>
-                            <th>Reason</th>
-                            <th>Desc</th>
-                            <th>Pickup</th>
-                            <th>Receiver</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr v-for="log in stockLogs[stock.id]" :key="log.id">
-                            <td>{{ formatDate(log.created_at) }}</td>
-                            <td>{{ log.action || '-' }}</td>
-                            <td>{{ log.user_name || '-' }}</td>
-                            <td>{{ log.stock_id }} - {{ getStockName(log.stock_id) }}</td>
-                            <td>{{ log.sku || '-' }}</td>
+          </div>
 
-                            <template v-if="log.action === 'stock-in'">
-                              <td>{{ log.supplier || '-' }}</td>
-                              <td>{{ log.buying_price || '-' }}</td>
-                              <td>{{ log.qty }}</td>
-                              <td>{{ log.reason }}</td>
-                              <td>{{ log.description || '-' }}</td>
-                              <td>-</td>
-                              <td>-</td>
-                            </template>
-                            <template v-else-if="log.action === 'stock-out'">
-                              <td>-</td>
-                              <td>-</td>
-                              <td>{{ log.qty }}</td>
-                              <td>{{ log.reason }}</td>
-                              <td>{{ log.description || '-' }}</td>
-                              <td>{{ log.date_released || '-' }}</td>
-                              <td>{{ log.receiver || '-' }}</td>
-                            </template>
-                            <template v-else>
-                              <td>-</td>
-                              <td>-</td>
-                              <td>{{ log.sku || '-' }}</td>
-                              <td>{{ log.qty }}</td>
-                              <td>{{ log.reason }}</td>
-                              <td>{{ log.description || '-' }}</td>
-                              <td>-</td>
-                              <td>-</td>
-                            </template>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </td>
-                </tr>
-
-              </template>
-            </tbody>
-
-            <tbody v-else>
-              <tr>
-                <td colspan="7">.</td>
-              </tr>
-            </tbody>
-          </table>
         </div>
       </div>
     </div>
@@ -306,6 +218,7 @@ const router = useRouter();
 const route = useRoute();
 const dropdownVisible = ref(false);
 const username = ref("");
+const tableView = ref("both");
 
 const toggleDropdown = () => {
   dropdownVisible.value = !dropdownVisible.value;
@@ -365,7 +278,7 @@ onMounted(() => {
 import axios from 'axios';
 
 export default {
-  name: 'StocksView',
+  name: 'StocksItems',
   data() {
     return {
       username: '',
@@ -376,14 +289,6 @@ export default {
       searchBy: 'id',
       filteredStocks: [],
       sortOption: 'all',
-      isEditing: false,
-      editingRemark: '',
-      editingStockId: null,
-      selectedStockId: null,
-      expandedStockIds: [],
-      editableDescription: '',
-      stockLogs: {},
-      transactionPopupVisible: false
     }
   },
 
@@ -399,18 +304,6 @@ export default {
     getStockName(stockId) {
       const stock = this.stocks.find(s => s.id == stockId);
       return stock ? stock.item_name : '-';
-    },
-
-    preloadAllLogs() {
-      axios.get('http://localhost:8001/api/stock-log')
-        .then(response => {
-          const logsByStock = {};
-          response.data.stock_logs.forEach(log => {
-            if (!logsByStock[log.stock_id]) logsByStock[log.stock_id] = [];
-            logsByStock[log.stock_id].push(log);
-          });
-          this.stockLogs = logsByStock;
-        });
     },
 
     getStocks() {
@@ -470,121 +363,6 @@ export default {
         });
     },
 
-    editDescription(stockId, currentDescription) {
-      this.editingStockId = stockId;
-      this.editableDescription = currentDescription;
-    },
-
-    saveDescription(stock) {
-      console.log('Saving description for stock:', stock);
-      const { id, item_name, description, category_id, supplier_id, unit_of_measure, physical_count, on_hand, sold, price_per_unit } = stock;
-      const payload = {
-        id,
-        item_name,
-        description,
-        category_id,
-        supplier_id,
-        unit_of_measure,
-        physical_count,
-        on_hand,
-        sold,
-        price_per_unit
-      };
-
-      console.log('Payload:', payload);
-
-      axios
-        .put(`http://localhost:8001/api/stocks/${stock.id}`, payload)
-        .then((response) => {
-          console.log('Response from server:', response);
-          this.getStocks();
-        })
-        .catch((error) => {
-          console.error('Error updating stock:', error.response || error.message);
-        });
-    },
-
-    cancelEdit() {
-      this.editingStockId = null;
-      this.editableDescription = '';
-    },
-
-    toggleTransactionDetails(stock) {
-      if (!stock.showTransactions) {
-        this.fetchTransactions(stock.id);
-      }
-      stock.showTransactions = !stock.showTransactions;
-    },
-
-    fetchTransactions(stockId) {
-      const stock = this.stocks.find(s => s.id === stockId);
-      if (stock && !stock.transactions.length) {
-        axios.get(`/api/transactions?stock_id=${stockId}`)
-          .then(response => {
-            stock.transactions = response.data.transactions || [];
-          })
-          .catch(error => {
-            console.error(`Failed to fetch transactions for stock ID ${stockId}:`, error);
-          });
-      }
-    },
-
-    showTransactionPopup(transaction) {
-      this.currentTransaction = transaction;
-      this.transactionPopupVisible = true;
-    },
-
-    closeTransactionPopup() {
-      this.transactionPopupVisible = false;
-      this.currentTransaction = null;
-    },
-
-    formatDate(date) {
-      return new Date(date).toLocaleString();
-    },
-
-    selectRow(stockId, event) {
-      if (event.target.tagName === 'TEXTAREA') {
-        event.stopPropagation();
-        return;
-      }
-      this.selectedStockId = this.selectedStockId === stockId ? null : stockId;
-    },
-
-    deleteStock(stockId) {
-      const confirmDelete = confirm('Are you sure you want to delete this stock item?');
-      if (confirmDelete) {
-        axios.delete(`http://localhost:8001/api/stocks/${stockId}`)
-          .then(res => {
-            this.getStocks();
-            alert('Stock item deleted successfully.');
-          })
-          .catch(error => {
-            console.error('Error deleting stock:', error);
-            alert('Failed to delete the stock item.');
-          });
-      }
-    },
-
-    fetchSkus(stockId) {
-      console.log(`Fetching SKUs for stock ID: ${stockId}`);
-
-      const stock = this.stocks.find(item => item.id === stockId);
-
-      if (stock) {
-        console.log(`Fetching SKUs for ${stock.item_name}`);
-
-        axios.get(`http://localhost:8001/api/stocks/${stockId}`)
-          .then(response => {
-            stock.skus = response.data.stock.skus;
-            console.log("Fetched SKUs:", [...stock.skus]);
-          })
-          .catch(error => {
-            console.error(`Error fetching SKUs for stock ID ${stockId}:`, error);
-          });
-      }
-    },
-
     getSupplierName(suppliers) {
       if (!suppliers || suppliers.length === 0) {
         return '-';
@@ -619,13 +397,6 @@ export default {
       this.applySort();
     },
 
-    toggleSkuVisibility(stock) {
-      stock.showSkus = !stock.showSkus;
-      if (stock.showSkus && !stock.skus.length) {
-        this.fetchSkus(stock.id);
-      }
-    },
-
     applySort() {
       switch (this.sortOption) {
         case 'alpha-asc':
@@ -645,15 +416,6 @@ export default {
           break;
         case 'quantity-desc':
           this.filteredStocks.sort((a, b) => b.on_hand - a.on_hand);
-          break;
-        case 'price-asc':
-          this.filteredStocks.sort((a, b) => a.price_per_unit - b.price_per_unit);
-          break;
-        case 'price-desc':
-          this.filteredStocks.sort((a, b) => b.price_per_unit - a.price_per_unit);
-          break;
-        case 'low-stock':
-          this.filteredStocks = this.filteredStocks.filter(stock => stock.on_hand < 5);
           break;
         default:
           break;
@@ -682,6 +444,17 @@ export default {
 
 * {
   font-family: 'Kantumruy Pro', sans-serif;
+}
+
+.table-pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.table-container {
+  flex: 1;
+  min-width: 350px;
 }
 
 .wrapper {
@@ -895,6 +668,41 @@ export default {
 .content {
   margin-left: 250px;
   padding: 20px;
+}
+
+.scrollable-table {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.scrollable-table td:last-child {
+  font-weight: 600;
+}
+
+.scrollable-table table {
+  font-size: 12px;
+}
+
+.scrollable-table th,
+.scrollable-table td {
+  padding: 6px 8px;
+  vertical-align: middle;
+}
+
+.table-container h5 {
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.table-container table {
+  font-size: 12px;
+}
+
+.table-container th,
+.table-container td {
+  padding: 6px 8px;
+  vertical-align: middle;
 }
 
 .low-stock-link {

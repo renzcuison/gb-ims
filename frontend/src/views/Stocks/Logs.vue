@@ -121,20 +121,31 @@
             <tbody>
               <template v-for="(logs, dateKey) in groupedLogs" :key="dateKey">
                 <tr @click="toggleGroup(dateKey)" style="cursor:pointer; background:#f1f3f5;">
-                  <td colspan="10">
-                    <span>{{ dateKey }}</span>
-                    <span style="margin-left: 8px; font-size: 8px;">
-                      <span v-if="groupExpanded[dateKey]">▼</span>
-                      <span v-else>►</span>
-                    </span>
+                  <td colspan="12" style="padding: 8px 16px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                      <div>
+                        <span>{{ dateKey }}</span>
+                        <span style="margin-left: 8px; font-size: 12px;">
+                          <span v-if="groupExpanded[dateKey]">▼</span>
+                          <span v-else>►</span>
+                        </span>
+                      </div>
+                      <div style="min-width: 24px; text-align: right;">
+                        <img v-if="isGroupSelected(dateKey)" src="/bin.png" alt="Delete" class="bin-icon"
+                          @click.stop="deleteLog(selectedLogId)" title="Delete selected log in this group" />
+                      </div>
+                    </div>
                   </td>
                 </tr>
+
                 <template v-if="groupExpanded[dateKey]">
                   <tr>
                     <th>Date Acted</th>
                     <th>Action</th>
                     <th>Acted By</th>
                     <th>Item</th>
+                    <th>Supplier</th>
+                    <th>Cost Price</th>
                     <th>Serial #</th>
                     <th>Quantity</th>
                     <th>Reason</th>
@@ -142,26 +153,42 @@
                     <th>Pickup Date</th>
                     <th>Receiver</th>
                   </tr>
-                  <tr v-for="log in logs" :key="log.id">
+
+                  <tr v-for="log in logs" :key="log.id" @click="highlightRow(log.id)"
+                    :class="{ 'highlighted-row': selectedLogId === log.id }">
                     <td>{{ formatTime(log.created_at) }}</td>
                     <td>{{ log.action || '-' }}</td>
                     <td>{{ log.user_name || '-' }}</td>
                     <td>{{ log.stock_id }} - {{ getStockName(log.stock_id) }}</td>
+                    <td>
+                      <template v-if="log.action === 'stock-in'">{{ log.supplier || '-' }}</template>
+                      <template v-else>-</template>
+                    </td>
+                    <td>
+                      <template v-if="log.action === 'stock-in'">{{ log.buying_price || '-' }}</template>
+                      <template v-else>-</template>
+                    </td>
                     <td>{{ log.sku || '-' }}</td>
                     <td>{{ log.qty }}</td>
-                    <td>{{ log.reason }}</td>
+                    <td>{{ log.reason || '-' }}</td>
                     <td>{{ log.description || '-' }}</td>
-                    <td>{{ log.date_released || '-' }}</td>
-                    <td>{{ log.receiver || '-' }}</td>
+                    <td>
+                      <template v-if="log.action === 'stock-out'">{{ log.date_released || '-' }}</template>
+                      <template v-else>-</template>
+                    </td>
+                    <td>
+                      <template v-if="log.action === 'stock-out'">{{ log.receiver || '-' }}</template>
+                      <template v-else>-</template>
+                    </td>
                   </tr>
                 </template>
               </template>
+
               <tr v-if="allLogs.length === 0">
-                <td colspan="10" class="text-center">-</td>
+                <td colspan="12" class="text-center">-</td>
               </tr>
             </tbody>
           </table>
-
         </div>
       </div>
     </div>
@@ -183,6 +210,8 @@ const searchQuery = ref('');
 const sortOption = ref('all');
 const searchBy = ref('id');
 const stocks = ref([]);
+const selectedLogId = ref(null)
+const binExpandedDateKey = ref(null);
 
 const filteredLogs = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
@@ -228,6 +257,59 @@ const handleLogout = () => {
   router.push('/login');
   dropdownVisible.value = false;
 };
+
+function isGroupSelected(dateKey) {
+  if (!selectedLogId.value) return false;
+  const logsInGroup = groupedLogs.value[dateKey] || [];
+  return logsInGroup.some(log => log.id === selectedLogId.value);
+}
+function deleteLog(logId) {
+  if (!logId) return;
+
+  axios.delete(`http://localhost:8001/api/stock-log/${logId}`)
+    .then(() => {
+      allLogs.value = allLogs.value.filter(log => log.id !== logId);
+
+      if (selectedLogId.value === logId) {
+        selectedLogId.value = null;
+      }
+
+      alert('Log deleted successfully.');
+    })
+    .catch(error => {
+      console.error('Error deleting log:', error);
+      alert('Failed to delete log.');
+    });
+}
+
+function toggleBinExpand(dateKey) {
+  if (binExpandedDateKey.value === dateKey) {
+    binExpandedDateKey.value = null;
+  } else {
+    binExpandedDateKey.value = dateKey;
+  }
+}
+
+
+
+function deleteLogsInGroup(dateKey) {
+  allLogs.value = allLogs.value.filter(log => {
+    const logDate = log.created_at ? log.created_at.slice(0, 10) : 'Unknown';
+    return logDate !== dateKey;
+  });
+  selectedLogId.value = null;
+  binExpandedDateKey.value = null;
+}
+
+function highlightRow(logId) {
+  if (selectedLogId.value === logId) {
+    selectedLogId.value = null;
+  } else {
+    selectedLogId.value = logId;
+  }
+}
+
+
 function fetchAllStocks() {
   axios.get('http://localhost:8001/api/stocks')
     .then(response => {
@@ -249,10 +331,13 @@ function getStockName(stockId) {
 }
 
 function toggleGroup(dateKey) {
-  groupExpanded.value[dateKey] = !groupExpanded.value[dateKey];
+  const isExpanded = groupExpanded.value[dateKey];
+  groupExpanded.value[dateKey] = !isExpanded;
+
+  if (isExpanded) {
+    selectedLogId.value = null;
+  }
 }
-
-
 
 function fetchAllLogs() {
   axios.get('http://localhost:8001/api/stock-log')
@@ -326,10 +411,27 @@ onMounted(() => {
   font-family: 'Kantumruy Pro', sans-serif;
 }
 
+.bin-icon {
+  width: 10px;
+  height: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
 .wrapper {
   background-color: #F4F4F4;
   min-height: 93vh;
   display: flex;
+}
+
+.highlighted-row {
+  border: 2px solid rgb(255, 191, 191) !important;
+
+}
+
+.highlighted-row,
+.highlighted-row * {
+  font-weight: 500 !important;
 }
 
 .card {
@@ -721,11 +823,14 @@ textarea.form-control {
   text-align: left;
   padding: 6px;
   font-size: 12px;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: none;
 }
 
 .transaction-table td {
   padding: 6px;
-  border-bottom: 1px solid #dee2e6;
+  border: none;
 }
 
 .transaction-table tbody tr:hover {

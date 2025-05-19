@@ -16,8 +16,11 @@ return new class extends Migration{
             $table->string('description')->nullable();
             $table->integer('qty');
             $table->string('reason');
-            $table->date('date_released');
+            $table->date('date_released')->nullable();
             $table->string('receiver');
+            $table->decimal('buying_price', 10, 2);
+            $table->string('supplier');
+            
 
             $table->timestamps();
 
