@@ -45,6 +45,8 @@ import EmailWaiting from '../views/Verify/EmailWaiting.vue'
 
 import AdminOrder from '../views/Order/AdminOrder.vue'
 
+import SalesReport from '../views/Stocks/SalesReport.vue'
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -91,6 +93,12 @@ const router = createRouter({
       path: '/admin/orders',
       name: 'adminOrders',
       component: AdminOrder,
+      meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
+    },
+    {
+      path: '/sales-report',
+      name: 'SalesReport',
+      component: SalesReport,
       meta: { requiresAuth: true, rolesAllowed: ['admin', 'employee'] },
     },
     {
