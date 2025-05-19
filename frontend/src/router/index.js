@@ -30,6 +30,7 @@ import StocksAdjust from '../views/Stocks/Adjustment.vue'
 import StocksLowStock from '../views/Stocks/LowStock.vue'
 import StocksCreate from '../views/Stocks/Create.vue'
 import StocksLogs from '../views/Stocks/Logs.vue'
+import StocksItems from '../views/Stocks/Items.vue'
 
 import OrderView from '../views/Shops/View.vue'
 import OrderCreate from '../views/Order/Create.vue'
@@ -186,10 +187,15 @@ const router = createRouter({
       name: 'stocksRelease',
       component: StocksRelease,
     },
-        {
+    {
       path: '/stocks/adjust/:stockId?',
       name: 'stocksAdjustment',
       component: StocksAdjust,
+    },
+            {
+      path: '/stocks/items/',
+      name: 'stocksItems',
+      component: StocksItems,
     },
     {
       path: '/stocks/in',

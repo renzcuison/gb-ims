@@ -220,7 +220,7 @@ export default {
             item_name: "",
             description: "",
             category_id: "",
-            suppliers: ['Unknown'],
+            suppliers: ['-'],
             unit_of_measure: "",
             price_per_unit: "",
             buying_price: 0,
@@ -306,9 +306,10 @@ export default {
         supplier_id: "",
         date_released: null,
         receiver: null,
+        cost_price: null,
         unit_of_measure: "",
         price_per_unit: "",
-        buying_price: "",
+        buying_price: 0,
         physical_count: 0,
         on_hand: 0,
         sold: 0,
@@ -320,6 +321,14 @@ export default {
     },
 
     saveStocks() {
+      const hasDuplicateError = Object.values(this.errorList).some(
+        (msg) => msg === "This stock already exists."
+      );
+      if (hasDuplicateError) {
+        alert("Fix duplicate stock names before saving.");
+        return;
+      }
+
       const savePromises = this.model.stocks.map((stock) => {
         const payload = {
           ...stock,
@@ -327,6 +336,7 @@ export default {
           price_per_unit: parseFloat(stock.price_per_unit.replace(/[^0-9.]/g, "")),
           date_released: null,
           receiver: null,
+          cost_price: null,
           date: new Date().toISOString().slice(0, 10),
         };
 

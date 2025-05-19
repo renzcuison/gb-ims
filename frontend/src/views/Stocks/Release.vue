@@ -345,42 +345,31 @@ function saveStock(username) {
     const skusToRemove = stock.selectedSkus;
     const quantityToRemove = skusToRemove.length;
 
-    return Promise.all(skusToRemove.map((sku) => {
+    skusToRemove.forEach((sku) => {
       removeSkuFromDatabase(stock.stock_id, sku);
+    });
 
-      const stockLogPayload = {
-        action: 'stock-out',
-        user_name: username,
-        stock_id: stock.stock_id,
-        sku: sku,
-        qty: 1,
-        reason: 'Sold',
-        description: descriptionText.value || '',
-        removed_at: new Date().toISOString(),
-        date_released: dateReleased.value,
-        receiver: receiverName.value,
-      };
+    const stockLogPayload = {
+      action: 'stock-out',
+      user_name: username,
+      stock_id: stock.stock_id,
+      sku: skusToRemove.length > 0 ? skusToRemove.join(', ') : '-',
+      qty: quantityToRemove,
+      reason: 'Sold',
+      description: descriptionText.value || '',
+      removed_at: new Date().toISOString(),
+      date_released: dateReleased.value,
+      receiver: receiverName.value,
+      buying_price: stock.buying_price || 0,
+      supplier: stock.supplier,
+    };
 
-      console.log("Stock log payload:", stockLogPayload);
+    console.log("Batch stock-out log payload:", stockLogPayload);
 
-      return axios.post(`http://localhost:8001/api/stock-log`, stockLogPayload)
-        .then(() => {
-          console.log(`Stock log recorded for SKU ${sku}`);
-        })
-        .catch((error) => {
-          if (error.response) {
-            console.error("Error logging stock out for SKU", sku, ":", error.response.data);
-            if (error.response.data && error.response.data.errors) {
-              Object.entries(error.response.data.errors).forEach(([field, messages]) => {
-                console.error(`Validation error for "${field}": ${messages.join(', ')}`);
-              });
-            }
-          } else {
-            console.error("Error logging stock out for SKU", sku, ":", error.message);
-          }
-          throw error;
-        });
-    }))
+    return axios.post(`http://localhost:8001/api/stock-log`, stockLogPayload)
+      .then(() => {
+        console.log(`Batch stock-out log recorded for stock ID ${stock.stock_id}`);
+      })
       .then(() => {
         const stockPayload = {
           stock_id: stock.stock_id,
@@ -443,8 +432,6 @@ onMounted(() => {
     fetchItems();
   });
 });
-
-
 </script>
 
 <style scoped>

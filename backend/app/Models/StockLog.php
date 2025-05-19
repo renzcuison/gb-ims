@@ -21,6 +21,8 @@ class StockLog extends Model
         'reason',
         'date_released',
         'receiver',
+        'buying_price',
+        'supplier',
     ];
 
     public function stock()

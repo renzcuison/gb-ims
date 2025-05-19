@@ -37,6 +37,8 @@ class STOCKLOGController extends Controller
             'reason' => 'required|string',
             'date_released' => 'nullable|date',
             'receiver' => 'nullable|string',
+            'buying_price' => 'nullable|numeric',
+            'supplier' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -55,7 +57,9 @@ class STOCKLOGController extends Controller
             'qty' => $request->qty,
             'reason' => $request->reason,
             'date_released' => $request->date_released,
-            'receiver' => $request->receiver
+            'receiver' => $request->receiver,
+            'buying_price' => $request->buying_price,
+            'supplier' => $request->supplier,
         ]);
 
         return response()->json([
@@ -93,6 +97,8 @@ class STOCKLOGController extends Controller
             'reason' => 'required|string',
             'date_released' => 'nullable|date',
             'receiver' => 'nullable|string',
+            'buying_price' => 'nullable|numeric',
+            'supplier' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -105,11 +111,17 @@ class STOCKLOGController extends Controller
         $stockLog = StockLog::find($id);
         if ($stockLog) {
             $stockLog->update([
-                'stock_id' => $request->stock_id,
-                'sku' => $request->sku,
-                'description' => $request->description,
-                'qty' => $request->qty,
-                'reason' => $request->reason
+            'action' => $request->action,
+            'user_name' => $request->user_name,
+            'stock_id' => $request->stock_id,
+            'sku' => $request->sku,
+            'description' => $request->description,
+            'qty' => $request->qty,
+            'reason' => $request->reason,
+            'date_released' => $request->date_released,
+            'receiver' => $request->receiver,
+            'buying_price' => $request->buying_price,
+            'supplier' => $request->supplier,
             ]);
 
             return response()->json([
