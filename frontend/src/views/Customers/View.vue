@@ -6,7 +6,7 @@
     </div>
     <div class="navbar-right">
       <img src="/profile.jpg" alt="User Profile" class="icon-image-profile" @click="toggleDropdown">
-      <span class="user-name">admin</span>
+      <span class="user-name">{{ username }}</span>
       <button class="icon-button" @click="toggleDropdown">
         <img src="/drop.png" alt="Dropdown" class="icon-image">
       </button>
@@ -57,8 +57,18 @@
             </router-link>
           </li>
           <li>
+            <router-link to="/sales-report" active-class="router-link-active">
+              <img src="/dollar.png" alt="SalesReport" class="sidebar-icon">SALES
+            </router-link>
+          </li>
+          <li>
             <router-link to="/admin/orders" active-class="router-link-active">
-              <img src="/order.png" alt="Orders" class="sidebar-icon"> ORDERS
+              <img src="/order.png" alt="Orders" class="sidebar-icon"> CUSTOMER ORDERS
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/stocks/logs" active-class="router-link-active">
+              <img src="/file.png" alt="Logs" class="sidebar-icon"> LOGS
             </router-link>
           </li>
           <li>
@@ -78,7 +88,7 @@
         <div class="card-header">
           <h4>
             Customers
-            <RouterLink to="/customers/create" class="btn btn-primary float-end">Add</RouterLink>
+
           </h4>
         </div>
         <div class="card-body">
@@ -113,6 +123,9 @@
                   </RouterLink>
                   <button type="button" @click="deleteCustomer(customer.id)"
                     class="btn btn-danger btn-sm compact-btn">Delete</button>
+                  <button v-if="customer.role !== 'employee'" @click="makeEmployee(customer.id)"
+                    class="bg-blue-400 hover:bg-blue-400  font-bold py-0.1 px-0.1 rounded mr-1">Make
+                    Employee</button>
                 </td>
               </tr>
             </tbody>
@@ -122,8 +135,6 @@
               </tr>
             </tbody>
           </table>
-
-
         </div>
       </div>
     </div>
@@ -132,12 +143,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
+import axios from 'axios';
 
 const router = useRouter();
-const route = useRoute();
 const dropdownVisible = ref(false);
-const username = ref("");
+const username = ref("Admin");
 const customers = ref([]);
 
 const toggleDropdown = () => {
@@ -147,85 +158,87 @@ const toggleDropdown = () => {
 const handleLogout = () => {
   localStorage.removeItem('authToken');
   router.push('/login');
-  closeHamburgerDropdown();
   dropdownVisible.value = false;
+};
+
+const makeEmployee = async (id) => {
+  const confirmChange = confirm('Are you sure you want to make this user an employee?');
+  if (!confirmChange) return;
+
+  try {
+    const token = localStorage.getItem('authToken');
+    const response = await axios.put(
+      `http://localhost:8001/api/users/${id}`,
+      { role: 'employee' },
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    alert('User role updated to employee successfully');
+    fetchCustomers();
+  } catch (error) {
+    fetchCustomers();
+  }
 };
 
 const fetchUserData = async () => {
   try {
     const token = localStorage.getItem('authToken');
-    if (!token) {
-      console.error("No auth token found.");
-      handleLogout();
-      return;
-    }
+    if (!token) return handleLogout();
 
-    const response = await fetch('http://localhost:8001/api/user', {
-      method: 'GET',
+    const res = await axios.get('http://localhost:8001/api/user', {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
+        'Accept': 'application/json',
       }
     });
 
-    if (response.status === 401) {
-      console.error("Unauthorized: Token may be invalid.");
-      handleLogout();
-      return;
-    }
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch user data. Status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log("User data:", data);
-
-    username.value = data.name || "Admin";
-  } catch (error) {
-    console.error('Error fetching user data:', error);
-    username.value = "Admin";
+    username.value = res.data.name || "Admin";
+  } catch (err) {
+    console.error('Failed to fetch user:', err);
+    handleLogout();
   }
 };
 
 const fetchCustomers = async () => {
   try {
     const token = localStorage.getItem('authToken');
-    const response = await fetch('http://localhost:8001/api/users', {
+    const res = await axios.get('http://localhost:8001/api/customers', {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
+        'Accept': 'application/json',
       }
     });
 
-    if (!response.ok) throw new Error('Failed to fetch users');
-
-    const data = await response.json();
-    customers.value = data;
-  } catch (error) {
-    console.error('Error loading customers:', error);
+    customers.value = res.data.data || res.data;
+  } catch (err) {
+    console.error('Failed to fetch customers:', err);
+    alert(err.response?.data?.message || 'Failed to load customers');
   }
 };
 
 const deleteCustomer = async (id) => {
-  try {
-    const confirmed = confirm('Are you sure you want to delete this user?');
-    if (!confirmed) return;
+  if (!confirm('Are you sure you want to delete this user?')) return;
 
+  try {
     const token = localStorage.getItem('authToken');
-    const response = await fetch(`http://localhost:8001/api/users/${id}`, {
-      method: 'DELETE',
+    await axios.delete(`http://localhost:8001/api/customers/${id}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
+        'Accept': 'application/json',
       }
     });
 
-    if (!response.ok) throw new Error('Failed to delete user');
-
-    fetchCustomers(); // refresh list after deletion
-  } catch (error) {
-    console.error('Error deleting user:', error);
+    alert('User deleted successfully');
+    fetchCustomers();
+  } catch (err) {
+    console.error('Error deleting user:', err);
+    alert(err.response?.data?.message || 'Failed to delete user');
   }
 };
 
@@ -233,45 +246,6 @@ onMounted(() => {
   fetchUserData();
   fetchCustomers();
 });
-</script>
-
-<script>
-import axios from 'axios';
-
-export default {
-  name: 'CustomersList',
-  data() {
-    return {
-      customers: [],
-    };
-  },
-  mounted() {
-    this.getCustomers();
-  },
-  methods: {
-    getCustomers() {
-      axios.get('http://localhost:8001/api/customers')
-        .then(res => {
-          this.customers = res.data.customers;
-        })
-        .catch(error => {
-          console.error('Error fetching customers:', error);
-        });
-    },
-    deleteCustomer(id) {
-      if (confirm('Confirm action: DELETE')) {
-        axios.delete(`http://localhost:8001/api/customers/${id}`)
-          .then(res => {
-            alert(res.data.message);
-            this.getCustomers();
-          })
-          .catch(error => {
-            console.error('Error deleting customer:', error);
-          });
-      }
-    },
-  },
-};
 </script>
 
 <style scoped>

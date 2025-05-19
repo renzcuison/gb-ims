@@ -86,24 +86,24 @@
               {{ error[0] }}
             </li>
           </ul>
+
           <div class="mb-3">
-            <label for="">Last Name</label>
-            <input type="text" v-model="model.customer.last_name" class="form-control">
+            <label>Name</label>
+            <input type="text" v-model="model.user.name" class="form-control" />
           </div>
+
           <div class="mb-3">
-            <label for="">First Name</label>
-            <input type="text" v-model="model.customer.first_name" class="form-control">
+            <label>Phone</label>
+            <input type="text" v-model="model.user.phone_number" class="form-control" />
           </div>
+
           <div class="mb-3">
-            <label for="">Phone</label>
-            <input type="text" v-model="model.customer.phone" class="form-control">
+            <label>Email</label>
+            <input type="email" v-model="model.user.email" class="form-control" disabled />
           </div>
-          <div class="mb-3">
-            <label for="">Email</label>
-            <input type="email" v-model="model.customer.email" class="form-control">
-          </div>
-          <RouterLink to="/customers" class="btn btn-primary float-end">Back</RouterLink>
-          <button type="button" @click="updateCustomer" class="btn btn-primary">Save</button>
+
+          <RouterLink to="/customers" class="btn btn-primary float-end ms-2">Back</RouterLink>
+          <button type="button" @click="updateUser" class="btn btn-primary">Save</button>
         </div>
       </div>
     </div>
@@ -126,7 +126,6 @@ const toggleDropdown = () => {
 const handleLogout = () => {
   localStorage.removeItem('authToken');
   router.push('/login');
-  closeHamburgerDropdown();
   dropdownVisible.value = false;
 };
 
@@ -134,7 +133,6 @@ const fetchUserData = async () => {
   try {
     const token = localStorage.getItem('authToken');
     if (!token) {
-      console.error("No auth token found.");
       handleLogout();
       return;
     }
@@ -147,23 +145,15 @@ const fetchUserData = async () => {
       }
     });
 
-    if (response.status === 401) {
-      console.error("Unauthorized: Token may be invalid.");
-      handleLogout();
-      return;
-    }
-
     if (!response.ok) {
-      throw new Error(`Failed to fetch user data. Status: ${response.status}`);
+      if (response.status === 401) handleLogout();
+      throw new Error(`Fetch failed: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log("User data:", data);
-
     username.value = data.name || "Admin";
-  } catch (error) {
-    console.error('Error fetching user data:', error);
-    username.value = "Admin";
+  } catch (err) {
+    console.error(err);
   }
 };
 
@@ -173,59 +163,58 @@ onMounted(() => {
 </script>
 
 <script>
-import axios from 'axios'
+import axios from 'axios';
 
 export default {
   name: 'CustomerEdit',
   data() {
     return {
-      customerId: '',
-      errorList: '',
+      userId: '',
+      errorList: {},
       model: {
-        customer: {
-          last_name: '',
-          first_name: '',
-          phone: '',
+        user: {
+          name: '',
+          phone_number: '',
           email: '',
+          role: 'user',
         }
       }
-    }
+    };
   },
   mounted() {
-    this.customerId = this.$route.params.id;
-    this.getCustomerData(this.customerId);
+    this.userId = this.$route.params.id;
+    this.getUserData(this.userId);
   },
   methods: {
-    getCustomerData(customerId) {
-      axios.get(`http://localhost:8001/api/customers/${customerId}`)
+    getUserData(userId) {
+      axios.get(`http://localhost:8001/api/users/${userId}`)
         .then(res => {
-          this.model.customer = res.data.customer;
+          this.model.user = res.data;
         })
-        .catch(error => {
-          if (error.response && error.response.status === 404) {
-            alert(error.response.data.message);
+        .catch(err => {
+          if (err.response?.status === 404) {
+            alert(err.response.data.message);
+            this.$router.push('/customers');
           }
         });
     },
-    updateCustomer() {
-      axios.put(`http://localhost:8001/api/customers/${this.customerId}`, this.model.customer)
+    updateUser() {
+      axios.put(`http://localhost:8001/api/users/${this.userId}`, this.model.user)
         .then(res => {
-          alert(res.data.message);
-          this.errorList = '';
+          alert(res.data.message || "User updated successfully");
+          this.errorList = {};
           this.$router.push('/customers');
         })
-        .catch(error => {
-          if (error.response) {
-            if (error.response.status === 422) {
-              this.errorList = error.response.data.errors;
-            } else if (error.response.status === 404) {
-              alert(error.response.data.message);
-            }
+        .catch(err => {
+          if (err.response?.status === 422) {
+            this.errorList = err.response.data.errors;
+          } else if (err.response?.status === 404) {
+            alert(err.response.data.message);
           }
         });
     }
   }
-}
+};
 </script>
 
 <style scoped>

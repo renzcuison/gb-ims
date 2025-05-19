@@ -6,7 +6,7 @@
     </div>
     <div class="navbar-right">
       <img src="/profile.jpg" alt="User Profile" class="icon-image-profile" @click="toggleDropdown">
-      <span class="user-name">admin</span>
+      <span class="user-name">{{ username }}</span>
       <button class="icon-button" @click="toggleDropdown">
         <img src="/drop.png" alt="Dropdown" class="icon-image">
       </button>
@@ -55,8 +55,18 @@
             </router-link>
           </li>
           <li>
+            <router-link to="/sales-report" active-class="router-link-active">
+              <img src="/dollar.png" alt="SalesReport" class="sidebar-icon">SALES
+            </router-link>
+          </li>
+          <li>
             <router-link to="/admin/orders" active-class="router-link-active">
-              <img src="/order.png" alt="Orders" class="sidebar-icon"> ORDERS
+              <img src="/order.png" alt="Orders" class="sidebar-icon"> CUSTOMER ORDERS
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/stocks/logs" active-class="router-link-active">
+              <img src="/file.png" alt="Logs" class="sidebar-icon"> LOGS
             </router-link>
           </li>
           <li>

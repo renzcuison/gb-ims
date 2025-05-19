@@ -9,16 +9,16 @@ class VerifyEmailWithCustomUrl extends VerifyEmail
 {
     protected function verificationUrl($notifiable)
     {
-        // Define frontend URL
+        
         $frontendUrl = config('app.frontend_url') . '/verify-email';
 
-        // Generate the verification URL
+       
         $verificationUrl = url(route('verification.verify', [
             'id' => $notifiable->getKey(),
             'hash' => sha1($notifiable->getEmailForVerification()),
         ], false));
 
-        // Append the verification URL and signature as query params
+        
         return $frontendUrl . '?url=' . urlencode($verificationUrl) . '&signature=' . sha1($verificationUrl);
     }
 

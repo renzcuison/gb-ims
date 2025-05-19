@@ -117,7 +117,6 @@
                   <span>{{ stock.item_name }}</span>
                   <button type="button" class="btn btn-danger ms-3" @click="removeSelectedItem(index)">Remove</button>
                 </div>
-
                 <div class="mb-3 mt-3">
                   <small><strong>Available Items: </strong></small>
                   <div class="sku-container">
@@ -137,6 +136,7 @@
                       </div>
                     </div>
                   </div>
+                  <console-log :data="stock" />
                 </div>
               </div>
             </div>
@@ -157,7 +157,7 @@
             <textarea v-model="descriptionText" class="form-control" id="description" rows="3"></textarea>
           </div>
 
-          <RouterLink to="/stocks" class="btn btn-primary">Back</RouterLink>
+          <RouterLink to="/admin/orders" class="btn btn-primary">Back</RouterLink>
           <button type="button"
             @click="() => { console.log('username.value at click:', username); saveStock(username); }"
             class="btn btn-primary float-end" :disabled="!username">
@@ -171,13 +171,14 @@
 
 <script setup>
 import axios from 'axios';
-import { ref, onMounted } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 
 const router = useRouter();
 const route = useRoute();
 const stockSearchQuery = ref('');
 const filteredItems = ref([]);
+const orderId = ref(route.query.orderId);
 const selectedItems = ref([]);
 const descriptionText = ref('');
 const selectedReason = ref('Sold');
@@ -188,6 +189,13 @@ const receiverName = ref('');
 const dropdownVisible = ref(false);
 const username = ref("");
 
+console.log('Order ID from route:', orderId.value);
+
+const ConsoleLog = {
+  props: ['data'],
+  template: '<pre>{{ JSON.stringify(data, null, 2) }}</pre>'
+};
+
 const toggleDropdown = () => {
   dropdownVisible.value = !dropdownVisible.value;
 };
@@ -196,6 +204,52 @@ const handleLogout = () => {
   localStorage.removeItem('authToken');
   router.push('/login');
   dropdownVisible.value = false;
+};
+
+const fetchOrderItems = async () => {
+  if (orderId.value) {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`http://localhost:8001/api/customer-orders/${orderId.value}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Order details:', data);
+        if (data && data.orders) {
+          items.value = data.orders.map(orderItem => ({
+            id: orderItem.stock.id,
+            item_name: orderItem.stock.item_name,
+            on_hand: orderItem.stock.on_hand,
+            stock: orderItem.stock,
+            quantity: orderItem.quantity,
+          }));
+          filteredItems.value = [...items.value];
+          console.log('Items (for top table) after fetch:', items.value);
+          console.log('Selected Items after fetch:', selectedItems.value);
+        } else {
+          items.value = [];
+          filteredItems.value = [];
+          console.log('No orders found for this ID.');
+        }
+      } else {
+        console.error('Failed to fetch order details:', response.status);
+        items.value = [];
+        filteredItems.value = [];
+      }
+    } catch (error) {
+      console.error('Error fetching order details:', error);
+      items.value = [];
+      filteredItems.value = [];
+    }
+  } else {
+    console.log('No order ID provided.');
+    items.value = [];
+    filteredItems.value = [];
+  }
 };
 
 const fetchUserData = async () => {
@@ -226,19 +280,20 @@ const fetchUserData = async () => {
     console.log("Username set to default (error): Admin");
   }
 };
-
 function toggleSkuSelection(stock, sku) {
-  const skuIndex = stock.selectedSkus.indexOf(sku.sku);
+  const index = stock.selectedSkus.indexOf(sku.sku);
 
-  if (skuIndex !== -1) {
-    stock.selectedSkus.splice(skuIndex, 1);
-    console.log("Payload for DELETE SKU:", { stockId: stock.stock_id, skuId: sku.sku });
-    removeSkuFromDatabase(stock.stock_id, sku.sku);
+  if (index !== -1) {
+    stock.selectedSkus.splice(index, 1);
   } else {
+    if (stock.selectedSkus.length >= stock.maxSelectableSkus) {
+      alert(`You can only select ${stock.maxSelectableSkus} SKU(s) for this item.`);
+      return;
+    }
     stock.selectedSkus.push(sku.sku);
-    console.log("Payload for ADD SKU:", { stockId: stock.stock_id, skuId: sku.sku });
   }
 }
+
 function removeSkuFromDatabase(stockId, skuId) {
   if (!skuId || !stockId) {
     console.log("Missing SKU ID or Stock ID:", { skuId, stockId });
@@ -296,35 +351,30 @@ function filterItemList() {
     )
     : [...items.value];
 }
-function selectItem(stock) {
-  if (!selectedItems.value.some((selected) => selected.stock_id === stock.id)) {
-    const selectedStock = items.value.find((s) => s.id === stock.id);
 
-
-    let supplier_ids = [];
-    if (Array.isArray(selectedStock.suppliers) && selectedStock.suppliers.length > 0) {
-      supplier_ids = selectedStock.suppliers.map(s => s.id);
-    } else if (selectedStock.supplier_id) {
-      supplier_ids = [selectedStock.supplier_id];
-    }
-
-    const newItem = {
-      stock_id: stock.id,
-      item_name: stock.item_name,
-      unit_of_measure: 'Pc',
-      supplier_ids,
-      quantity: 1,
-      skus: selectedStock.skus || [],
+function selectItem(orderItemFromTable) {
+  console.log('orderItemFromTable.stock:', orderItemFromTable.stock);
+  console.log('orderItemFromTable.stock?.skus:', orderItemFromTable.stock?.skus);
+  if (!selectedItems.value.some((selected) => selected.stock_id === orderItemFromTable.id)) {
+    const newItem = reactive({
+      stock_id: orderItemFromTable.id,
+      item_name: orderItemFromTable.item_name,
+      unit_of_measure: orderItemFromTable.stock?.unit_of_measure || 'Pc',
+      supplier_ids: orderItemFromTable.stock?.suppliers?.map(s => s.id) || (orderItemFromTable.stock?.supplier_id ? [orderItemFromTable.stock.supplier_id] : []),
+      quantity: orderItemFromTable.quantity,
+      skus: orderItemFromTable.stock?.skus || [],
       selectedSkus: [],
-      category_id: stock.category_id || null,
-      physical_count: stock.physical_count || 0,
-      on_hand: stock.on_hand || 0,
-      sold: stock.sold || 0,
-      price_per_unit: stock.price_per_unit || 0,
-      description: stock.description || '',
-    };
+      maxSelectableSkus: orderItemFromTable.quantity || 1,
+      category_id: orderItemFromTable.stock?.category_id || null,
+      physical_count: orderItemFromTable.stock?.physical_count || 0,
+      on_hand: orderItemFromTable.stock?.on_hand || 0,
+      sold: orderItemFromTable.stock?.sold || 0,
+      price_per_unit: orderItemFromTable.stock?.price_per_unit || 0,
+      description: orderItemFromTable.stock?.description || '',
+    });
 
-    selectedItems.value.push(newItem);
+    selectedItems.value = [...selectedItems.value, newItem];
+    console.log('Item added to selectedItems:', newItem);
   }
 }
 
@@ -387,17 +437,57 @@ function saveStock(username) {
           receiver: receiverName.value
         };
 
-        return axios.put(`http://localhost:8001/api/stocks/${stock.stock_id}`, stockPayload);
+        console.log("Sending stock update payload:", stockPayload);
+        return axios.put(`http://localhost:8001/api/stocks/${stock.stock_id}`, stockPayload)
+          .then(() => {
+            console.log("Stock updated successfully.");
+          })
+          .catch((error) => {
+            if (error.response && error.response.status === 422) {
+              console.error("Validation failed:");
+              const errors = error.response.data.errors;
+              if (errors) {
+                Object.entries(errors).forEach(([field, messages]) => {
+                  console.error(`• ${field}: ${messages.join(', ')}`);
+                });
+              } else {
+                console.error("No detailed errors returned from backend.");
+              }
+            } else {
+              console.error("Unknown error during stock update:", error);
+            }
+            throw error;
+          });
+        // return axios.put(`http://localhost:8001/api/stocks/${stock.stock_id}`, stockPayload);
+
       });
   });
 
   Promise.all(requests)
     .then(() => {
       console.log("All stock updates and logs have been processed successfully.");
-      router.push('/stocks');
+      axios.put(`http://localhost:8001/api/customer-orders/${orderId.value}`, {
+        status: "Completed",
+        verified_by: username.value || "Admin"
+      })
+        .then(() => {
+          console.log("Order status updated to Completed.");
+          router.push('/admin/orders');
+        })
+        .catch((err) => {
+          console.error("Failed to update order status:", err);
+        });
     })
-    .catch((error) => {
-      console.error("Error processing stock out:", error);
+    .catch((err) => {
+      if (err.response && err.response.status === 422) {
+        const errors = err.response.data.errors;
+        console.error("Validation errors:", errors);
+        Object.entries(errors).forEach(([field, messages]) => {
+          console.error(`${field}: ${messages.join(', ')}`);
+        });
+      } else {
+        console.error("Failed to update order status:", err);
+      }
     });
 }
 
@@ -428,9 +518,8 @@ function fetchTransactions(stockId) {
 }
 onMounted(() => {
   fetchUserData();
-  fetchSuppliers().then(() => {
-    fetchItems();
-  });
+  fetchOrderItems();
+  fetchSuppliers();
 });
 </script>
 

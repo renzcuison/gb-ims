@@ -12,7 +12,7 @@
     </div>
     <div class="navbar-right">
       <a href="stocks">
-        <button class="icon-button">
+        <button v-if="isAdmin || isEmployee" class="icon-button">
           <img src="/star.png" alt="Bag" class="icon-image-star" />
         </button>
       </a>

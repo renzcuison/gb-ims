@@ -6,7 +6,7 @@
     </div>
     <div class="navbar-right">
       <img src="/profile.jpg" alt="User Profile" class="icon-image-profile" @click="toggleDropdown">
-      <span class="user-name">admin</span>
+      <span class="user-name">{{ username }}</span>
       <button class="icon-button" @click="toggleDropdown">
         <img src="/drop.png" alt="Dropdown" class="icon-image">
       </button>
@@ -85,7 +85,6 @@
           <h4 class="stocks">
             Items
             <RouterLink to="/stocks/adjust" class="btn btn-primary float-end">Report</RouterLink>
-            <RouterLink to="/stocks/release" class="btn btn-primary float-end me-2">Confirm</RouterLink>
             <RouterLink to="/stocks/in" class="btn btn-primary float-end me-2" @refresh-stocks="getStocks">In
             </RouterLink>
             <RouterLink to="/stocks/create" class="btn btn-primary float-end me-2">Add Item</RouterLink>
